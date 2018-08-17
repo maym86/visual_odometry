@@ -13,9 +13,9 @@ public:
     FeatureMatcher();
 
     void addFrame(cv::Mat image);
-    void getMatches(std::vector<cv::DMatch> *good_matches,
-            std::vector<cv::Point2f> *good_points0,
-            std::vector<cv::Point2f> *good_points1);
+    void getMatches(std::vector<cv::DMatch> *matches,
+            std::vector<cv::Point2f> *points0,
+            std::vector<cv::Point2f> *points1);
 
     cv::Mat drawMatches();
 

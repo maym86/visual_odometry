@@ -30,7 +30,7 @@ void FeatureMatcher::addFrame(cv::Mat image) {
 }
 
 
-void FeatureMatcher::getMatches(std::vector<cv::DMatch> *good_matches, std::vector<cv::Point2f> *good_points0, std::vector<cv::Point2f> *good_points1){
+void FeatureMatcher::getMatches(std::vector<cv::DMatch> *matches, std::vector<cv::Point2f> *points0, std::vector<cv::Point2f> *points1){
 
     if(descriptors_.size() != 2){
         return;
@@ -45,18 +45,17 @@ void FeatureMatcher::getMatches(std::vector<cv::DMatch> *good_matches, std::vect
 
     for( int i = 0; i < initial_matches.size(); i++ ) {
         if( initial_matches[i].distance <= kMinDist) { //TODO revisit use Lowes method?? 0.8
-            good_matches->push_back( initial_matches[i]);
-            good_points0->push_back(kp0[initial_matches[i].queryIdx].pt);
-            good_points1->push_back(kp1[initial_matches[i].trainIdx].pt);
+            matches->push_back( initial_matches[i]);
+            points0->push_back(kp0[initial_matches[i].queryIdx].pt);
+            points1->push_back(kp1[initial_matches[i].trainIdx].pt);
         }
     }
 
-    matches_ = *good_matches;
+    matches_ = *matches;
 }
 
 
 cv::Mat FeatureMatcher::drawMatches() {
-
     cv::Mat output;
     if(images_.size() == 2){
         cv::drawMatches(images_.front(), keypoints_.front(), images_.back(), keypoints_.back(), matches_, output);
