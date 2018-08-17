@@ -86,24 +86,23 @@ int main(int argc, char *argv[]) {
         const auto &kp0 = keypoints.front();
         const auto &kp1 = keypoints.back();
 
-        std::vector<cv::Point2f> selected_points0, selected_points1;
+        std::vector<cv::Point2f> good_points0, good_points1;
 
         for( int i = 0; i < matches.size(); i++ ) {
             if( matches[i].distance <= kMinDist) { //TODO revisit use Lowes method?? 0.8
                 good_matches.push_back( matches[i]);
-                selected_points0.push_back(kp0[matches[i].queryIdx].pt);
-                selected_points1.push_back(kp1[matches[i].trainIdx].pt);
+                good_points0.push_back(kp0[matches[i].queryIdx].pt);
+                good_points1.push_back(kp1[matches[i].trainIdx].pt);
             }
         }
 
-        double focal = 500.0;
+        double focal = 600.0;
         cv::Point2d pp(img.cols/2, img.rows/2);
         cv::Mat E, R, t, mask;
 
-        E = cv::findEssentialMat(selected_points0, selected_points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
-        recoverPose(E, selected_points0, selected_points1, R, t, focal, pp, mask);
+        E = cv::findEssentialMat(good_points0, good_points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+        recoverPose(E, good_points0, good_points1, R, t, focal, pp, mask);
 
-        ///TODO get this right
         pos_R = R * pos_R;
         pos_t = pos_t +  (pos_R * t);
 
