@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     double focal = 707.0912;
     cv::Point2d pp(601.8873, 183.1104);
 
-    cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create(2000);
+    cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create(1000);
     cv::Ptr<cv::DescriptorExtractor> extractor = cv::ORB::create();
     cv::FlannBasedMatcher matcher;
 
@@ -97,6 +97,11 @@ int main(int argc, char *argv[]) {
                 good_points0.push_back(kp0[matches[i].queryIdx].pt);
                 good_points1.push_back(kp1[matches[i].trainIdx].pt);
             }
+        }
+
+        if(good_matches.size() < 8) {
+            LOG(WARNING) << "Too few good matches";
+            continue;
         }
 
         cv::Mat E, R, t, mask;
