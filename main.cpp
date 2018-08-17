@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        double focal = 1.0;
-        cv::Point2d pp(0.0, 0.0);
+        double focal = 500.0;
+        cv::Point2d pp(img.cols/2, img.rows/2);
         cv::Mat E, R, t, mask;
 
         E = cv::findEssentialMat(selected_points0, selected_points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
