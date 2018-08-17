@@ -22,7 +22,6 @@ static bool validatePath(const char *flagname, const std::string &value) {
     return true;
 }
 
-const int kMinDist = 200;
 const float kScale = 1;
 
 DEFINE_string(dir, "", "Data directory");
