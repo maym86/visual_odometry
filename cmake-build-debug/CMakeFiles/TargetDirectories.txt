@@ -1,3 +1,0 @@
-/home/maym86/me/visual_odemetry/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/maym86/me/visual_odemetry/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/maym86/me/visual_odemetry/cmake-build-debug/CMakeFiles/VisualOdemetry.dir
