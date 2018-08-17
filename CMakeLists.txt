@@ -14,7 +14,7 @@ find_package(gflags REQUIRED)
 find_package(glog REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR})
-file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp)
+file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 add_executable( VisualOdemetry ${SRC_FILES})
 
