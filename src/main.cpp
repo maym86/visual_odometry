@@ -40,13 +40,16 @@ int main(int argc, char *argv[]) {
     cv::Mat output;
 
 
+    double focal = 707.0912;
+    cv::Point2d pp(601.8873, 183.1104);
+
     cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create(2000);
     cv::Ptr<cv::DescriptorExtractor> extractor = cv::ORB::create();
     cv::FlannBasedMatcher matcher;
 
-    bool first = true;
+    bool done = false;
 
-    cv::Mat map(1000, 1000, CV_8UC3, cv::Scalar(0,0,0));
+    cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0,0,0));
 
     cv::Mat_<double> pos_t = cv::Mat::zeros(3,1,CV_64FC1);
     cv::Mat_<double> pos_R = cv::Mat::eye(3,3,CV_64FC1);
@@ -96,17 +99,15 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        double focal = 600.0;
-        cv::Point2d pp(img.cols/2, img.rows/2);
         cv::Mat E, R, t, mask;
 
         E = cv::findEssentialMat(good_points0, good_points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
         recoverPose(E, good_points0, good_points1, R, t, focal, pp, mask);
 
         pos_R = R * pos_R;
-        pos_t = pos_t +  (pos_R * t);
+        pos_t -=  kScale * (pos_R * t);
 
-        cv::Point2d draw_pos = cv::Point2d(pos_t.at<double>(0) *kScale + 500, pos_t.at<double>(2) *kScale + 500);
+        cv::Point2d draw_pos = cv::Point2d(pos_t.at<double>(0) + map.cols/2, pos_t.at<double>(2) + map.rows/2);
         cv::circle(map, draw_pos, 2, cv::Scalar(255,0,0), 2);
 
         drawMatches(images.front(), keypoints.front(), images.back(), keypoints.back(), good_matches, output);
@@ -116,9 +117,17 @@ int main(int argc, char *argv[]) {
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27){
+            done = true;
             break;
         }
     }
 
+
+    while(!done) {
+        char key = static_cast<char>(cv::waitKey(33));
+        if (key == 27) {
+            done = true;
+        }
+    }
 
 }
