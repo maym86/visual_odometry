@@ -11,9 +11,9 @@
 #include <cxcore.h>
 #include <highgui.h>
 
-#include "src/features/feature_detector.h"
-#include "src/features/feature_tracker.h"
+
 #include "src/kitti_devkit/cpp/evaluate_odometry.h"
+#include "vo.h"
 
 using namespace boost::filesystem;
 
@@ -72,31 +72,19 @@ void saveResults(const std::string &gt_poses_path, const std::string &res_dir, c
     boost::filesystem::create_directory(res_dir);
     std::vector<Matrix> gt_poses = loadPoses(gt_poses_path);
     std::string plot_dir = res_dir + "/plot/";
-    std::string err_dir = res_dir + "/err/";
+
     boost::filesystem::create_directory(plot_dir);
-    boost::filesystem::create_directory(err_dir);
 
     savePathPlot(gt_poses,result_poses, plot_dir + seq + ".txt");
     std::vector<int32_t> roi = computeRoi(gt_poses,result_poses);
     plotPathPlot(plot_dir,roi,stoi(FLAGS_seq));
 
+    /*
+    std::string err_dir = res_dir + "/err/";
+    boost::filesystem::create_directory(err_dir);
     std::vector<errors> seq_err = calcSequenceErrors(gt_poses,result_poses);
     saveSequenceErrors(seq_err,err_dir + "errors.txt");
-}
-
-
-cv::Mat drawMatches(const cv::Mat &image, const std::vector<cv::Point2f> &p0, const std::vector<cv::Point2f> &p1,
-                    const cv::Mat &mask, const cv::Scalar &color) {
-
-    cv::Mat output = image.clone();
-    for (int i = 0; i < p0.size(); i++) {
-        if (mask.at<bool>(i)) {
-            cv::line(output, p0[i], p1[i], color, 2);
-        }
-    }
-
-    return output;
-
+    */
 }
 
 int main(int argc, char *argv[]) {
@@ -129,6 +117,7 @@ int main(int argc, char *argv[]) {
 
     double focal = intrinsics.at<double>(0, 0);
     cv::Point2d pp(intrinsics.at<double>(0, 2), intrinsics.at<double>(1, 2));
+
     LOG(INFO) << "Focal length " << focal << ", principal point: " << pp;
 
 
@@ -139,78 +128,29 @@ int main(int argc, char *argv[]) {
     cv::Mat_<double> pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat_<double> pose_R = cv::Mat::eye(3, 3, CV_64FC1);
 
-    FeatureDetector feature_detector;
-    FeatureTracker feature_tracker;
-
     bool done = false;
-    int match_count = 0;
 
-    cv::cuda::GpuMat prev_gpu_image;
-    std::vector<cv::DMatch> matches;
-    std::vector<cv::Point2f> points_previous, points;
-
-    bool tracking = false;
+    VisualOdemetry vo(focal, pp);
 
     for (const auto &file_name : file_names) {
 
         cv::Mat image = cv::imread(file_name);
 
-        cv::Mat image_grey;
-        cv::cuda::GpuMat gpu_image;
-        cv::cvtColor(image, image_grey, CV_BGR2GRAY);
-        gpu_image.upload(image_grey);
-
-        if (prev_gpu_image.empty()) {
-            prev_gpu_image = gpu_image.clone();
-            continue;
-        }
-
-        cv::Scalar draw_color(0, 0, 255);
-        if (!tracking) {
-            points_previous = feature_detector.detect(prev_gpu_image);
-            if (points_previous.size() < 8) {
-                LOG(WARNING) << "Too few good matches";
-                continue;
-            }
-            tracking = true;
-            draw_color = cv::Scalar(255, 0, 0);
-        }
-
-
-        points = feature_tracker.trackPoints(prev_gpu_image, gpu_image, &points_previous);
-
-        if (points.size() < kMinTrackedPoints) {
-            tracking = false;
-        }
-
-        LOG(INFO) << "Points size: " << points_previous.size() << ", " << points.size();
-
-        cv::Mat E, R, t, mask;
-
-        E = cv::findEssentialMat( points, points_previous,  focal, pp, cv::RANSAC, 0.999, 1.0, mask);
-        int res = recoverPose(E, points, points_previous,   R, t, focal, pp, mask);
-
-        if(res > 10) {
-            pose_R = R * pose_R;
-            pose_t += kScale * (pose_R * t);
-
-            cv::Point2d draw_pos = cv::Point2d(pose_t.at<double>(0) + map.cols / 2, -pose_t.at<double>(2) + map.rows / 2);
-            cv::circle(map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
-        }
+        vo.addImage(image, &pose_R, &pose_t);
 
         result_poses.emplace_back(kittiResultMat(pose_R, pose_t));
 
+        cv::Point2d draw_pos = cv::Point2d(pose_t.at<double>(0) + map.cols / 2, -pose_t.at<double>(2) + map.rows / 2);
+        cv::circle(map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
+
         cv::imshow("Map", map);
-        cv::imshow("Features", drawMatches(image, points_previous, points, mask, draw_color));
+        cv::imshow("Features", vo.drawMatches(image));
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27) {
             done = true;
             break;
         }
-
-        points_previous = points;
-        prev_gpu_image = gpu_image.clone();
     }
 
     std::string res_dir = FLAGS_res_dir + "/" + FLAGS_seq;
