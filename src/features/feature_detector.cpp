@@ -2,12 +2,13 @@
 
 
 FeatureDetector::FeatureDetector(){
-    detector_ = cv::ORB::create(kMinFeatures);
+    gpu_detector_ = cv::cuda::ORB::create(kMinFeatures);
 }
 
-std::vector<cv::Point2f> FeatureDetector::detect(const cv::Mat &image) {
+std::vector<cv::Point2f> FeatureDetector::detect(const cv::cuda::GpuMat &image_gpu) {
     std::vector<cv::KeyPoint> keypoints;
-    detector_->detect(image, keypoints);
+
+    gpu_detector_->detect(image_gpu, keypoints);
 
     std::vector<cv::Point2f> results;
 

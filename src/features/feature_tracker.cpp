@@ -1,19 +1,28 @@
 
-#include <opencv/cv.hpp>
 #include "feature_tracker.h"
 
-std::vector<cv::Point2f> trackPoints(const cv::Mat &img0, const cv::Mat &img1, std::vector<cv::Point2f> *prev_points) {
+FeatureTracker::FeatureTracker(){
+     optical_flow_ = cv::cuda::SparsePyrLKOpticalFlow::create(cv::Size(21, 21), 3, 30);
+}
 
-    std::vector<cv::Point2f> next_points;
 
-    std::vector<float> err;
-    cv::Size win_size(21, 21);
-    cv::TermCriteria term_criteria = cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01);
+std::vector<cv::Point2f> FeatureTracker::trackPoints(const cv::cuda::GpuMat &img0, const cv::cuda::GpuMat &img1, std::vector<cv::Point2f> *prev_points) {
+    cv::cuda::GpuMat next_points_gpu;
+    cv::cuda::GpuMat status_gpu;
 
-    std::vector<uchar> status;
+    cv::cuda::GpuMat prev_points_gpu;
+    cv::Mat prev_points_mat(1, (int) prev_points->size(), CV_32FC2, (void*) &(*prev_points)[0]);
+    prev_points_gpu.upload(prev_points_mat);
 
-    cv::calcOpticalFlowPyrLK(img0, img1, *prev_points, next_points,
-                             status, err, win_size, 3, term_criteria, 0, 0.001);
+    optical_flow_->calc(img0, img1, prev_points_gpu, next_points_gpu, status_gpu);
+
+    std::vector<cv::Point2f> next_points(next_points_gpu.cols);
+    cv::Mat next_points_mat(1, next_points_gpu.cols, CV_32FC2, (void*)&next_points[0]);
+    next_points_gpu.download(next_points_mat);
+
+    std::vector<unsigned char> status(status_gpu.cols);
+    cv::Mat status_mat(1, status_gpu.cols, CV_8UC1, (void*)&status[0]);
+    status_gpu.download(status_mat);
 
     //Remove bad points
     for (int i = status.size() - 1; i >= 0; --i) {

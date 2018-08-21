@@ -4,7 +4,9 @@
 
 #include <list>
 #include <vector>
-#include "opencv2/features2d/features2d.hpp"
+
+#include <opencv2/cudafeatures2d.hpp>
+
 
 class FeatureDetector {
 
@@ -12,11 +14,11 @@ public:
 
     FeatureDetector();
 
-    std::vector<cv::Point2f> detect(const cv::Mat &image);
+    std::vector<cv::Point2f> detect(const cv::cuda::GpuMat &image_gpu);
 
 private:
     const int kMinFeatures = 3000;
-    cv::Ptr<cv::FeatureDetector> detector_;
+    cv::Ptr<cv::cuda::ORB> gpu_detector_;
 };
 
 

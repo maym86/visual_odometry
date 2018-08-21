@@ -7,7 +7,6 @@
 #include <vector>
 #include <fstream>
 
-#include <opencv2/imgcodecs.hpp>
 #include <cv.hpp>
 #include <cxcore.h>
 #include <highgui.h>
@@ -49,10 +48,10 @@ cv::Mat loadKittiCalibration(std::string calib_file, int line_number) {
 }
 
 
-cv::Mat drawMatches(const cv::Mat &img, const std::vector<cv::Point2f> &p0, const std::vector<cv::Point2f> &p1,
+cv::Mat drawMatches(const cv::Mat &image, const std::vector<cv::Point2f> &p0, const std::vector<cv::Point2f> &p1,
                     const cv::Mat &mask, const cv::Scalar &color) {
 
-    cv::Mat output = img.clone();
+    cv::Mat output = image.clone();
     for (int i = 0; i < p0.size(); i++) {
         if (mask.at<bool>(i)) {
             cv::line(output, p0[i], p1[i], color, 2);
@@ -62,19 +61,6 @@ cv::Mat drawMatches(const cv::Mat &img, const std::vector<cv::Point2f> &p0, cons
     return output;
 
 }
-
-int checkMask(const cv::Mat &mask, int size) {
-
-    int count = 0;
-    for (int i = 0; i < size; i++) {
-        if (mask.at<bool>(i)) {
-            count++;
-        }
-    }
-    return count;
-
-}
-
 
 int main(int argc, char *argv[]) {
 
@@ -110,12 +96,13 @@ int main(int argc, char *argv[]) {
     cv::Mat_<double> pos_t = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat_<double> pos_R = cv::Mat::eye(3, 3, CV_64FC1);
 
-    FeatureDetector feature_matcher;
+    FeatureDetector feature_detector;
+    FeatureTracker feature_tracker;
 
     bool done = false;
     int match_count = 0;
 
-    cv::Mat prev_img;
+    cv::cuda::GpuMat prev_gpu_image;
     std::vector<cv::DMatch> matches;
     std::vector<cv::Point2f> points_previous, points;
 
@@ -123,16 +110,21 @@ int main(int argc, char *argv[]) {
 
     for (const auto &file_name : file_names) {
 
-        cv::Mat img = cv::imread(file_name);
-        if (prev_img.empty()) {
-            prev_img = img.clone();
+        cv::Mat image = cv::imread(file_name);
+
+        cv::Mat image_grey;
+        cv::cuda::GpuMat gpu_image;
+        cv::cvtColor(image, image_grey, CV_BGR2GRAY);
+        gpu_image.upload(image_grey);
+
+        if (prev_gpu_image.empty()) {
+            prev_gpu_image = gpu_image.clone();
             continue;
         }
 
         cv::Scalar draw_color(0, 0, 255);
         if (!tracking) {
-            points_previous = feature_matcher.detect(prev_img);
-            feature_matcher.detect(img);
+            points_previous = feature_detector.detect(prev_gpu_image);
             if (points_previous.size() < 8) {
                 LOG(WARNING) << "Too few good matches";
                 continue;
@@ -142,7 +134,7 @@ int main(int argc, char *argv[]) {
         }
 
 
-        points = trackPoints(prev_img, img, &points_previous);
+        points = feature_tracker.trackPoints(prev_gpu_image, gpu_image, &points_previous);
 
         if (points.size() < kMinTrackedPoints) {
             tracking = false;
@@ -164,7 +156,7 @@ int main(int argc, char *argv[]) {
         }
 
         cv::imshow("Map", map);
-        cv::imshow("Features", drawMatches(img, points_previous, points, mask, draw_color));
+        cv::imshow("Features", drawMatches(image, points_previous, points, mask, draw_color));
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27) {
@@ -173,7 +165,7 @@ int main(int argc, char *argv[]) {
         }
 
         points_previous = points;
-        prev_img = img.clone();
+        prev_gpu_image = gpu_image.clone();
     }
 
 
