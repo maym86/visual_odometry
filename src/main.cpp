@@ -161,13 +161,12 @@ int main(int argc, char *argv[]) {
         if(res > 10) {
             pos_R = R * pos_R;
             pos_t += kScale * (pos_R * t);
+
+            cv::Point2d draw_pos = cv::Point2d(pos_t.at<double>(0) + map.cols / 2, pos_t.at<double>(2) + map.rows / 2);
+            cv::circle(map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
         }
 
-        cv::Point2d draw_pos = cv::Point2d(pos_t.at<double>(0) + map.cols / 2, pos_t.at<double>(2) + map.rows / 2);
-        cv::circle(map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
-
         cv::imshow("Map", map);
-
         cv::imshow("Features", drawMatches(img, points0, points1, mask, draw_color));
 
         char key = static_cast<char>(cv::waitKey(1));
