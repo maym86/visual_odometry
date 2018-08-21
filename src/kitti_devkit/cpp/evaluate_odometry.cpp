@@ -1,11 +1,10 @@
+
+#include "evaluate_odometry.h"
+
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
-#include <vector>
 #include <limits>
-
-#include "mail.h"
-#include "matrix.h"
 
 using namespace std;
 
@@ -14,15 +13,6 @@ using namespace std;
 float lengths[] = {100,200,300,400,500,600,700,800};
 int32_t num_lengths = 8;
 
-struct errors {
-  int32_t first_frame;
-  float   r_err;
-  float   t_err;
-  float   len;
-  float   speed;
-  errors (int32_t first_frame,float r_err,float t_err,float len,float speed) :
-    first_frame(first_frame),r_err(r_err),t_err(t_err),len(len),speed(speed) {}
-};
 
 vector<Matrix> loadPoses(string file_name) {
   vector<Matrix> poses;
@@ -32,9 +22,9 @@ vector<Matrix> loadPoses(string file_name) {
   while (!feof(fp)) {
     Matrix P = Matrix::eye(4);
     if (fscanf(fp, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
-                   &P.val[0][0], &P.val[0][1], &P.val[0][2], &P.val[0][3],
-                   &P.val[1][0], &P.val[1][1], &P.val[1][2], &P.val[1][3],
-                   &P.val[2][0], &P.val[2][1], &P.val[2][2], &P.val[2][3] )==12) {
+               &P.val[0][0], &P.val[0][1], &P.val[0][2], &P.val[0][3],
+               &P.val[1][0], &P.val[1][1], &P.val[1][2], &P.val[1][3],
+               &P.val[2][0], &P.val[2][1], &P.val[2][2], &P.val[2][3] )==12) {
       poses.push_back(P);
     }
   }
@@ -85,22 +75,22 @@ vector<errors> calcSequenceErrors (vector<Matrix> &poses_gt,vector<Matrix> &pose
 
   // parameters
   int32_t step_size = 10; // every second
-  
+
   // pre-compute distances (from ground truth as reference)
   vector<float> dist = trajectoryDistances(poses_gt);
- 
+
   // for all start positions do
   for (int32_t first_frame=0; first_frame<poses_gt.size(); first_frame+=step_size) {
-  
+
     // for all segment lengths do
     for (int32_t i=0; i<num_lengths; i++) {
-    
+
       // current length
       float len = lengths[i];
-      
+
       // compute last frame
       int32_t last_frame = lastFrameFromSegmentLength(dist,first_frame,len);
-      
+
       // continue, if sequence not long enough
       if (last_frame==-1)
         continue;
@@ -111,11 +101,11 @@ vector<errors> calcSequenceErrors (vector<Matrix> &poses_gt,vector<Matrix> &pose
       Matrix pose_error        = Matrix::inv(pose_delta_result)*pose_delta_gt;
       float r_err = rotationError(pose_error);
       float t_err = translationError(pose_error);
-      
+
       // compute speed
       float num_frames = (float)(last_frame-first_frame+1);
       float speed = len/(0.1*num_frames);
-      
+
       // write to file
       err.push_back(errors(first_frame,r_err/len,t_err/len,len,speed));
     }
@@ -130,11 +120,11 @@ void saveSequenceErrors (vector<errors> &err,string file_name) {
   // open file  
   FILE *fp;
   fp = fopen(file_name.c_str(),"w");
- 
+
   // write to file
   for (vector<errors>::iterator it=err.begin(); it!=err.end(); it++)
     fprintf(fp,"%d %f %f %f %f\n",it->first_frame,it->r_err,it->t_err,it->len,it->speed);
-  
+
   // close file
   fclose(fp);
 }
@@ -146,43 +136,43 @@ void savePathPlot (vector<Matrix> &poses_gt,vector<Matrix> &poses_result,string 
 
   // open file  
   FILE *fp = fopen(file_name.c_str(),"w");
- 
+
   // save x/z coordinates of all frames to file
   for (int32_t i=0; i<poses_gt.size(); i+=step_size)
     fprintf(fp,"%f %f %f %f\n",poses_gt[i].val[0][3],poses_gt[i].val[2][3],
-                               poses_result[i].val[0][3],poses_result[i].val[2][3]);
-  
+            poses_result[i].val[0][3],poses_result[i].val[2][3]);
+
   // close file
   fclose(fp);
 }
 
 vector<int32_t> computeRoi (vector<Matrix> &poses_gt,vector<Matrix> &poses_result) {
-  
+
   float x_min = numeric_limits<int32_t>::max();
   float x_max = numeric_limits<int32_t>::min();
   float z_min = numeric_limits<int32_t>::max();
   float z_max = numeric_limits<int32_t>::min();
-  
+
   for (vector<Matrix>::iterator it=poses_gt.begin(); it!=poses_gt.end(); it++) {
     float x = it->val[0][3];
     float z = it->val[2][3];
     if (x<x_min) x_min = x; if (x>x_max) x_max = x;
     if (z<z_min) z_min = z; if (z>z_max) z_max = z;
   }
-  
+
   for (vector<Matrix>::iterator it=poses_result.begin(); it!=poses_result.end(); it++) {
     float x = it->val[0][3];
     float z = it->val[2][3];
     if (x<x_min) x_min = x; if (x>x_max) x_max = x;
     if (z<z_min) z_min = z; if (z>z_max) z_max = z;
   }
-  
+
   float dx = 1.1*(x_max-x_min);
   float dz = 1.1*(z_max-z_min);
   float mx = 0.5*(x_max+x_min);
   float mz = 0.5*(z_max+z_min);
   float r  = 0.5*max(dx,dz);
-  
+
   vector<int32_t> roi;
   roi.push_back((int32_t)(mx-r));
   roi.push_back((int32_t)(mx+r));
@@ -198,7 +188,7 @@ void plotPathPlot (string dir,vector<int32_t> &roi,int32_t idx) {
   char file_name[256];
   sprintf(file_name,"%02d.gp",idx);
   string full_name = dir + "/" + file_name;
-  
+
   // create png + eps
   for (int32_t i=0; i<2; i++) {
 
@@ -222,15 +212,15 @@ void plotPathPlot (string dir,vector<int32_t> &roi,int32_t idx) {
     fprintf(fp,"plot \"%02d.txt\" using 1:2 lc rgb \"#FF0000\" title 'Ground Truth' w lines,",idx);
     fprintf(fp,"\"%02d.txt\" using 3:4 lc rgb \"#0000FF\" title 'Visual Odometry' w lines,",idx);
     fprintf(fp,"\"< head -1 %02d.txt\" using 1:2 lc rgb \"#000000\" pt 4 ps 1 lw 2 title 'Sequence Start' w points\n",idx);
-    
+
     // close file
     fclose(fp);
-    
+
     // run gnuplot => create png + eps
     sprintf(command,"cd %s; gnuplot %s",dir.c_str(),file_name);
     system(command);
   }
-  
+
   // create pdf and crop
   sprintf(command,"cd %s; ps2pdf %02d.eps %02d_large.pdf",dir.c_str(),idx,idx);
   system(command);
@@ -253,7 +243,7 @@ void saveErrorPlots(vector<errors> &seq_err,string plot_error_dir,char* prefix) 
   FILE *fp_rl = fopen(file_name_rl,"w");
   FILE *fp_ts = fopen(file_name_ts,"w");
   FILE *fp_rs = fopen(file_name_rs,"w");
- 
+
   // for each segment length do
   for (int32_t i=0; i<num_lengths; i++) {
 
@@ -269,14 +259,14 @@ void saveErrorPlots(vector<errors> &seq_err,string plot_error_dir,char* prefix) 
         num++;
       }
     }
-    
+
     // we require at least 3 values
     if (num>2.5) {
       fprintf(fp_tl,"%f %f\n",lengths[i],t_err/num);
       fprintf(fp_rl,"%f %f\n",lengths[i],r_err/num);
     }
   }
-  
+
   // for each driving speed do (in m/s)
   for (float speed=2; speed<25; speed+=2) {
 
@@ -292,14 +282,14 @@ void saveErrorPlots(vector<errors> &seq_err,string plot_error_dir,char* prefix) 
         num++;
       }
     }
-    
+
     // we require at least 3 values
     if (num>2.5) {
       fprintf(fp_ts,"%f %f\n",speed,t_err/num);
       fprintf(fp_rs,"%f %f\n",speed,r_err/num);
     }
   }
-  
+
   // close files
   fclose(fp_tl);
   fclose(fp_rl);
@@ -313,7 +303,7 @@ void plotErrorPlots (string dir,char* prefix) {
 
   // for all four error plots do
   for (int32_t i=0; i<4; i++) {
- 
+
     // create suffix
     char suffix[16];
     switch (i) {
@@ -322,12 +312,12 @@ void plotErrorPlots (string dir,char* prefix) {
       case 2: sprintf(suffix,"ts"); break;
       case 3: sprintf(suffix,"rs"); break;
     }
-       
+
     // gnuplot file name
     char file_name[1024]; char full_name[1024];
     sprintf(file_name,"%s_%s.gp",prefix,suffix);
     sprintf(full_name,"%s/%s",dir.c_str(),file_name);
-    
+
     // create png + eps
     for (int32_t j=0; j<2; j++) {
 
@@ -342,7 +332,7 @@ void plotErrorPlots (string dir,char* prefix) {
         fprintf(fp,"set term postscript eps enhanced color\n");
         fprintf(fp,"set output \"%s_%s.eps\"\n",prefix,suffix);
       }
-      
+
       // start plot at 0
       fprintf(fp,"set size ratio 0.5\n");
       fprintf(fp,"set yrange [0:*]\n");
@@ -350,11 +340,11 @@ void plotErrorPlots (string dir,char* prefix) {
       // x label
       if (i<=1) fprintf(fp,"set xlabel \"Path Length [m]\"\n");
       else      fprintf(fp,"set xlabel \"Speed [km/h]\"\n");
-      
+
       // y label
       if (i==0 || i==2) fprintf(fp,"set ylabel \"Translation Error [%%]\"\n");
       else              fprintf(fp,"set ylabel \"Rotation Error [deg/m]\"\n");
-      
+
       // plot error curve
       fprintf(fp,"plot \"%s_%s.txt\" using ",prefix,suffix);
       switch (i) {
@@ -364,15 +354,15 @@ void plotErrorPlots (string dir,char* prefix) {
         case 3: fprintf(fp,"($1*3.6):($2*57.3) title 'Rotation Error'"); break;
       }
       fprintf(fp," lc rgb \"#0000FF\" pt 4 w linespoints\n");
-      
+
       // close file
       fclose(fp);
-      
+
       // run gnuplot => create png + eps
       sprintf(command,"cd %s; gnuplot %s",dir.c_str(),file_name);
       system(command);
     }
-    
+
     // create pdf and crop
     sprintf(command,"cd %s; ps2pdf %s_%s.eps %s_%s_large.pdf",dir.c_str(),prefix,suffix,prefix,suffix);
     system(command);
@@ -396,15 +386,15 @@ void saveStats (vector<errors> err,string dir) {
 
   // open file  
   FILE *fp = fopen((dir + "/stats.txt").c_str(),"w");
- 
+
   // save errors
   float num = err.size();
   fprintf(fp,"%f %f\n",t_err/num,r_err/num);
-  
+
   // close file
   fclose(fp);
 }
-
+/*
 bool eval (string result_sha,Mail* mail) {
 
   // ground truth and result directories
@@ -418,24 +408,24 @@ bool eval (string result_sha,Mail* mail) {
   system(("mkdir " + error_dir).c_str());
   system(("mkdir " + plot_path_dir).c_str());
   system(("mkdir " + plot_error_dir).c_str());
-  
+
   // total errors
   vector<errors> total_err;
 
   // for all sequences do
   for (int32_t i=11; i<22; i++) {
-   
+
     // file name
     char file_name[256];
     sprintf(file_name,"%02d.txt",i);
-    
+
     // read ground truth and result poses
     vector<Matrix> poses_gt     = loadPoses(gt_dir + "/" + file_name);
     vector<Matrix> poses_result = loadPoses(result_dir + "/data/" + file_name);
-   
+
     // plot status
     mail->msg("Processing: %s, poses: %d/%d",file_name,poses_result.size(),poses_gt.size());
-    
+
     // check for errors
     if (poses_gt.size()==0 || poses_result.size()!=poses_gt.size()) {
       mail->msg("ERROR: Couldn't read (all) poses of: %s", file_name);
@@ -445,13 +435,13 @@ bool eval (string result_sha,Mail* mail) {
     // compute sequence errors    
     vector<errors> seq_err = calcSequenceErrors(poses_gt,poses_result);
     saveSequenceErrors(seq_err,error_dir + "/" + file_name);
-    
+
     // add to total errors
     total_err.insert(total_err.end(),seq_err.begin(),seq_err.end());
-    
+
     // for first half => plot trajectory and compute individual stats
     if (i<=15) {
-    
+
       // save + plot bird's eye view trajectories
       savePathPlot(poses_gt,poses_result,plot_path_dir + "/" + file_name);
       vector<int32_t> roi = computeRoi(poses_gt,poses_result);
@@ -464,7 +454,7 @@ bool eval (string result_sha,Mail* mail) {
       plotErrorPlots(plot_error_dir,prefix);
     }
   }
-  
+
   // save + plot total errors + summary statistics
   if (total_err.size()>0) {
     char prefix[16];
@@ -475,9 +465,11 @@ bool eval (string result_sha,Mail* mail) {
   }
 
   // success
-	return true;
+  return true;
 }
+*/
 
+/*
 int32_t main (int32_t argc,char *argv[]) {
 
   // we need 2 or 4 arguments!
@@ -505,3 +497,4 @@ int32_t main (int32_t argc,char *argv[]) {
   return 0;
 }
 
+*/

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project( VisualOdemetry )
+project( vo )
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,8 +14,9 @@ find_package(gflags REQUIRED)
 find_package(glog REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR})
-file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/features/*.cpp)
+file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/features/*.cpp ${PROJECT_SOURCE_DIR}/src/kitti_devkit/cpp/*.cpp)
 
-add_executable( VisualOdemetry ${SRC_FILES})
+add_executable( vo ${SRC_FILES})
 
-target_link_libraries( VisualOdemetry ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog)
+target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog)
+

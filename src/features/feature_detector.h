@@ -18,7 +18,7 @@ public:
 
 private:
     const int kMaxFeatures = 10000;
-    cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_; //TODO add ORB as an optiion too maybe both
+    cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_; //TODO add ORB as an option too
 };
 
 

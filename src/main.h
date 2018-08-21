@@ -25,8 +25,16 @@ static bool validatePath(const char *flagname, const std::string &value) {
 const size_t kMinTrackedPoints = 1500;
 const float kScale = 1;
 
-DEFINE_string(data_dir, "", "Data directory");
+DEFINE_string(data_dir, "/mnt/3b31043d-473f-40dc-bcc7-faebcc6626fb/kitti/dataset/sequences/", "Data directory");
 DEFINE_validator(data_dir, &validatePath);
+
+DEFINE_string(res_dir, "/mnt/3b31043d-473f-40dc-bcc7-faebcc6626fb/kitti/dataset/results", "Results directory");
+DEFINE_validator(res_dir, &validatePath);
+
+DEFINE_string(poses, "/mnt/3b31043d-473f-40dc-bcc7-faebcc6626fb/kitti/dataset/poses/", "Ground truth poses dir");
+DEFINE_validator(poses, &validatePath);
+
+DEFINE_string(seq, "", "Sequence number");
 
 DEFINE_string(image_dir, "image_0", "Image directory");
 

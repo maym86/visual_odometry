@@ -13,6 +13,7 @@
 
 #include "src/features/feature_detector.h"
 #include "src/features/feature_tracker.h"
+#include "src/kitti_devkit/cpp/evaluate_odometry.h"
 
 using namespace boost::filesystem;
 
@@ -48,6 +49,42 @@ cv::Mat loadKittiCalibration(std::string calib_file, int line_number) {
 }
 
 
+Matrix kittiResultMat(cv::Mat R, cv::Mat t) {
+    Matrix pose = Matrix::eye(4);
+    pose.val[0][0] = R.at<double>(0, 0);
+    pose.val[1][0] = R.at<double>(1, 0);
+    pose.val[2][0] = R.at<double>(2, 0);
+    pose.val[0][1] = R.at<double>(0, 1);
+    pose.val[1][1] = R.at<double>(1, 1);
+    pose.val[2][1] = R.at<double>(2, 1);
+    pose.val[0][2] = R.at<double>(0, 2);
+    pose.val[1][2] = R.at<double>(1, 2);
+    pose.val[2][2] = R.at<double>(2, 2);
+
+    pose.val[0][3] = t.at<double>(0, 0);
+    pose.val[1][3] = t.at<double>(1, 0);
+    pose.val[2][3] = t.at<double>(2, 0);
+    return pose;
+}
+
+void saveResults(const std::string &gt_poses_path, const std::string &res_dir, const std::string &seq, std::vector<Matrix> &result_poses){
+
+    boost::filesystem::create_directory(res_dir);
+    std::vector<Matrix> gt_poses = loadPoses(gt_poses_path);
+    std::string plot_dir = res_dir + "/plot/";
+    std::string err_dir = res_dir + "/err/";
+    boost::filesystem::create_directory(plot_dir);
+    boost::filesystem::create_directory(err_dir);
+
+    savePathPlot(gt_poses,result_poses, plot_dir + seq + ".txt");
+    std::vector<int32_t> roi = computeRoi(gt_poses,result_poses);
+    plotPathPlot(plot_dir,roi,stoi(FLAGS_seq));
+
+    std::vector<errors> seq_err = calcSequenceErrors(gt_poses,result_poses);
+    saveSequenceErrors(seq_err,err_dir + "errors.txt");
+}
+
+
 cv::Mat drawMatches(const cv::Mat &image, const std::vector<cv::Point2f> &p0, const std::vector<cv::Point2f> &p1,
                     const cv::Mat &mask, const cv::Scalar &color) {
 
@@ -68,11 +105,14 @@ int main(int argc, char *argv[]) {
     google::InitGoogleLogging(argv[0]);
     FLAGS_logtostderr = 1;
 
+
+    std::string data_dir = FLAGS_data_dir + "/" + FLAGS_seq + "/";
+
     //Iterate through directory
-    path p(FLAGS_data_dir + "/" + FLAGS_image_dir);
+    path p(data_dir + FLAGS_image_dir);
 
     if (!is_directory(p)) {
-        LOG(INFO) << FLAGS_data_dir + "/" + FLAGS_image_dir + " is not a directory";
+        LOG(INFO) << data_dir + FLAGS_image_dir + " is not a directory";
         return 0;
     }
 
@@ -84,7 +124,7 @@ int main(int argc, char *argv[]) {
 
     cv::Mat output;
 
-    cv::Mat intrinsics = loadKittiCalibration(FLAGS_data_dir + "/" + FLAGS_calib_file, FLAGS_calib_line_number);
+    cv::Mat intrinsics = loadKittiCalibration(data_dir + FLAGS_calib_file, FLAGS_calib_line_number);
     LOG(INFO) << "Camera matrix: " << intrinsics;
 
     double focal = intrinsics.at<double>(0, 0);
@@ -92,9 +132,12 @@ int main(int argc, char *argv[]) {
     LOG(INFO) << "Focal length " << focal << ", principal point: " << pp;
 
 
+    //Load ground truth
+    std::vector<Matrix> result_poses;
+
     cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
-    cv::Mat_<double> pos_t = cv::Mat::zeros(3, 1, CV_64FC1);
-    cv::Mat_<double> pos_R = cv::Mat::eye(3, 3, CV_64FC1);
+    cv::Mat_<double> pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
+    cv::Mat_<double> pose_R = cv::Mat::eye(3, 3, CV_64FC1);
 
     FeatureDetector feature_detector;
     FeatureTracker feature_tracker;
@@ -144,16 +187,18 @@ int main(int argc, char *argv[]) {
 
         cv::Mat E, R, t, mask;
 
-        E = cv::findEssentialMat(points_previous, points, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
-        int res = recoverPose(E, points_previous, points, R, t, focal, pp, mask);
+        E = cv::findEssentialMat( points, points_previous,  focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+        int res = recoverPose(E, points, points_previous,   R, t, focal, pp, mask);
 
         if(res > 10) {
-            pos_R = R * pos_R;
-            pos_t += kScale * (pos_R * t);
+            pose_R = R * pose_R;
+            pose_t += kScale * (pose_R * t);
 
-            cv::Point2d draw_pos = cv::Point2d(pos_t.at<double>(0) + map.cols / 2, pos_t.at<double>(2) + map.rows / 2);
+            cv::Point2d draw_pos = cv::Point2d(pose_t.at<double>(0) + map.cols / 2, -pose_t.at<double>(2) + map.rows / 2);
             cv::circle(map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
         }
+
+        result_poses.emplace_back(kittiResultMat(pose_R, pose_t));
 
         cv::imshow("Map", map);
         cv::imshow("Features", drawMatches(image, points_previous, points, mask, draw_color));
@@ -168,6 +213,10 @@ int main(int argc, char *argv[]) {
         prev_gpu_image = gpu_image.clone();
     }
 
+    std::string res_dir = FLAGS_res_dir + "/" + FLAGS_seq;
+    std::string gt_poses_path = FLAGS_poses + "/" + FLAGS_seq + ".txt";
+
+    saveResults(gt_poses_path, res_dir, FLAGS_seq, result_poses);
 
     while (!done) {
         char key = static_cast<char>(cv::waitKey(33));
@@ -175,5 +224,6 @@ int main(int argc, char *argv[]) {
             done = true;
         }
     }
+
 
 }
