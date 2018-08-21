@@ -2,7 +2,7 @@
 
 
 FeatureDetector::FeatureDetector(){
-    gpu_detector_ = cv::cuda::ORB::create(kMinFeatures);
+    gpu_detector_ = cv::cuda::FastFeatureDetector::create(30, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
 }
 
 std::vector<cv::Point2f> FeatureDetector::detect(const cv::cuda::GpuMat &image_gpu) {

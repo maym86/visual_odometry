@@ -17,8 +17,8 @@ public:
     std::vector<cv::Point2f> detect(const cv::cuda::GpuMat &image_gpu);
 
 private:
-    const int kMinFeatures = 5000;
-    cv::Ptr<cv::cuda::ORB> gpu_detector_;
+    const int kMaxFeatures = 10000;
+    cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_; //TODO add ORB as an optiion too maybe both
 };
 
 
