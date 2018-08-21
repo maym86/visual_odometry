@@ -10,12 +10,14 @@ std::vector<cv::Point2f> FeatureTracker::trackPoints(const cv::cuda::GpuMat &img
     cv::cuda::GpuMat next_points_gpu;
     cv::cuda::GpuMat status_gpu;
 
+    //Copy previous data to GPU memory
     cv::cuda::GpuMat prev_points_gpu;
     cv::Mat prev_points_mat(1, (int) prev_points->size(), CV_32FC2, (void*) &(*prev_points)[0]);
     prev_points_gpu.upload(prev_points_mat);
 
     optical_flow_->calc(img0, img1, prev_points_gpu, next_points_gpu, status_gpu);
 
+    //Get results back from GPU memory
     std::vector<cv::Point2f> next_points(next_points_gpu.cols);
     cv::Mat next_points_mat(1, next_points_gpu.cols, CV_32FC2, (void*)&next_points[0]);
     next_points_gpu.download(next_points_mat);

@@ -17,7 +17,7 @@ public:
     std::vector<cv::Point2f> detect(const cv::cuda::GpuMat &image_gpu);
 
 private:
-    const int kMinFeatures = 3000;
+    const int kMinFeatures = 5000;
     cv::Ptr<cv::cuda::ORB> gpu_detector_;
 };
 

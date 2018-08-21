@@ -22,7 +22,7 @@ static bool validatePath(const char *flagname, const std::string &value) {
     return true;
 }
 
-const size_t kMinTrackedPoints = 2000;
+const size_t kMinTrackedPoints = 3000;
 const float kScale = 1;
 
 DEFINE_string(data_dir, "", "Data directory");
