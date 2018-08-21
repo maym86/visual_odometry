@@ -2,16 +2,55 @@
 #include "main.h"
 
 #include <boost/range/iterator_range.hpp>
-#include <vector>
+#include <boost/algorithm/string.hpp>
 
-#include <cxcore.h>
-#include <highgui.h>
+#include <vector>
+#include <fstream>
+
 #include <opencv2/imgcodecs.hpp>
 #include <cv.hpp>
+#include <cxcore.h>
+#include <highgui.h>
 
 #include "src/features/feature_matcher.h"
+#include "src/features/feature_tracker.h"
 
 using namespace boost::filesystem;
+
+
+cv::Mat loadKittiCalibration(std::string calib_file, int line_number){
+    std::string line;
+    std::ifstream file_stream (calib_file);
+    if (file_stream.is_open())
+    {
+        int count = 0;
+        while ( std::getline (file_stream,line) )
+        {
+            if (count == line_number){
+                break;
+            }
+            count++;
+        }
+        file_stream.close();
+    }
+    else {
+        LOG(FATAL) << "Unable to open file";
+    }
+
+    line.erase(0,4);
+
+    LOG(INFO) << line;
+    std::vector<std::string> elements;
+    boost::algorithm::split(elements, line, boost::is_any_of(" "));
+
+    double data[12];
+    for(int i = 0; i < elements.size(); i++ ){
+        data[i] = std::stod(elements[i]);
+    }
+
+    return cv::Mat(3, 4, CV_64F, &data).clone();
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -20,10 +59,10 @@ int main(int argc, char *argv[]) {
     FLAGS_logtostderr = 1;
 
     //Iterate through directory
-    path p(FLAGS_dir);
+    path p(FLAGS_data_dir + "/"+ FLAGS_image_dir);
 
     if (!is_directory(p)) {
-        LOG(INFO) << FLAGS_dir + " is not a directory";
+        LOG(INFO) << FLAGS_data_dir + "/" + FLAGS_image_dir + " is not a directory";
         return 0;
     }
 
@@ -33,43 +72,61 @@ int main(int argc, char *argv[]) {
     }
     std::sort(file_names.begin(), file_names.end());
 
-
-
     cv::Mat output;
 
+    cv::Mat intrinsics = loadKittiCalibration(FLAGS_data_dir + "/" + FLAGS_calib_file, FLAGS_calib_line_number);
+    LOG(INFO) << "Camera matrix: " << intrinsics;
 
-    double focal = 707.0912;
-    cv::Point2d pp(601.8873, 183.1104);
+    double focal = intrinsics.at<double>(0,0);
+    cv::Point2d pp(intrinsics.at<double>(0,2), intrinsics.at<double>(1,2));
+    LOG(INFO) << "Focal length "<< focal << ", principal point: " <<  pp;
 
-
-
-    bool done = false;
 
     cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0,0,0));
-
     cv::Mat_<double> pos_t = cv::Mat::zeros(3,1,CV_64FC1);
     cv::Mat_<double> pos_R = cv::Mat::eye(3,3,CV_64FC1);
 
-
     FeatureMatcher feature_matcher;
+    FeatureTracker feature_tracker;
+
+    bool done = false;
+    int match_count = 0;
+
+
+    cv::Mat prev_img;
+    std::vector<cv::DMatch> matches;
+    std::vector<cv::Point2f> points0, points1;
+
+    bool matching = true;
 
     for (const auto &file_name : file_names) {
 
         cv::Mat img = cv::imread(file_name);
-
-
-        feature_matcher.addFrame(img);
-
-        std::vector<cv::DMatch> matches;
-        std::vector<cv::Point2f> points0, points1;
-
-        feature_matcher.getMatches(&matches, &points0, &points1);
-
-
-        if(matches.size() < 8) {
-            LOG(WARNING) << "Too few good matches";
+        if(prev_img.empty()){
+            prev_img = img.clone();
             continue;
         }
+
+        if(matching) {
+            feature_matcher.addFrame(prev_img);
+            feature_matcher.addFrame(img);
+            feature_matcher.getMatches(&matches, &points0, &points1);
+            if(matches.size() < 8) {
+                LOG(WARNING) << "Too few good matches";
+                continue;
+            }
+            matching = false;
+
+        } else { //track
+            feature_tracker.addFrame(img);
+            points1 = feature_tracker.getMatches(&points0);
+        }
+
+        if(points1.size() < 2000){
+            matching = true;
+        }
+
+        LOG(INFO) << "Points size: " << points0.size() <<  ", " << points1.size();
 
         cv::Mat E, R, t, mask;
 
@@ -77,13 +134,17 @@ int main(int argc, char *argv[]) {
         recoverPose(E, points0, points1, R, t, focal, pp, mask);
 
         pos_R = R * pos_R;
-        pos_t -=  kScale * (pos_R * t);
+        pos_t +=  kScale * (pos_R * t);
 
         cv::Point2d draw_pos = cv::Point2d(pos_t.at<double>(0) + map.cols/2, pos_t.at<double>(2) + map.rows/2);
         cv::circle(map, draw_pos, 2, cv::Scalar(255,0,0), 2);
 
+        points0 = points1;
+        prev_img = img.clone();
+
+        cv::imshow("Image", img);
         cv::imshow("Map", map);
-        cv::imshow("Features", feature_matcher.drawMatches());
+        //cv::imshow("Features", feature_matcher.drawMatches());
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27){

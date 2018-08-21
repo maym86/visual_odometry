@@ -12,7 +12,7 @@ public:
 
     FeatureMatcher();
 
-    void addFrame(cv::Mat image);
+    void addFrame(const cv::Mat &image);
     void getMatches(std::vector<cv::DMatch> *matches,
             std::vector<cv::Point2f> *points0,
             std::vector<cv::Point2f> *points1);
@@ -20,7 +20,11 @@ public:
     cv::Mat drawMatches();
 
 private:
-    const int kMinDist = 200;
+    int match_count;
+
+
+    const int kMinFeatures = 5000;
+    const float kMatchRatio = 0.8; // As in Lowe's paper; can be tuned
 
     cv::Ptr<cv::FeatureDetector> detector_;
     cv::Ptr<cv::DescriptorExtractor> extractor_;

@@ -24,7 +24,12 @@ static bool validatePath(const char *flagname, const std::string &value) {
 
 const float kScale = 1;
 
-DEFINE_string(dir, "", "Data directory");
-DEFINE_validator(dir, &validatePath);
+DEFINE_string(data_dir, "", "Data directory");
+DEFINE_validator(data_dir, &validatePath);
+
+DEFINE_string(image_dir, "image_0", "Image directory");
+
+DEFINE_string(calib_file, "calib.txt", "Calibration data file");
+DEFINE_int32(calib_line_number, 0, "Calibration data line number");
 
 #endif //VISUAL_ODEMETRY_MAIN_H
