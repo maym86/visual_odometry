@@ -12,7 +12,7 @@
 #include <cxcore.h>
 #include <highgui.h>
 
-#include "src/features/feature_matcher.h"
+#include "src/features/feature_detector.h"
 #include "src/features/feature_tracker.h"
 
 using namespace boost::filesystem;
@@ -110,18 +110,17 @@ int main(int argc, char *argv[]) {
     cv::Mat_<double> pos_t = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat_<double> pos_R = cv::Mat::eye(3, 3, CV_64FC1);
 
-    FeatureMatcher feature_matcher;
+    FeatureDetector feature_matcher;
 
     bool done = false;
     int match_count = 0;
 
-
     cv::Mat prev_img;
     std::vector<cv::DMatch> matches;
-    std::vector<cv::Point2f> points0, points1;
+    std::vector<cv::Point2f> points_previous, points;
 
     bool tracking = false;
-    cv::Scalar draw_color(0, 255, 0);
+
     for (const auto &file_name : file_names) {
 
         cv::Mat img = cv::imread(file_name);
@@ -130,33 +129,31 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
+        cv::Scalar draw_color(0, 0, 255);
         if (!tracking) {
-            draw_color = cv::Scalar(255, 0, 0);
-            feature_matcher.addFrame(prev_img);
-            feature_matcher.addFrame(img);
-            feature_matcher.getMatches(&points0, &points1);
-            if (points0.size() < 8) {
+            points_previous = feature_matcher.detect(prev_img);
+            feature_matcher.detect(img);
+            if (points_previous.size() < 8) {
                 LOG(WARNING) << "Too few good matches";
                 continue;
             }
             tracking = true;
-
-        } else {
-
-            draw_color = cv::Scalar(0, 0, 255);
-            points1 = trackPoints(prev_img, img, &points0);
+            draw_color = cv::Scalar(255, 0, 0);
         }
 
-        if (points1.size() < kMinTrackedPoints) {
+
+        points = trackPoints(prev_img, img, &points_previous);
+
+        if (points.size() < kMinTrackedPoints) {
             tracking = false;
         }
 
-        LOG(INFO) << "Points size: " << points0.size() << ", " << points1.size();
+        LOG(INFO) << "Points size: " << points_previous.size() << ", " << points.size();
 
         cv::Mat E, R, t, mask;
 
-        E = cv::findEssentialMat(points0, points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
-        int res = recoverPose(E, points0, points1, R, t, focal, pp, mask);
+        E = cv::findEssentialMat(points_previous, points, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+        int res = recoverPose(E, points_previous, points, R, t, focal, pp, mask);
 
         if(res > 10) {
             pos_R = R * pos_R;
@@ -167,7 +164,7 @@ int main(int argc, char *argv[]) {
         }
 
         cv::imshow("Map", map);
-        cv::imshow("Features", drawMatches(img, points0, points1, mask, draw_color));
+        cv::imshow("Features", drawMatches(img, points_previous, points, mask, draw_color));
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27) {
@@ -175,7 +172,7 @@ int main(int argc, char *argv[]) {
             break;
         }
 
-        points0 = points1;
+        points_previous = points;
         prev_img = img.clone();
     }
 
