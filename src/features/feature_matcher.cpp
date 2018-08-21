@@ -32,11 +32,14 @@ void FeatureMatcher::addFrame(const cv::Mat &image) {
 }
 
 
-void FeatureMatcher::getMatches(std::vector<cv::DMatch> *matches, std::vector<cv::Point2f> *points0, std::vector<cv::Point2f> *points1){
+void FeatureMatcher::getMatches(std::vector<cv::Point2f> *points0, std::vector<cv::Point2f> *points1){
 
     if(descriptors_.size() != 2){
         return;
     }
+
+    points0->clear();
+    points1->clear();
 
     std::vector<std::vector<cv::DMatch>> initial_matches;
 
@@ -50,12 +53,16 @@ void FeatureMatcher::getMatches(std::vector<cv::DMatch> *matches, std::vector<cv
     {
         if (initial_matches[i][0].distance < kMatchRatio * initial_matches[i][1].distance)
         {
-            matches->push_back( initial_matches[i][0]);
-            points0->push_back(kp0[initial_matches[i][0].queryIdx].pt);
-            points1->push_back(kp1[initial_matches[i][0].trainIdx].pt);
+
+            cv::Point2f p0 = kp0[initial_matches[i][0].queryIdx].pt;
+            cv::Point2f p1 = kp1[initial_matches[i][0].trainIdx].pt;
+            double dist = cv::norm(p0-p1);
+
+            if(dist < kMaxDisplacementPx) {
+                points0->push_back(std::move(p0));
+                points1->push_back(std::move(p1));
+            }
         }
     }
-
-    matches_ = *matches;
 }
 

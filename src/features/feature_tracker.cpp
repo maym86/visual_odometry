@@ -2,17 +2,8 @@
 #include <opencv/cv.hpp>
 #include "feature_tracker.h"
 
-void FeatureTracker::addFrame(const cv::Mat &image) {
 
-    images_.push_back(image);
-
-    if(images_.size() > 2){
-        images_.pop_front();
-    }
-
-}
-
-std::vector<cv::Point2f> FeatureTracker::getMatches(std::vector<cv::Point2f>* prev_points){
+std::vector<cv::Point2f> trackPoints(const cv::Mat &img0, const cv::Mat &img1, std::vector<cv::Point2f>* prev_points){
 
     std::vector<cv::Point2f> next_points;
 
@@ -21,7 +12,8 @@ std::vector<cv::Point2f> FeatureTracker::getMatches(std::vector<cv::Point2f>* pr
     cv::TermCriteria term_criteria=cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 30, 0.01);
 
     std::vector<uchar> status;
-    cv::calcOpticalFlowPyrLK(images_.front(), images_.back(), *prev_points, next_points, status, err, win_size, 3, term_criteria, 0, 0.001);
+    cv::calcOpticalFlowPyrLK(img0, img1, *prev_points, next_points,
+            status, err, win_size, 3, term_criteria, 0, 0.001);
 
     //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
     int index_correction = 0;
@@ -37,6 +29,7 @@ std::vector<cv::Point2f> FeatureTracker::getMatches(std::vector<cv::Point2f>* pr
             index_correction++;
         }
     }
+
     return next_points;
 }
 
