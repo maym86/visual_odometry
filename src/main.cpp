@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
 
     cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat_<double> pose = cv::Mat::eye(4, 3, CV_64FC1);
+    cv::Mat_<double> pose_kalman = cv::Mat::eye(4, 3, CV_64FC1);
 
     bool done = false;
 
@@ -56,12 +57,15 @@ int main(int argc, char *argv[]) {
 
         cv::Mat image = cv::imread(file_name);
 
-        vo.addImage(image, &pose);
+        vo.addImage(image, &pose, &pose_kalman);
 
         result_poses.emplace_back(kittiResultMat(pose));
 
         cv::Point2d draw_pos = cv::Point2d(pose.at<double>(0,3) + map.cols / 2, -pose.at<double>(2,3) + map.rows / 2);
-        cv::circle(map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
+        cv::circle(map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+
+        cv::Point2d draw_pos_kalman = cv::Point2d(pose_kalman.at<double>(0,3) + map.cols / 2, -pose_kalman.at<double>(2,3) + map.rows / 2);
+        cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
         cv::imshow("Map", map);
         cv::imshow("Features", vo.drawMatches(image));

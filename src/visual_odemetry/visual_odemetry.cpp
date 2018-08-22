@@ -9,7 +9,7 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     pp_ = pp;
 }
 
-void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
+void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
     //Store previous frame data
     points_previous_ = points_;
     prev_gpu_image_ = gpu_image_.clone();
@@ -56,13 +56,13 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
 
     //Kalman Filter
     kf_.setMeasurements(pose_R_, pose_t_);
-    cv::Mat kalman_R, kalman_t, pose_kalman;
-    kf_.updateKalmanFilter(&kalman_R, &kalman_t);
+    cv::Mat k_R, k_t;
+    kf_.updateKalmanFilter(&k_R, &k_t);
 
-    hconcat(kalman_R, kalman_t, pose_kalman);
+    hconcat(k_R, k_t, *pose_kalman);
     LOG(INFO) << "\n" << pose_kalman;
 
-    (*pose) = pose_kalman;
+    (*pose) = pose_;
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){

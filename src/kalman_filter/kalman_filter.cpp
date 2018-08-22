@@ -39,6 +39,9 @@ void KalmanFilter::initKalmanFilter(int nStates, int nMeasurements, int nInputs,
     //  [0 0 0  0  0  0   0   0   0 0 0 0  0  0  0   0   1   0]
     //  [0 0 0  0  0  0   0   0   0 0 0 0  0  0  0   0   0   1]
     // position
+
+    //http://campar.in.tum.de/Chair/KalmanFilter
+
     kf_.transitionMatrix.at<double>(0,3) = dt;
     kf_.transitionMatrix.at<double>(1,4) = dt;
     kf_.transitionMatrix.at<double>(2,5) = dt;

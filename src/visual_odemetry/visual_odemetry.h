@@ -13,7 +13,7 @@ class VisualOdemetry {
 public:
     VisualOdemetry(double focal, const cv::Point2d &pp);
 
-    void addImage(const cv::Mat &image, cv::Mat *pose);
+    void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
     cv::Mat drawMatches(const cv::Mat &image);
 
