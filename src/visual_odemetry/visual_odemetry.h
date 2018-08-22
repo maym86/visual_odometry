@@ -31,7 +31,6 @@ private:
     cv::Mat_<double> pose_t_;
     cv::Mat_<double> pose_R_;
     cv::Mat_<double> pose_;
-    cv::Mat_<double> pose_kalman_;
 
     cv::Mat mask_;
 

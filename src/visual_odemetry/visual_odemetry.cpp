@@ -53,17 +53,16 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
     hconcat(pose_R_, pose_t_, pose_);
     LOG(INFO) << "\n" << pose_;
 
+
+    //Kalman Filter
     kf_.setMeasurements(pose_R_, pose_t_);
-
-
-    cv::Mat kalman_R, kalman_t;
+    cv::Mat kalman_R, kalman_t, pose_kalman;
     kf_.updateKalmanFilter(&kalman_R, &kalman_t);
 
-    hconcat(kalman_R, kalman_t, pose_kalman_);
-    LOG(INFO) << "\n" << pose_kalman_;
+    hconcat(kalman_R, kalman_t, pose_kalman);
+    LOG(INFO) << "\n" << pose_kalman;
 
-    *pose = pose_kalman_;
-
+    (*pose) = pose_kalman;
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){
