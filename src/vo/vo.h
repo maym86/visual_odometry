@@ -12,7 +12,7 @@ class VisualOdemetry {
 public:
     VisualOdemetry(double focal, const cv::Point2d &pp);
 
-    void addImage(const cv::Mat &image, cv::Mat *pose_R, cv::Mat *pose_t);
+    void addImage(const cv::Mat &image, cv::Mat *pose);
 
     cv::Mat drawMatches(const cv::Mat &image);
 
@@ -28,6 +28,9 @@ private:
     bool tracking_;
     cv::Mat_<double> pose_t_;
     cv::Mat_<double> pose_R_;
+    cv::Mat_<double> pose_;
+    cv::Mat_<double> prev_pose_;
+
     cv::Mat mask_;
 
     cv::cuda::GpuMat gpu_image_;

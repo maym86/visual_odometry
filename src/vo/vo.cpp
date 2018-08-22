@@ -1,5 +1,4 @@
 #include "vo.h"
-
 #include <glog/logging.h>
 
 VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
@@ -10,11 +9,10 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     pp_ = pp;
 }
 
-void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose_R, cv::Mat *pose_t){
+void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
     points_previous_ = points_;
     prev_gpu_image_ = gpu_image_.clone();
-
-
+    prev_pose_ = pose_;
 
     //Get new GPU image
     cv::Mat image_grey;
@@ -52,8 +50,12 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose_R, cv::Mat *po
         pose_t_ += kScale * (pose_R_ * t);
     }
 
-    *pose_R = pose_R_;
-    *pose_t = pose_t_;
+    hconcat(pose_R_, pose_t_, pose_);
+
+    *pose = pose_;
+
+   /// cv::Mat points_3d;
+    //cv::triangulatePoints(prev_pose_,  pose_, points_previous_, points_, points_3d );
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){
