@@ -1,4 +1,4 @@
-#include "vo.h"
+#include "visual_odemetry.h"
 #include <glog/logging.h>
 
 VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
@@ -10,6 +10,7 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
 }
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
+    //Store previous frame data
     points_previous_ = points_;
     prev_gpu_image_ = gpu_image_.clone();
     prev_pose_ = pose_;
@@ -38,8 +39,6 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
         tracking_ = false;
     }
 
-    LOG(INFO) << "Points size: " << points_previous_.size() << ", " << points_.size();
-
     cv::Mat E, R, t;
 
     E = cv::findEssentialMat( points_, points_previous_,  focal_, pp_, cv::RANSAC, 0.999, 1.0, mask_);
@@ -48,14 +47,14 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
     if(res > 10) {
         pose_R_ = R * pose_R_;
         pose_t_ += kScale * (pose_R_ * t);
+        hconcat(pose_R_, pose_t_, pose_);
     }
-
-    hconcat(pose_R_, pose_t_, pose_);
 
     *pose = pose_;
 
-   /// cv::Mat points_3d;
-    //cv::triangulatePoints(prev_pose_,  pose_, points_previous_, points_, points_3d );
+    LOG(INFO) << "\n" << pose_;
+
+
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){

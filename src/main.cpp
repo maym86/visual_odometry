@@ -3,8 +3,8 @@
 
 #include <boost/range/iterator_range.hpp>
 
-#include "src/vo/vo.h"
-#include "src/kitti_devkit/cpp/kitti.h"
+#include "src/visual_odemetry/visual_odemetry.h"
+#include "src/kitti/kitti.h"
 
 using namespace boost::filesystem;
 

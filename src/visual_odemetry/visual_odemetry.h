@@ -28,6 +28,7 @@ private:
     bool tracking_;
     cv::Mat_<double> pose_t_;
     cv::Mat_<double> pose_R_;
+
     cv::Mat_<double> pose_;
     cv::Mat_<double> prev_pose_;
 

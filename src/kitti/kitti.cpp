@@ -40,8 +40,8 @@ cv::Mat loadKittiCalibration(std::string calib_file, int line_number) {
 
 Matrix kittiResultMat(cv::Mat pose) {
     Matrix pose_kitti = Matrix::eye(4);
-    for(int r=0; r< 4; r++){
-        for(int c=0; c< 3; c++){
+    for(int r=0; r < 3; r++){
+        for(int c=0; c < 4; c++){
             pose_kitti.val[r][c] = pose.at<double>(r, c);
         }
     }
