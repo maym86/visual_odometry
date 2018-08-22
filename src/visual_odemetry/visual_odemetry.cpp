@@ -13,7 +13,6 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
     //Store previous frame data
     points_previous_ = points_;
     prev_gpu_image_ = gpu_image_.clone();
-    prev_pose_ = pose_;
 
     //Get new GPU image
     cv::Mat image_grey;
@@ -25,16 +24,18 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
         return;
     }
 
-    color_ = cv::Scalar(255,0,0);
+    color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
 
-        color_ = cv::Scalar(0,0,255);
+        color_ = cv::Scalar(255,0,0);
         points_previous_ = feature_detector_.detect(prev_gpu_image_);
         tracking_ = true;
     }
 
     points_ = feature_tracker_.trackPoints(prev_gpu_image_, gpu_image_, &points_previous_);
 
+
+    LOG(INFO) << points_.size();
     if (points_.size() < kMinTrackedPoints) {
         tracking_ = false;
     }
@@ -47,13 +48,21 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose){
     if(res > 10) {
         pose_R_ = R * pose_R_;
         pose_t_ += kScale * (pose_R_ * t);
-        hconcat(pose_R_, pose_t_, pose_);
     }
 
-    *pose = pose_;
-
+    hconcat(pose_R_, pose_t_, pose_);
     LOG(INFO) << "\n" << pose_;
 
+    kf_.setMeasurements(pose_R_, pose_t_);
+
+
+    cv::Mat kalman_R, kalman_t;
+    kf_.updateKalmanFilter(&kalman_R, &kalman_t);
+
+    hconcat(kalman_R, kalman_t, pose_kalman_);
+    LOG(INFO) << "\n" << pose_kalman_;
+
+    *pose = pose_kalman_;
 
 }
 

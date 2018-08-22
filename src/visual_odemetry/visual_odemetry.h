@@ -7,6 +7,7 @@
 
 #include "src/features/feature_detector.h"
 #include "src/features/feature_tracker.h"
+#include "src/kalman_filter/kalman_filter.h"
 
 class VisualOdemetry {
 public:
@@ -26,11 +27,11 @@ private:
     FeatureTracker feature_tracker_;
 
     bool tracking_;
+
     cv::Mat_<double> pose_t_;
     cv::Mat_<double> pose_R_;
-
     cv::Mat_<double> pose_;
-    cv::Mat_<double> prev_pose_;
+    cv::Mat_<double> pose_kalman_;
 
     cv::Mat mask_;
 
@@ -43,6 +44,9 @@ private:
 
     double focal_;
     cv::Point2d pp_;
+
+
+    KalmanFilter kf_;
 };
 
 
