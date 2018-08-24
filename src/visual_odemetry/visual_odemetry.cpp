@@ -1,10 +1,6 @@
 #include "visual_odemetry.h"
 
-#include <algorithm>
-#include <random>
-#include <random>
-
-
+#include "src/sfm/triangulation.h"
 
 #include <glog/logging.h>
 
@@ -14,73 +10,6 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     focal_ = focal;
     pp_ = pp;
 }
-
-
-void VisualOdemetry::triangulate(VOFrame *prev, VOFrame *now){
-    if(!now->P.empty()) {
-        cv::Mat points_3d;
-        cv::Mat_<double> p0(2,prev->points.size(),CV_64FC1);
-        cv::Mat_<double> p1(2,now->points.size(),CV_64FC1);
-
-        for (int i = 0; i < p0.cols; i++) {
-            p0.at<double>(0, i)  = prev->points[i].x;
-            p0.at<double>(1, i)  = prev->points[i].y;
-            p1.at<double>(0, i)  = now->points[i].x;
-            p1.at<double>(1, i)  = now->points[i].y;
-        }
-
-        cv::Mat P = cv::Mat::eye(3, 4, CV_64FC1);
-        cv::triangulatePoints(P, now->P, p0, p1, points_3d); //Relative to previous frame center
-        now->points_3d.clear();
-
-        for (int i = 0; i < points_3d.cols; i++) {
-            now->points_3d.push_back(cv::Point3d(points_3d.at<double>(0, i) / points_3d.at<double>(3, i),
-                                                 points_3d.at<double>(1, i) / points_3d.at<double>(3, i),
-                                                 points_3d.at<double>(2, i) / points_3d.at<double>(3, i)));
-        }
-    }
-}
-
-
-double VisualOdemetry::getScale(const VOFrame &prev, const VOFrame &now, int num_points) {
-
-
-    if (prev.points_3d.size() == 0) {
-        return 1;
-    }
-
-    //Pick random points in prev that match to two points in now;
-    std::vector<int> points;
-
-    for(int i = 0; i < num_points; i++){
-        for(int j = 0; j < 1000; j++){
-            int index = rand() % static_cast<int>(now.points_3d.size() + 1);
-            if(now_.mask.at<bool>(index) && now_.mask.at<bool>(prev.tracked_index[index]) &&
-                    std::find(points.begin(), points.end(), index) == points.end()) {
-
-                points.push_back(index);
-                break;
-            }
-        }
-    }
-
-    double now_sum = 0;
-    double prev_sum = 0;
-    for(int i = 0; i < points.size()-1; i++){
-        int i0 = points[i];
-        int i1 = points[i+1];
-        double n0 = cv::norm(now.points_3d[i0] - now.points_3d[i1]);
-        double n1 = cv::norm(prev.points_3d[prev.tracked_index[i0]] - prev.points_3d[prev.tracked_index[i1]]);
-
-        if(!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1)) {
-            now_sum += n0;
-            prev_sum += n1;
-        }
-    }
-
-    return  now_sum / prev_sum ;
-}
-
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
     //Store previous frame data
@@ -96,12 +25,13 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         return;
     }
 
+    bool new_keypoints =  false;
     color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
-
         color_ = cv::Scalar(255,0,0);
         prev_.points = feature_detector_.detect(prev_.gpu_image);
         tracking_ = true;
+        new_keypoints = true;
     }
 
     feature_tracker_.trackPoints(&prev_, &now_); //TODO pass voframe and add fields for matching later
@@ -115,10 +45,14 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     int res = recoverPose(now_.E, now_.points, prev_.points, now_.R, now_.t, focal_, pp_, now_.mask);
 
     if(res > 10) {
-        triangulate(&prev_, &now_);
-        double scale = getScale(prev_, now_, 500);
+        triangulate(&prev_, &now_); //Prob
 
-        LOG(INFO) << scale;
+        double scale = 1.0;
+        /*if(!new_keypoints) {
+            scale = getScale(prev_, now_, 500);
+        }*/
+
+        LOG(INFO) << new_keypoints << " " << scale;
 
         hconcat(now_.R, now_.t, now_.P);
         now_.pose_R = now_.R * prev_.pose_R;
@@ -126,9 +60,6 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
 
     hconcat(now_.pose_R, now_.pose_t, now_.pose);
-    LOG(INFO) << "\n" << now_.pose;
-
-
 
     //Kalman Filter
     kf_.setMeasurements(now_.pose_R, now_.pose_t);
@@ -136,9 +67,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     kf_.updateKalmanFilter(&k_R, &k_t);
 
     hconcat(k_R, k_t, *pose_kalman);
-    LOG(INFO) << "\n" << pose_kalman;
+    //LOG(INFO) << "\n" << pose_kalman;
 
     (*pose) = now_.pose;
+
+    //TODO keep sliding window and use bundle adjeustment to correct pos of last frame
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){

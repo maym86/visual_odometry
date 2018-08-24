@@ -17,9 +17,10 @@ include_directories(${PROJECT_SOURCE_DIR})
 file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/features/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/visual_odemetry/*.cpp
-        ${PROJECT_SOURCE_DIR}/src/kalman_filter/*.cpp
-        ${PROJECT_SOURCE_DIR}/src/utils/*.cpp
-        ${PROJECT_SOURCE_DIR}/src/kitti/*.cpp)
+                    ${PROJECT_SOURCE_DIR}/src/kalman_filter/*.cpp
+                    ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
+                    ${PROJECT_SOURCE_DIR}/src/utils/*.cpp
+                    ${PROJECT_SOURCE_DIR}/src/kitti/*.cpp)
 
 add_executable( vo ${SRC_FILES})
 

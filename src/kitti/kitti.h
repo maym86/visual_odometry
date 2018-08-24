@@ -1,7 +1,7 @@
 #ifndef VO_KITTI_H
 #define VO_KITTI_H
 
-#include <cxcore.h>
+#include <cv.hpp>
 
 #include "evaluate_odometry.h"
 

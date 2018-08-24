@@ -3,6 +3,8 @@
 #ifndef VO_VO_FRAME_H
 #define VO_VO_FRAME_H
 
+#include <cv.hpp>
+#include <opencv2/core/cuda.hpp>
 
 struct VOFrame {
 

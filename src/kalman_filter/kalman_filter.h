@@ -3,7 +3,8 @@
 #ifndef VO_KALMAN_FILTER_H
 #define VO_KALMAN_FILTER_H
 
-#include <cxcore.h>
+#include <cv.hpp>
+
 #include <opencv2/video/tracking.hpp>
 
 
