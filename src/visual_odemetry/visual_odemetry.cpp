@@ -19,18 +19,26 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
 void VisualOdemetry::triangulate(VOFrame *prev, VOFrame *now){
     if(!now->P.empty()) {
         cv::Mat points_3d;
+        cv::Mat_<double> p0(2,prev->points.size(),CV_64FC1);
+        cv::Mat_<double> p1(2,now->points.size(),CV_64FC1);
+
+        for (int i = 0; i < p0.cols; i++) {
+            p0.at<double>(0, i)  = prev->points[i].x;
+            p0.at<double>(1, i)  = prev->points[i].y;
+            p1.at<double>(0, i)  = now->points[i].x;
+            p1.at<double>(1, i)  = now->points[i].y;
+        }
+
         cv::Mat P = cv::Mat::eye(3, 4, CV_64FC1);
-        cv::triangulatePoints(P, now->P, prev->points, now->points, points_3d); //Relative to previous frame center
+        cv::triangulatePoints(P, now->P, p0, p1, points_3d); //Relative to previous frame center
         now->points_3d.clear();
+
         for (int i = 0; i < points_3d.cols; i++) {
             now->points_3d.push_back(cv::Point3d(points_3d.at<double>(0, i) / points_3d.at<double>(3, i),
                                                  points_3d.at<double>(1, i) / points_3d.at<double>(3, i),
                                                  points_3d.at<double>(2, i) / points_3d.at<double>(3, i)));
-
-            LOG(INFO) << now->points[i] << " " << prev->points[i] << " " << now->points_3d[i];
         }
     }
-
 }
 
 
@@ -47,42 +55,30 @@ double VisualOdemetry::getScale(const VOFrame &prev, const VOFrame &now, int num
     for(int i = 0; i < num_points; i++){
         for(int j = 0; j < 1000; j++){
             int index = rand() % static_cast<int>(now.points_3d.size() + 1);
-            if(now_.mask.at<bool>(index) && std::find(points.begin(), points.end(), index) == points.end()) {
+            if(now_.mask.at<bool>(index) && now_.mask.at<bool>(prev.tracked_index[index]) &&
+                    std::find(points.begin(), points.end(), index) == points.end()) {
+
                 points.push_back(index);
                 break;
             }
         }
     }
 
-    LOG(INFO) << points.size();
-
     double now_sum = 0;
     double prev_sum = 0;
     for(int i = 0; i < points.size()-1; i++){
         int i0 = points[i];
         int i1 = points[i+1];
-        double n0 = cv::norm(now.points_3d[i0] - now.points_3d[i1]) ;
+        double n0 = cv::norm(now.points_3d[i0] - now.points_3d[i1]);
         double n1 = cv::norm(prev.points_3d[prev.tracked_index[i0]] - prev.points_3d[prev.tracked_index[i1]]);
 
-
-        LOG(INFO) << n0 << " " << n1;
-
-        if(!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1) && n0 != 0 && n1 != 0) {
+        if(!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1)) {
             now_sum += n0;
             prev_sum += n1;
         }
     }
 
-    LOG(INFO) << now_sum << " " << prev_sum;
-
-    double scale =  prev_sum / now_sum;
-
-
-    LOG(INFO) << scale;
-    if(std::isnan(scale) || std::isinf(scale) || scale == 0)
-        return 1;
-
-    return scale;
+    return  now_sum / prev_sum ;
 }
 
 
@@ -118,14 +114,13 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     now_.E = cv::findEssentialMat( now_.points, prev_.points,  focal_, pp_, cv::RANSAC, 0.999, 1.0, now_.mask);
     int res = recoverPose(now_.E, now_.points, prev_.points, now_.R, now_.t, focal_, pp_, now_.mask);
 
-    triangulate(&prev_, &now_);
-
-    getScale(prev_, now_, 10);
-    double scale = 1; //
-
-    hconcat(now_.R, now_.t, now_.P);
-
     if(res > 10) {
+        triangulate(&prev_, &now_);
+        double scale = getScale(prev_, now_, 500);
+
+        LOG(INFO) << scale;
+
+        hconcat(now_.R, now_.t, now_.P);
         now_.pose_R = now_.R * prev_.pose_R;
         now_.pose_t += scale * (prev_.pose_R * now_.t);
     }

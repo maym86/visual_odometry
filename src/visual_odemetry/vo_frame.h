@@ -25,7 +25,6 @@ struct VOFrame {
 
     std::vector<cv::Point3d> points_3d;
 
-
     VOFrame& operator =(const VOFrame& a) {
         E = a.E.clone();
         R = a.R.clone();

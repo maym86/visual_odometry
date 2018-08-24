@@ -23,6 +23,7 @@ private:
     void triangulate(VOFrame *prev, VOFrame *now);
     double getScale(const VOFrame &prev, const VOFrame &now,  int num_points);
 
+    const size_t kScale = 1;
     const size_t kMinTrackedPoints = 1500;
 
     FeatureDetector feature_detector_;
