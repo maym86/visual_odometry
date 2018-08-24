@@ -11,6 +11,7 @@
 
 #include "vo_frame.h"
 
+
 class VisualOdemetry {
 public:
     VisualOdemetry(double focal, const cv::Point2d &pp);
@@ -21,15 +22,17 @@ public:
 
 private:
     const size_t kScale = 1;
-    const size_t kMinTrackedPoints = 1500;
+    const size_t kMinTrackedPoints = 1000;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
 
     bool tracking_;
 
-    VOFrame now_;
-    VOFrame prev_;
+
+    VOFrame vo1_;
+    VOFrame vo0_;
+    VOFrame voOLD_;
 
     cv::Scalar color_;
 

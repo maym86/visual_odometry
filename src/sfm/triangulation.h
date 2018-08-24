@@ -5,8 +5,8 @@
 
 #include "src/visual_odemetry/vo_frame.h"
 
-void triangulate(VOFrame *prev, VOFrame *now);
+void triangulate(VOFrame *vo0, VOFrame *vo1);
 
-double getScale(const VOFrame &prev, const VOFrame &now, int num_points);
+double getScale(const VOFrame &vo0, const VOFrame &vo1, int num_points);
 
 #endif //VO_TRIANGULATION_H
