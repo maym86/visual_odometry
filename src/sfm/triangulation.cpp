@@ -77,7 +77,7 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
     }
 
     if(count < min_points){
-        LOG(INFO) << "Counts 0";
+        LOG(INFO) << "Counts less than min: " << count << " < " << min_points ;
         return 1;
     }
 
