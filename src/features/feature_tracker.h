@@ -7,12 +7,13 @@
 #include <cv.hpp>
 
 #include <opencv2/cudaoptflow.hpp>
+#include "src/visual_odemetry/vo_frame.h"
 
 class FeatureTracker {
 public:
     FeatureTracker();
 
-    std::vector<cv::Point2f> trackPoints(const cv::cuda::GpuMat &img0, const cv::cuda::GpuMat &img1, std::vector<cv::Point2f> *prev_points);
+    void trackPoints(VOFrame *prev,  VOFrame *now);
 
 private:
     cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> optical_flow_;

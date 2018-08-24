@@ -9,6 +9,8 @@
 #include "src/features/feature_tracker.h"
 #include "src/kalman_filter/kalman_filter.h"
 
+#include "vo_frame.h"
+
 class VisualOdemetry {
 public:
     VisualOdemetry(double focal, const cv::Point2d &pp);
@@ -18,26 +20,18 @@ public:
     cv::Mat drawMatches(const cv::Mat &image);
 
 private:
+    void triangulate(VOFrame *prev, VOFrame *now);
+    double getScale(const VOFrame &prev, const VOFrame &now,  int num_points);
 
     const size_t kMinTrackedPoints = 1500;
-    const float kScale = 1;
-
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
 
     bool tracking_;
 
-    cv::Mat_<double> pose_t_;
-    cv::Mat_<double> pose_R_;
-    cv::Mat_<double> pose_;
-
-    cv::Mat mask_;
-
-    cv::cuda::GpuMat gpu_image_;
-    cv::cuda::GpuMat prev_gpu_image_;
-    std::vector<cv::Point2f> points_previous_;
-    std::vector<cv::Point2f> points_;
+    VOFrame now_;
+    VOFrame prev_;
 
     cv::Scalar color_;
 

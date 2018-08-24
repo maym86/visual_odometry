@@ -6,39 +6,44 @@ FeatureTracker::FeatureTracker(){
 }
 
 
-std::vector<cv::Point2f> FeatureTracker::trackPoints(const cv::cuda::GpuMat &img0, const cv::cuda::GpuMat &img1, std::vector<cv::Point2f> *prev_points) {
-    cv::cuda::GpuMat next_points_gpu;
+void FeatureTracker::trackPoints(VOFrame *prev, VOFrame *now) {
+    cv::cuda::GpuMat now_points_gpu;
     cv::cuda::GpuMat status_gpu;
 
     //Copy previous data to GPU memory
     cv::cuda::GpuMat prev_points_gpu;
-    cv::Mat prev_points_mat(1, (int) prev_points->size(), CV_32FC2, (void*) &(*prev_points)[0]);
+    cv::Mat prev_points_mat(1, (int) prev->points.size(), CV_32FC2, (void*) &(prev->points)[0]);
     prev_points_gpu.upload(prev_points_mat);
 
-    optical_flow_->calc(img0, img1, prev_points_gpu, next_points_gpu, status_gpu);
+    optical_flow_->calc(prev->gpu_image, now->gpu_image, prev_points_gpu, now_points_gpu, status_gpu);
 
     //Get results back from GPU memory
-    std::vector<cv::Point2f> next_points(next_points_gpu.cols);
-    cv::Mat next_points_mat(1, next_points_gpu.cols, CV_32FC2, (void*)&next_points[0]);
-    next_points_gpu.download(next_points_mat);
+    now->points.resize(now_points_gpu.cols);
+    cv::Mat now_points_mat(1, now_points_gpu.cols, CV_32FC2, (void*) &(now->points)[0]);
+    now_points_gpu.download(now_points_mat);
 
     std::vector<unsigned char> status(status_gpu.cols);
     cv::Mat status_mat(1, status_gpu.cols, CV_8UC1, (void*)&status[0]);
     status_gpu.download(status_mat);
 
+
     //Remove bad points
     for (int i = status.size() - 1; i >= 0; --i) {
-
-        cv::Point2f pt = next_points[i];
+        cv::Point2f pt = now->points[i];
         if (status[i] == 0 || pt.x < 0 || pt.y < 0) {
             if (pt.x < 0 || pt.y < 0) {
                 status[i] = 0;
             }
-            prev_points->erase(prev_points->begin() + i);
-            next_points.erase(next_points.begin() + i);
+            prev->points.erase(prev->points.begin() + i);
+            now->points.erase(now->points.begin() + i);
+        }
+        else{
+            prev->tracked_index.push_back(i); //indices of points that are kept
         }
     }
+    std::reverse(prev->tracked_index.begin(),prev->tracked_index.end());
 
-    return next_points;
+
+
 }
 
