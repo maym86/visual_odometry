@@ -3,7 +3,7 @@
 #include "triangulation.h"
 
 #include <cv.hpp>
-
+#include <glog/logging.h>
 
 void triangulate(VOFrame *vo0, VOFrame *vo1){
     if(!vo1->P.empty()) {
@@ -31,20 +31,22 @@ void triangulate(VOFrame *vo0, VOFrame *vo1){
 }
 
 
-double getScale(const VOFrame &vo0, const VOFrame &vo1, int num_points) {
+double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
 
 
     if (vo0.points_3d.size() == 0 || vo1.points_3d.size() == 0) {
+
+        LOG(INFO) << "O point size";
         return 1;
     }
 
     //Pick random points in prev that match to two points in now;
     std::vector<int> points;
     int last = -1;
-    for(int i = 0; i < num_points; i++){
+    for(int i = 0; i < max_points; i++){
         for(int j = 0; j < 1000; j++){
             int index = rand() % static_cast<int>(vo1.points_3d.size() + 1);
-            if(vo1.mask.at<bool>(index) && vo1.mask.at<bool>(vo0.tracked_index[index]) && index != last) {
+            if(vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo0.tracked_index[index]) && index != last) {
                 last = index;
                 points.push_back(index);
                 break;
@@ -53,11 +55,13 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int num_points) {
     }
 
     if(points.empty()) {
+        LOG(INFO) << "Empty random points";
         return 1;
     }
 
     double now_sum = 0;
     double prev_sum = 0;
+    int count  = 0;
     for(int i = 0; i < points.size()-1; i++){
         int i0 = points[i];
         int i1 = points[i+1];
@@ -65,15 +69,23 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int num_points) {
         double n1 = cv::norm(vo0.points_3d[vo0.tracked_index[i0]] - vo0.points_3d[vo0.tracked_index[i1]]);
 
 
-        if(!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1) && abs(n1-n0) < 50) {
+        if(!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1) && abs(n1-n0) < 100) {
             now_sum += n0;
             prev_sum += n1;
+            count++;
         }
     }
 
-    double scale = now_sum / prev_sum;
-    if(std::isnan(scale) || std::isnan(scale) || scale == 0)
+    if(count < min_points){
+        LOG(INFO) << "Counts 0";
         return 1;
+    }
+
+    double scale = now_sum / prev_sum;
+    if(std::isnan(scale) || std::isnan(scale) || scale == 0) {
+        LOG(INFO) << "NaN or inf";
+        return 1;
+    }
 
     return scale;
 }

@@ -42,8 +42,5 @@ void FeatureTracker::trackPoints(VOFrame *prev, VOFrame *now) {
         }
     }
     std::reverse(prev->tracked_index.begin(),prev->tracked_index.end());
-
-
-
 }
 

@@ -22,17 +22,17 @@ public:
 
 private:
     const size_t kScale = 1;
-    const size_t kMinTrackedPoints = 1000;
+    const size_t kMinTrackedPoints = 1500;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
 
     bool tracking_;
 
-
+    //TODO make vo0 the current sate and so that we can update the pose if vo1 needs new detecion
+    VOFrame vo2_;
     VOFrame vo1_;
     VOFrame vo0_;
-    VOFrame voOLD_;
 
     cv::Scalar color_;
 
