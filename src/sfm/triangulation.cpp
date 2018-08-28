@@ -52,7 +52,7 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
     }
 
     if (indices.empty()) {
-        LOG(INFO) << "Empty indices " << indices.size();
+        LOG(INFO) << "Empty indices: " << indices.size();
         return 1;
     }
 
@@ -79,7 +79,7 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
 
     double scale = vo1_sum / vo0_sum;
     if (std::isnan(scale) || std::isnan(scale) || scale == 0) {
-        LOG(INFO) << "NaN or inf";
+        LOG(INFO) << "Scale invalid: " << scale;
         return 1;
     }
 

@@ -24,7 +24,6 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     VOFrame &vo1 = frame_buffer_[1];
     VOFrame &vo2 = frame_buffer_[2];
 
-    bool new_keypoints =  false;
     color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
         color_ = cv::Scalar(255,0,0);
@@ -38,7 +37,6 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
             triangulate(&vo0, &vo1);
         }
         tracking_ = true;
-        new_keypoints = true;
     }
 
     feature_tracker_.trackPoints(&vo1, &vo2);
@@ -55,12 +53,13 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         triangulate(&vo1, &vo2);
 
         double scale = getScale(vo1, vo2, kMinPosePoints, 200);
-        LOG(INFO) << new_keypoints << " " << scale;
+        LOG(INFO) << "Scale: " << scale;
 
         vo2.pose_R = vo2.R * vo1.pose_R;
         vo2.pose_t = vo1.pose_t + scale * (vo1.pose_R * vo2.t);
     } else {
         //Copy last pose
+        LOG(INFO) << "RecoverPose, too few points";
         vo2.pose_R = vo1.pose_R.clone();
         vo2.pose_t = vo1.pose_t.clone();
     }
