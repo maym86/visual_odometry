@@ -25,8 +25,24 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     if (!tracking_) {
         color_ = cv::Scalar(255,0,0);
         feature_detector_.detect(&vo1_);
-        //TODO track back to vo-1 for 3d
         if(!vo0_.image.empty() && !vo1_.E.empty()){ //Backtrack for new points for scale calculation later
+
+            cv::Mat E_inv = vo1_.E.inv();
+
+            vo0_.points.clear();
+
+            for (const auto &p : vo1_.points){
+                float data[3] = {p.x, p.y, 1};
+                cv::Mat p1(3,1, CV_64FC1, data);
+                cv::Mat p0 = E_inv * p1;
+                cv::Point2f p_out;
+                p_out.x = p0.at<double>(0) / p0.at<double>(2);
+                p_out.y = p0.at<double>(1) / p0.at<double>(2);
+
+                LOG(INFO) << p << " " << p_out;
+                vo0_.points.emplace_back(p_out);
+            }
+
             feature_tracker_.trackPoints(&vo1_, &vo0_);
             //This is just to find the mask using RANSAC - we already have R|t from vo0 to vo1
             //TODO change this so it just rejects based on existing R|t rather than new calc
