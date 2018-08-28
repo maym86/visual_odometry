@@ -16,13 +16,9 @@ class FeatureTracker {
 public:
     FeatureTracker();
 
-    void trackPointsGPU(VOFrame *vo0,  VOFrame *vo1);
-
     void trackPoints(VOFrame *vo0,  VOFrame *vo1);
 
 private:
-    void removePoints(VOFrame *vo0, VOFrame *vo1, std::vector<unsigned char> *status);
-
     cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gpu_optical_flow_;
 
 };

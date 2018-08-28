@@ -6,7 +6,7 @@
 #include <vector>
 #include <cv.hpp>
 
-#include <opencv2/optflow.hpp>
+#include <opencv2/video/tracking.hpp>
 
 #include "src/visual_odemetry/vo_frame.h"
 

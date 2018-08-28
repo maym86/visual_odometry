@@ -15,3 +15,4 @@ void FeatureDetector::detect(VOFrame *frame) {
         frame->points.push_back(kp.pt);
     }
 }
+

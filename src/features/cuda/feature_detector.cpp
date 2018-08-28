@@ -1,5 +1,4 @@
 
-#if __has_include("opencv2/cudafeatures2d.hpp")
 
 #include "feature_detector.h"
 
@@ -17,5 +16,3 @@ void FeatureDetector::detect(VOFrame *frame) {
         frame->points.push_back(kp.pt);
     }
 }
-
-#endif

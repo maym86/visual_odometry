@@ -1,6 +1,4 @@
 
-#if __has_include("opencv2/cudaoptflow.hpp")
-
 #include "feature_tracker.h"
 #include "src/features/utils.h"
 
@@ -8,7 +6,7 @@ FeatureTracker::FeatureTracker(){
      gpu_optical_flow_ = cv::cuda::SparsePyrLKOpticalFlow::create(cv::Size(21, 21), 3, 30);
 }
 
-void FeatureTracker::trackPointsGPU(VOFrame *vo0, VOFrame *vo1) {
+void FeatureTracker::trackPoints(VOFrame *vo0, VOFrame *vo1) {
     cv::cuda::GpuMat now_points_gpu;
     cv::cuda::GpuMat status_gpu;
 
@@ -28,7 +26,5 @@ void FeatureTracker::trackPointsGPU(VOFrame *vo0, VOFrame *vo1) {
     cv::Mat status_mat(1, status_gpu.cols, CV_8UC1, (void*)&status[0]);
     status_gpu.download(status_mat);
 
-    removePoints(&vo0, &vo1, &status);
+    removePoints(vo0, vo1, &status);
 }
-
-#endif

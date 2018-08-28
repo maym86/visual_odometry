@@ -23,11 +23,7 @@ public:
 private:
     const int kMaxFeatures = 10000;
 
-#ifdef HASCUDA
     cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_;
-#endif
-
-    cv::Ptr<cv::FastFeatureDetector> detector_;
 };
 
 #endif
