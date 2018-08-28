@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     //Load ground truth
     std::vector<Matrix> result_poses;
 
-    cv::Mat map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat_<double> pose = cv::Mat::eye(4, 3, CV_64FC1);
     cv::Mat_<double> pose_kalman = cv::Mat::eye(4, 3, CV_64FC1);
 
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
         cv::Point2d draw_pos_kalman = cv::Point2d(kDrawScale * pose_kalman.at<double>(0, 3) + map.cols / 2,
                                                   kDrawScale * -pose_kalman.at<double>(2, 3) + map.rows / 2);
 
-        cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
+        //cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
         cv::imshow("Map", map);
         cv::imshow("Features", vo.drawMatches(image));

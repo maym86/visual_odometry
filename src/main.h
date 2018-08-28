@@ -22,7 +22,7 @@ static bool validatePath(const char *flagname, const std::string &value) {
     return true;
 }
 
-const float kDrawScale = 0.5;
+const float kDrawScale = 1;
 
 
 DEFINE_string(data_dir, "/mnt/3b31043d-473f-40dc-bcc7-faebcc6626fb/kitti/dataset/sequences/", "Data directory");
