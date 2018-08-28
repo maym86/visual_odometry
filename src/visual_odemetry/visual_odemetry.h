@@ -27,8 +27,8 @@ public:
     cv::Mat drawMatches(const cv::Mat &image);
 
 private:
-    const size_t kScale = 1;
     const size_t kMinTrackedPoints = 1500;
+    const size_t kMinPosePoints = 8;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;

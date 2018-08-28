@@ -6,15 +6,13 @@
 #include <cv.hpp>
 #include <opencv2/core/cuda.hpp>
 
-class VOFrame {
-private:
-
 #if __has_include("opencv2/cudafeatures2d.hpp")
-    bool has_cuda_ = true;
+const bool kHasCUDA = true;
 #else
-    bool has_cuda_ = false;
+const bool kHasCUDA = false;
 #endif
 
+class VOFrame {
 public:
     //Local transform between frames
     cv::Mat E; // Essential matrix
@@ -35,9 +33,9 @@ public:
 
     std::vector<cv::Point3d> points_3d;
 
-    void setImage(cv::Mat in){
-        image = in;
-        if(has_cuda_) {
+    void setImage(cv::Mat image_in){
+        image = image_in;
+        if(kHasCUDA) {
             cv::Mat image_grey;
             cv::cvtColor(image, image_grey, CV_BGR2GRAY);
             gpu_image.upload(image_grey);
@@ -56,7 +54,7 @@ public:
         image = other.image.clone();
         points = other.points;
         points_3d = other.points_3d;
-        if(has_cuda_) {
+        if(kHasCUDA) {
             gpu_image = other.gpu_image.clone();
         }
         return *this;

@@ -59,10 +59,13 @@ int main(int argc, char *argv[]) {
 
         result_poses.emplace_back(kittiResultMat(pose));
 
-        cv::Point2d draw_pos = cv::Point2d(pose.at<double>(0,3) + map.cols / 2, -pose.at<double>(2,3) + map.rows / 2);
+        cv::Point2d draw_pos = cv::Point2d(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
+                                           kDrawScale * -pose.at<double>(2, 3) + map.rows / 2);
         cv::circle(map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
 
-        cv::Point2d draw_pos_kalman = cv::Point2d(pose_kalman.at<double>(0,3) + map.cols / 2, -pose_kalman.at<double>(2,3) + map.rows / 2);
+        cv::Point2d draw_pos_kalman = cv::Point2d(kDrawScale * pose_kalman.at<double>(0, 3) + map.cols / 2,
+                                                  kDrawScale * -pose_kalman.at<double>(2, 3) + map.rows / 2);
+
         cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
         cv::imshow("Map", map);

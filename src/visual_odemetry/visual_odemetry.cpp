@@ -5,24 +5,18 @@
 #include <glog/logging.h>
 
 VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
-
     tracking_ = false;
     focal_ = focal;
     pp_ = pp;
 }
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
-    //Store previous frame data //TODO make buffer
-
+    //TODO make buffer
     vo0_ = vo1_;
     vo1_ = vo2_;
-
-    //Get new GPU image
-
-    //TODO add to vo frame and do a set
     vo2_.setImage(image);
 
-    if (vo1_.image.empty() || vo0_.image.empty()) {
+    if (vo0_.image.empty() || vo1_.image.empty()) {
         return;
     }
 
@@ -32,17 +26,12 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         color_ = cv::Scalar(255,0,0);
         feature_detector_.detect(&vo1_);
         //TODO track back to vo-1 for 3d
-        if(!vo0_.gpu_image.empty()){ //TODO verify this and clean up naming use buffer??
+        if(!vo0_.image.empty() && !vo1_.E.empty()){ //Backtrack for new points for scale calculation later
             feature_tracker_.trackPoints(&vo1_, &vo0_);
-            vo1_.E = cv::findEssentialMat( vo1_.points, vo0_.points,  focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1_.mask);
-
-            //TODO This R|t is not the same as the pose it used before - WORK ONE FRAME IN THE PAST vo1
-            int res = recoverPose(vo1_.E, vo1_.points, vo0_.points, vo1_.R, vo1_.t, focal_, pp_, vo1_.mask);
-
-            if(res > 10) {
-                triangulate(&vo0_, &vo1_);
-            }
-
+            //This is just to find the mask using RANSAC - we already have R|t from vo0 to vo1
+            //TODO change this so it just rejects based on existing R|t rather than new calc
+            cv::findEssentialMat( vo1_.points, vo0_.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1_.mask);
+            triangulate(&vo0_, &vo1_);
         }
         tracking_ = true;
         new_keypoints = true;
@@ -58,15 +47,14 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     vo2_.E = cv::findEssentialMat( vo2_.points, vo1_.points,  focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2_.mask);
     int res = recoverPose(vo2_.E, vo2_.points, vo1_.points, vo2_.R, vo2_.t, focal_, pp_, vo2_.mask);
 
-    if(res > 10) {
+    if(res > kMinPosePoints) {
 
         hconcat(vo2_.R, vo2_.t, vo2_.P);
         triangulate(&vo1_, &vo2_);
 
-        double scale = getScale(vo1_, vo2_, 10, 200);
+        double scale = getScale(vo1_, vo2_, kMinPosePoints, 200);
 
         LOG(INFO) << new_keypoints << " " << scale;
-
 
         vo2_.pose_R = vo2_.R * vo1_.pose_R;
         vo2_.pose_t += scale * (vo1_.pose_R * vo2_.t);
@@ -84,7 +72,7 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     (*pose) = vo2_.pose;
 
-    //TODO keep sliding window and use bundle adjeustment to correct pos of last frame
+    //TODO keep sliding window and use bundle adjustment to correct pos of last frame
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){
@@ -94,7 +82,6 @@ cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){
             cv::line(output, vo1_.points[i], vo2_.points[i], color_, 2);
         }
     }
-
     return output;
 }
 

@@ -2,7 +2,6 @@
 #ifndef VISUALODEMETRY_FETAURE_TRACKER_CUDA_H
 #define VISUALODEMETRY_FETAURE_TRACKER_CUDA_H
 
-#if __has_include("opencv2/cudaoptflow.hpp")
 
 #include <list>
 #include <vector>
@@ -24,4 +23,3 @@ private:
 };
 
 #endif
-#endif //VISUALODEMETRY_FETAURE_TRACKER_CUDA_H

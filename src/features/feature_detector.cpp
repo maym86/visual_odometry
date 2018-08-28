@@ -1,7 +1,7 @@
 #include "feature_detector.h"
 
 FeatureDetector::FeatureDetector(){
-    detector_ = cv::FastFeatureDetector::create(30, true, cv::FastFeatureDetector::TYPE_9_16);
+    detector_ = cv::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16);
 }
 
 void FeatureDetector::detect(VOFrame *frame) {

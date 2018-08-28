@@ -2,8 +2,6 @@
 #ifndef VISUALODEMETRY_FEATURES_DETECTION_CUDA_H
 #define VISUALODEMETRY_FEATURES_DETECTION_CUDA_H
 
-#if __has_include("opencv2/cudafeatures2d.hpp")
-
 #include <list>
 #include <vector>
 #include <cv.hpp>
@@ -27,4 +25,3 @@ private:
 };
 
 #endif
-#endif //VISUALODEMETRY_FEATURES_DETECTION_CUDA_H
