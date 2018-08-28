@@ -8,77 +8,88 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     tracking_ = false;
     focal_ = focal;
     pp_ = pp;
+
+    frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
 }
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
-    //TODO make buffer
-    vo0_ = vo1_;
-    vo1_ = vo2_;
-    vo2_.setImage(image);
 
-    if (vo0_.image.empty() || vo1_.image.empty()) {
+    VOFrame frame;
+    frame.setImage(image);
+    frame_buffer_.push_back(std::move(frame));
+    if (!frame_buffer_.full()) {
         return;
     }
+
+    VOFrame &vo1 = frame_buffer_[1];
+    VOFrame &vo2 = frame_buffer_[2];
 
     bool new_keypoints =  false;
     color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
         color_ = cv::Scalar(255,0,0);
-        feature_detector_.detect(&vo1_);
+        feature_detector_.detect(&vo1);
 
-        if(!vo0_.image.empty() && !vo1_.E.empty()){ //Backtrack for new points for scale calculation later
-            feature_tracker_.trackPoints(&vo1_, &vo0_);
+        VOFrame &vo0 = frame_buffer_[0];
+        if(!vo0.image.empty() && !vo1.E.empty()){ //Backtrack for new points for scale calculation later
+            feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have R|t from vo0 to vo1
-            cv::findEssentialMat( vo1_.points, vo0_.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1_.mask);
-            triangulate(&vo0_, &vo1_);
+            cv::findEssentialMat( vo1.points, vo0.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
+            triangulate(&vo0, &vo1);
         }
         tracking_ = true;
         new_keypoints = true;
     }
 
-    feature_tracker_.trackPoints(&vo1_, &vo2_);
+    feature_tracker_.trackPoints(&vo1, &vo2);
 
-    LOG(INFO) << vo2_.points.size();
-    if (vo2_.points.size() < kMinTrackedPoints) {
+    if (vo2.points.size() < kMinTrackedPoints) {
         tracking_ = false;
     }
 
-    vo2_.E = cv::findEssentialMat( vo2_.points, vo1_.points,  focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2_.mask);
-    int res = recoverPose(vo2_.E, vo2_.points, vo1_.points, vo2_.R, vo2_.t, focal_, pp_, vo2_.mask);
+    vo2.E = cv::findEssentialMat( vo2.points, vo1.points,  focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
+    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.R, vo2.t, focal_, pp_, vo2.mask);
 
     if(res > kMinPosePoints) {
+        hconcat(vo2.R, vo2.t, vo2.P);
+        triangulate(&vo1, &vo2);
 
-        hconcat(vo2_.R, vo2_.t, vo2_.P);
-        triangulate(&vo1_, &vo2_);
-
-        double scale = getScale(vo1_, vo2_, kMinPosePoints, 200);
-
+        double scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << new_keypoints << " " << scale;
 
-        vo2_.pose_R = vo2_.R * vo1_.pose_R;
-        vo2_.pose_t += scale * (vo1_.pose_R * vo2_.t);
+        vo2.pose_R = vo2.R * vo1.pose_R;
+        vo2.pose_t = vo1.pose_t +  scale * (vo1.pose_R * vo2.t);
+        hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+    } else {
+        LOG(INFO) << "Recover pose too few points " << res;
     }
+    LOG(INFO) << "\n" << vo2.pose;
 
-    hconcat(vo2_.pose_R, vo2_.pose_t, vo2_.pose);
 
     //Kalman Filter
-    kf_.setMeasurements(vo2_.pose_R, vo2_.pose_t);
+    kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
     cv::Mat k_R, k_t;
     kf_.updateKalmanFilter(&k_R, &k_t);
 
     hconcat(k_R, k_t, *pose_kalman);
-    //LOG(INFO) << "\n" << pose_kalman;
+    LOG(INFO) << "\n" << pose_kalman;
 
-    (*pose) = vo2_.pose;
-
+    (*pose) = vo2.pose;
     //TODO keep sliding window and use bundle adjustment to correct pos of last frame
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){
+
     cv::Mat output = image.clone();
-    for (int i = 0; i < vo1_.points.size(); i++) {
-        if (vo2_.mask.at<bool>(i)) {
-            cv::line(output, vo1_.points[i], vo2_.points[i], color_, 2);
+
+    if(frame_buffer_.full()) {
+        VOFrame &vo1 = frame_buffer_[1];
+        VOFrame &vo2 = frame_buffer_[2];
+
+        for (int i = 0; i < vo1.points.size(); i++) {
+            if (vo2.mask.at<bool>(i)) {
+                cv::line(output, vo1.points[i], vo2.points[i], color_, 2);
+            }
         }
     }
     return output;

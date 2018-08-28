@@ -1,6 +1,6 @@
 
-#ifndef VISUALODEMETRY_FETAURE_TRACKER_H
-#define VISUALODEMETRY_FETAURE_TRACKER_H
+#ifndef VO_FETAURES_TRACKER_H
+#define VO_FETAURES_TRACKER_H
 
 #include <list>
 #include <vector>
@@ -21,4 +21,4 @@ private:
     cv::Ptr<cv::SparsePyrLKOpticalFlow> optical_flow_;
 
 };
-#endif //VISUALODEMETRY_FETAURE_TRACKER_H
+#endif //VO_FETAURES_TRACKER_H

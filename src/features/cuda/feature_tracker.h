@@ -1,6 +1,6 @@
 
-#ifndef VISUALODEMETRY_FETAURE_TRACKER_CUDA_H
-#define VISUALODEMETRY_FETAURE_TRACKER_CUDA_H
+#ifndef VO_FETAURES_CUDA_TRACKER_H
+#define VO_FETAURES_CUDA_TRACKER_H
 
 
 #include <list>
@@ -22,4 +22,4 @@ private:
 
 };
 
-#endif
+#endif //VO_FETAURES_CUDA_TRACKER_H

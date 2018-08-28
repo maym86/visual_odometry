@@ -1,6 +1,6 @@
 
-#ifndef VISUALODEMETRY_FEATURES_DETECTION_CUDA_H
-#define VISUALODEMETRY_FEATURES_DETECTION_CUDA_H
+#ifndef VO_FEATURES_CUDA_DETECTION_H
+#define VO_FEATURES_CUDA_DETECTION_H
 
 #include <list>
 #include <vector>
@@ -24,4 +24,4 @@ private:
     cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_;
 };
 
-#endif
+#endif //VO_FEATURES_CUDA_DETECTION_H
