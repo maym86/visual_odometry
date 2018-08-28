@@ -4,6 +4,7 @@
 #define VO_VO_H
 
 #include <vector>
+#include <boost/circular_buffer.hpp>
 
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
@@ -18,6 +19,7 @@
 #include "vo_frame.h"
 
 
+
 class VisualOdemetry {
 public:
     VisualOdemetry(double focal, const cv::Point2d &pp);
@@ -27,6 +29,7 @@ public:
     cv::Mat drawMatches(const cv::Mat &image);
 
 private:
+    const size_t kFrameBufferCapacity = 3;
     const size_t kMinTrackedPoints = 1500;
     const size_t kMinPosePoints = 8;
 
@@ -35,16 +38,12 @@ private:
 
     bool tracking_;
 
-    //TODO make vo0 the current sate and so that we can update the pose if vo1 needs new detecion
-    VOFrame vo2_;
-    VOFrame vo1_;
-    VOFrame vo0_;
+    boost::circular_buffer<VOFrame> frame_buffer_;
 
     cv::Scalar color_;
 
     double focal_;
     cv::Point2d pp_;
-
 
     KalmanFilter kf_;
 };

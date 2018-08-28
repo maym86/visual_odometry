@@ -1,6 +1,6 @@
 
-#ifndef VISUAL_ODEMETRY_MAIN_H
-#define VISUAL_ODEMETRY_MAIN_H
+#ifndef VO_MAIN_H
+#define VO_MAIN_H
 
 #include <stdio.h>
 #include <gflags/gflags.h>
@@ -24,7 +24,6 @@ static bool validatePath(const char *flagname, const std::string &value) {
 
 const float kDrawScale = 1;
 
-
 DEFINE_string(data_dir, "/mnt/3b31043d-473f-40dc-bcc7-faebcc6626fb/kitti/dataset/sequences/", "Data directory");
 DEFINE_validator(data_dir, &validatePath);
 
@@ -41,4 +40,4 @@ DEFINE_string(image_dir, "image_0", "Image directory");
 DEFINE_string(calib_file, "calib.txt", "Calibration data file");
 DEFINE_int32(calib_line_number, 0, "Calibration data line number");
 
-#endif //VISUAL_ODEMETRY_MAIN_H
+#endif //VO_MAIN_H

@@ -1,9 +1,6 @@
-//
-// Created by Michael May on 8/27/18.
-//
 
-#ifndef VO_UTILS_H
-#define VO_UTILS_H
+#ifndef VO_FETAURES_UTILS_H
+#define VO_FETAURES_UTILS_H
 
 #include <vector>
 #include "src/visual_odemetry/vo_frame.h"
@@ -30,4 +27,4 @@ void removePoints(VOFrame *vo0, VOFrame *vo1, std::vector<unsigned char> *status
 
 
 
-#endif //VO_UTILS_H
+#endif //VO_FETAURES_UTILS_H

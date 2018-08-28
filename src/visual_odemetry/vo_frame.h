@@ -41,24 +41,6 @@ public:
             gpu_image.upload(image_grey);
         }
     };
-
-    VOFrame& operator =(const VOFrame& other) {
-        E = other.E.clone();
-        R = other.R.clone();
-        t = other.t.clone();
-        P = other.P.clone();
-        mask = other.mask.clone();
-        pose_R = other.pose_R.clone();
-        pose_t = other.pose_t.clone();
-        pose = other.pose.clone();
-        image = other.image.clone();
-        points = other.points;
-        points_3d = other.points_3d;
-        if(kHasCUDA) {
-            gpu_image = other.gpu_image.clone();
-        }
-        return *this;
-    }
 };
 
 
