@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
         cv::Point2d draw_pos_kalman = cv::Point2d(kDrawScale * pose_kalman.at<double>(0, 3) + map.cols / 2,
                                                   kDrawScale * -pose_kalman.at<double>(2, 3) + map.rows / 2);
 
-        cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
+        //cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
         cv::imshow("Map", map);
         cv::imshow("Features", vo.drawMatches(image));

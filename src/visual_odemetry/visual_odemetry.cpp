@@ -58,13 +58,13 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         LOG(INFO) << new_keypoints << " " << scale;
 
         vo2.pose_R = vo2.R * vo1.pose_R;
-        vo2.pose_t = vo1.pose_t +  scale * (vo1.pose_R * vo2.t);
-        hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+        vo2.pose_t = vo1.pose_t + scale * (vo1.pose_R * vo2.t);
     } else {
-        LOG(INFO) << "Recover pose too few points " << res;
+        //Copy last pose
+        vo2.pose_R = vo1.pose_R.clone();
+        vo2.pose_t = vo1.pose_t.clone();
     }
-    LOG(INFO) << "\n" << vo2.pose;
-
+    hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
     //Kalman Filter
     kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
@@ -72,7 +72,6 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     kf_.updateKalmanFilter(&k_R, &k_t);
 
     hconcat(k_R, k_t, *pose_kalman);
-    LOG(INFO) << "\n" << pose_kalman;
 
     (*pose) = vo2.pose;
     //TODO keep sliding window and use bundle adjustment to correct pos of last frame
