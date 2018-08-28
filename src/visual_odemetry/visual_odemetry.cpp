@@ -18,12 +18,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     vo1_ = vo2_;
 
     //Get new GPU image
-    cv::Mat image_grey;
-    cv::cvtColor(image, image_grey, CV_BGR2GRAY);
-    vo2_.gpu_image.upload(image_grey);
-    vo2_.image = image;
 
-    if (vo1_.gpu_image.empty() || vo0_.gpu_image.empty()) {
+    //TODO add to vo frame and do a set
+    vo2_.setImage(image);
+
+    if (vo1_.image.empty() || vo0_.image.empty()) {
         return;
     }
 
