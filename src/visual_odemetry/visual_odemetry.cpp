@@ -18,11 +18,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     vo1_ = vo2_;
 
     //Get new GPU image
-    cv::Mat image_grey;
-    cv::cvtColor(image, image_grey, CV_BGR2GRAY);
-    vo2_.gpu_image.upload(image_grey);
 
-    if (vo1_.gpu_image.empty() || vo0_.gpu_image.empty()) {
+    //TODO add to vo frame and do a set
+    vo2_.setImage(image);
+
+    if (vo1_.image.empty() || vo0_.image.empty()) {
         return;
     }
 
@@ -30,7 +30,7 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
         color_ = cv::Scalar(255,0,0);
-        vo1_.points = feature_detector_.detect(vo1_.gpu_image);
+        feature_detector_.detect(&vo1_);
         //TODO track back to vo-1 for 3d
         if(!vo0_.gpu_image.empty()){ //TODO verify this and clean up naming use buffer??
             feature_tracker_.trackPoints(&vo1_, &vo0_);

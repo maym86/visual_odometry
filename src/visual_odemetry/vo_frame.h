@@ -6,8 +6,16 @@
 #include <cv.hpp>
 #include <opencv2/core/cuda.hpp>
 
-struct VOFrame {
+class VOFrame {
+private:
 
+#if __has_include("opencv2/cudafeatures2d.hpp")
+    bool has_cuda_ = true;
+#else
+    bool has_cuda_ = false;
+#endif
+
+public:
     //Local transform between frames
     cv::Mat E; // Essential matrix
     cv::Mat R; // Rotation
@@ -15,30 +23,42 @@ struct VOFrame {
     cv::Mat P; // Projection matrix R|t
     cv::Mat mask;
 
-
     //Global pose
     cv::Mat pose_R = cv::Mat::eye(3, 3, CV_64FC1);
     cv::Mat pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat pose; //global
 
+    cv::Mat image;
     cv::cuda::GpuMat gpu_image;
     std::vector<cv::Point2f> points;
     std::vector<int> tracked_index;
 
     std::vector<cv::Point3d> points_3d;
 
-    VOFrame& operator =(const VOFrame& a) {
-        E = a.E.clone();
-        R = a.R.clone();
-        t = a.t.clone();
-        P = a.P.clone();
-        mask = a.mask.clone();
-        pose_R = a.pose_R.clone();
-        pose_t = a.pose_t.clone();
-        pose = a.pose.clone();
-        gpu_image = a.gpu_image.clone();
-        points = a.points;
-        points_3d = a.points_3d;
+    void setImage(cv::Mat in){
+        image = in;
+        if(has_cuda_) {
+            cv::Mat image_grey;
+            cv::cvtColor(image, image_grey, CV_BGR2GRAY);
+            gpu_image.upload(image_grey);
+        }
+    };
+
+    VOFrame& operator =(const VOFrame& other) {
+        E = other.E.clone();
+        R = other.R.clone();
+        t = other.t.clone();
+        P = other.P.clone();
+        mask = other.mask.clone();
+        pose_R = other.pose_R.clone();
+        pose_t = other.pose_t.clone();
+        pose = other.pose.clone();
+        image = other.image.clone();
+        points = other.points;
+        points_3d = other.points_3d;
+        if(has_cuda_) {
+            gpu_image = other.gpu_image.clone();
+        }
         return *this;
     }
 };
