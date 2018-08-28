@@ -68,7 +68,6 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
         double n0 = cv::norm(vo1.points_3d[i0] - vo1.points_3d[i1]);
         double n1 = cv::norm(vo0.points_3d[vo0.tracked_index[i0]] - vo0.points_3d[vo0.tracked_index[i1]]);
 
-
         if(!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1) && abs(n1-n0) < 100) {
             now_sum += n0;
             prev_sum += n1;
@@ -77,7 +76,7 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
     }
 
     if(count < min_points){
-        LOG(INFO) << "Counts 0";
+        LOG(INFO) << "Counts less than min: " << count << " < " << min_points ;
         return 1;
     }
 

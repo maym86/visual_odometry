@@ -3,7 +3,7 @@
 #include "feature_detector.h"
 
 FeatureDetector::FeatureDetector(){
-    gpu_detector_ = cv::cuda::FastFeatureDetector::create(30, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
+    gpu_detector_ = cv::cuda::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
 }
 
 void FeatureDetector::detect(VOFrame *frame) {
