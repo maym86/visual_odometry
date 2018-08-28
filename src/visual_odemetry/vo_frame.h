@@ -7,6 +7,13 @@
 #include <opencv2/core/cuda.hpp>
 
 class VOFrame {
+private:
+
+#if __has_include("opencv2/cudafeatures2d.hpp")
+    bool has_cuda_ = true;
+#else
+    bool has_cuda_ = false;
+#endif
 
 public:
     //Local transform between frames
@@ -30,11 +37,11 @@ public:
 
     void setImage(cv::Mat in){
         image = in;
-#ifdef HAVE_CUDA
-        cv::Mat image_grey;
-        cv::cvtColor(image, image_grey, CV_BGR2GRAY);
-        gpu_image.upload(image_grey);
-#endif
+        if(has_cuda_) {
+            cv::Mat image_grey;
+            cv::cvtColor(image, image_grey, CV_BGR2GRAY);
+            gpu_image.upload(image_grey);
+        }
     };
 
     VOFrame& operator =(const VOFrame& other) {
@@ -49,9 +56,9 @@ public:
         image = other.image.clone();
         points = other.points;
         points_3d = other.points_3d;
-#ifdef HAVE_CUDA
-        gpu_image = a.gpu_image.clone();
-#endif
+        if(has_cuda_) {
+            gpu_image = other.gpu_image.clone();
+        }
         return *this;
     }
 };
