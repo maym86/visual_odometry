@@ -1,17 +1,21 @@
+
+#if __has_include("opencv2/cudafeatures2d.hpp")
+
 #include "feature_detector.h"
 
 FeatureDetector::FeatureDetector(){
-    detector_ = cv::FastFeatureDetector::create(30, true, cv::FastFeatureDetector::TYPE_9_16);
+    gpu_detector_ = cv::cuda::FastFeatureDetector::create(30, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
 }
 
 void FeatureDetector::detect(VOFrame *frame) {
     std::vector<cv::KeyPoint> keypoints;
 
-    detector_->detect(frame->image, keypoints);
+    gpu_detector_->detect(frame->gpu_image, keypoints);
 
     frame->points.clear();
-
     for(const auto &kp : keypoints){
         frame->points.push_back(kp.pt);
     }
 }
+
+#endif

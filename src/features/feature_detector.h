@@ -4,21 +4,22 @@
 
 #include <list>
 #include <vector>
+#include <cv.hpp>
 
-#include <opencv2/cudafeatures2d.hpp>
-
+#include "opencv2/features2d.hpp"
+#include "src/visual_odemetry/vo_frame.h"
 
 class FeatureDetector {
 
 public:
-
     FeatureDetector();
 
-    std::vector<cv::Point2f> detect(const cv::cuda::GpuMat &image_gpu);
+    void detect(VOFrame *frame);
 
 private:
     const int kMaxFeatures = 10000;
-    cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_; //TODO add ORB as an option too
+
+    cv::Ptr<cv::FastFeatureDetector> detector_;
 };
 
 

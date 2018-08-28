@@ -5,8 +5,14 @@
 
 #include <vector>
 
+#if __has_include("opencv2/cudafeatures2d.hpp")
+#include "src/features/cuda/feature_detector.h"
+#include "src/features/cuda/feature_tracker.h"
+#else
 #include "src/features/feature_detector.h"
 #include "src/features/feature_tracker.h"
+#endif
+
 #include "src/kalman_filter/kalman_filter.h"
 
 #include "vo_frame.h"

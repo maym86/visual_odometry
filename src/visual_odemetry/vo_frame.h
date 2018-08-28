@@ -21,6 +21,7 @@ struct VOFrame {
     cv::Mat pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat pose; //global
 
+    cv::Mat image;
     cv::cuda::GpuMat gpu_image;
     std::vector<cv::Point2f> points;
     std::vector<int> tracked_index;
