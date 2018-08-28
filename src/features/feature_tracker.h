@@ -6,16 +6,19 @@
 #include <vector>
 #include <cv.hpp>
 
-#include <opencv2/cudaoptflow.hpp>
+#include <opencv2/video/tracking.hpp>
+
 #include "src/visual_odemetry/vo_frame.h"
 
 class FeatureTracker {
 public:
     FeatureTracker();
 
-    void trackPoints(VOFrame *prev,  VOFrame *now);
+    void trackPoints(VOFrame *vo0,  VOFrame *vo1);
 
 private:
-    cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> optical_flow_;
+
+    cv::Ptr<cv::SparsePyrLKOpticalFlow> optical_flow_;
+
 };
 #endif //VISUALODEMETRY_FETAURE_TRACKER_H

@@ -33,7 +33,7 @@ DEFINE_validator(res_dir, &validatePath);
 DEFINE_string(poses, "/mnt/3b31043d-473f-40dc-bcc7-faebcc6626fb/kitti/dataset/poses/", "Ground truth poses dir");
 DEFINE_validator(poses, &validatePath);
 
-DEFINE_string(seq, "", "Sequence number");
+DEFINE_string(seq, "00", "Sequence number");
 
 DEFINE_string(image_dir, "image_0", "Image directory");
 

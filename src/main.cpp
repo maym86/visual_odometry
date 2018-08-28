@@ -14,7 +14,6 @@ int main(int argc, char *argv[]) {
     google::InitGoogleLogging(argv[0]);
     FLAGS_logtostderr = 1;
 
-
     std::string data_dir = FLAGS_data_dir + "/" + FLAGS_seq + "/";
 
     //Iterate through directory
@@ -41,11 +40,10 @@ int main(int argc, char *argv[]) {
 
     LOG(INFO) << "Focal length " << focal << ", principal point: " << pp;
 
-
     //Load ground truth
     std::vector<Matrix> result_poses;
 
-    cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat_<double> pose = cv::Mat::eye(4, 3, CV_64FC1);
     cv::Mat_<double> pose_kalman = cv::Mat::eye(4, 3, CV_64FC1);
 
