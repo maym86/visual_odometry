@@ -11,10 +11,9 @@ BundleAdjustment::BundleAdjustment(size_t max_frames) {
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2d pp){
     cv::detail::CameraParams camera;
-    cv::detail::ImageFeatures features;
+    cv::detail::ImageFeatures image_feature;
     cv::detail::MatchesInfo pairwise_matches;
 
-    //TODO populate
     camera.R = frame.pose_R.clone();
     camera.t = frame.pose_t.clone();
     camera.ppx = pp.x;
@@ -22,18 +21,16 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     camera.focal = focal;
     camera.aspect = static_cast<float>(frame.image.rows) / static_cast<float>(frame.image.cols);
 
-    features.img_size = frame.image.size();
-    features.descriptors = frame.descriptors;
+    image_feature.img_size = frame.image.size();
+    image_feature.descriptors = frame.descriptors;
 
     for (const auto &p : frame.points) {
         cv::KeyPoint kp;
         kp.pt = p;
-        features.keypoints.emplace_back(kp);
+        image_feature.keypoints.emplace_back(kp);
     }
 
-    //set points and descriptors
-
-
+    features_.push_back(image_feature);
     cameras_.push_back(camera);
 
     if(cameras_.size() > max_frames_) {
@@ -42,7 +39,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     }
 
     //Do pairwise matching first
-    (*matcher_)(features, pairwise_matches_);
+    (*matcher_)(features_, pairwise_matches_);
     matcher_->collectGarbage();
 }
 
