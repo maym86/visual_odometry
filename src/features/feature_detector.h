@@ -7,6 +7,8 @@
 #include <cv.hpp>
 
 #include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+
 #include "src/visual_odemetry/vo_frame.h"
 
 class FeatureDetector {
@@ -19,6 +21,8 @@ public:
 
 private:
     cv::Ptr<cv::FastFeatureDetector> detector_;
+
+    cv::Ptr<cv::xfeatures2d::BriefDescriptorExtractor> descriptor_;
 };
 
 

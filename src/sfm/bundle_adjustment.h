@@ -12,7 +12,9 @@
 #include "src/visual_odemetry/vo_frame.h"
 
 class BundleAdjustment {
-    explicit BundleAdjustment(size_t max_frames);
+
+public:
+    void init(size_t max_frames);
     void addKeyFrame(const VOFrame &frame, float focal, cv::Point2d pp);
     int slove(cv::Mat *R, cv::Mat *t);
 

@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <boost/circular_buffer.hpp>
+#include <src/sfm/bundle_adjustment.h>
 
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
@@ -45,7 +46,12 @@ private:
     double focal_;
     cv::Point2d pp_;
 
+    cv::Mat last_keyframe_t_;
+
     KalmanFilter kf_;
+
+    BundleAdjustment bundle_adjustment_;
+
 };
 
 

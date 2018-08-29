@@ -3,7 +3,7 @@
 
 #include <glog/logging.h>
 
-BundleAdjustment::BundleAdjustment(size_t max_frames) {
+void BundleAdjustment::init(size_t max_frames) {
     adjuster_ = cv::makePtr<cv::detail::BundleAdjusterReproj>();
     matcher_ = cv::makePtr<cv::detail::BestOf2NearestRangeMatcher>(3, true, 0.3);
     max_frames_ =  max_frames;
@@ -22,12 +22,12 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     camera.aspect = static_cast<float>(frame.image.rows) / static_cast<float>(frame.image.cols);
 
     image_feature.img_size = frame.image.size();
-    image_feature.descriptors = frame.descriptors;
+    image_feature.descriptors = frame.descriptors.getUMat(cv::USAGE_DEFAULT);
 
     for (const auto &p : frame.points) {
         cv::KeyPoint kp;
         kp.pt = p;
-        image_feature.keypoints.emplace_back(kp);
+        image_feature.keypoints.push_back(std::move(kp));
     }
 
     features_.push_back(image_feature);
@@ -44,10 +44,20 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
 }
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
+
+    if(cameras_.size() < 2){
+        return 0;
+    }
+
     if (!(*adjuster_)(features_, pairwise_matches_, cameras_)) {
         LOG(INFO) << "Camera parameters adjusting failed.";
         return 1;
     }
+
+    auto last_cam = cameras_[cameras_.size() - 1];
+
+    *R = last_cam.R;
+    *t = last_cam.t;
 
     return 0;
 

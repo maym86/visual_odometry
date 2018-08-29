@@ -2,6 +2,7 @@
 
 FeatureDetector::FeatureDetector(){
     detector_ = cv::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16);
+    descriptor_ = cv::xfeatures2d::BriefDescriptorExtractor::create(64);
 }
 
 void FeatureDetector::detect(VOFrame *frame) {
@@ -17,17 +18,14 @@ void FeatureDetector::detect(VOFrame *frame) {
 
 }
 
-
 void FeatureDetector::compute(VOFrame *frame){
 
     std::vector<cv::KeyPoint> keypoints;
     for (const auto &p : frame->points ){
-
         cv::KeyPoint kp;
         kp.pt = p;
-        keypoints.push_back(kp);
+        keypoints.push_back(std::move(kp));
     }
-
-    detector_->compute(frame->image, keypoints, frame->descriptors);
+    descriptor_->compute(frame->image, keypoints, frame->descriptors);
 }
 
