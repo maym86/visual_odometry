@@ -21,6 +21,10 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     camera.focal = focal;
     camera.aspect = static_cast<float>(frame.image.rows) / static_cast<float>(frame.image.cols);
 
+    //TODO probably want to use a subset of these points rather than all for speed - or pull out new ORB points here??
+
+
+
     image_feature.img_size = frame.image.size();
     image_feature.descriptors = frame.descriptors.getUMat(cv::USAGE_DEFAULT);
     image_feature.img_idx =  count_;
@@ -39,7 +43,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     }
 
     //Do pairwise matching first
-    matcher_->match(features_, pairwise_matches_);
+    (*matcher_)(features_, pairwise_matches_);
     //matcher_->collectGarbage();
     count_++;
 }

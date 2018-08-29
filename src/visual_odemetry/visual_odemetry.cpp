@@ -10,7 +10,7 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     pp_ = pp;
     last_keyframe_t_ = cv::Mat::zeros(3,1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(10);
+    bundle_adjustment_.init(5);
 }
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
@@ -78,9 +78,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         feature_detector_.compute(&vo2);
         bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
 
-        bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
-        hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+        if (res == 0) {
+            hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+        }
 
         last_keyframe_t_ = vo2.pose_t;
     }

@@ -4,7 +4,7 @@
 
 FeatureDetector::FeatureDetector(){
     gpu_detector_ = cv::cuda::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
-    descriptor_ = cv::cuda::ORB::create(); //TODO check for GPU version
+    descriptor_ = cv::cuda::ORB::create();
 
 }
 
