@@ -10,7 +10,7 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     pp_ = pp;
     last_keyframe_t_ = cv::Mat::zeros(3,1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(5);
+    bundle_adjustment_.init(10);
 }
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
@@ -74,10 +74,15 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     hconcat(k_R, k_t, *pose_kalman);
 
     //TODO keep sliding window and use bundle adjustment to correct pos of last frame
-    if(cv::norm(last_keyframe_t_ - vo2.pose_t) > 5){
+    if(cv::norm(last_keyframe_t_ - vo2.pose_t) > 3 ){ //TODO what happens for big rotation??
+
+        LOG(INFO) << "Extracting descriptor";
         feature_detector_.compute(&vo2);
+
+        LOG(INFO) << "Matching: " << vo2.points.size();
         bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
 
+        LOG(INFO) << "solving";
         int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
         if (res == 0) {

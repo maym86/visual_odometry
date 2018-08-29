@@ -15,7 +15,7 @@ class BundleAdjustment {
 
 public:
     void init(size_t max_frames);
-    void addKeyFrame(const VOFrame &frame, float focal, cv::Point2d pp);
+    void addKeyFrame(const VOFrame &frame, float focal, cv::Point2d pp, int feature_count=0);
     int slove(cv::Mat *R, cv::Mat *t);
 
 private:
@@ -28,7 +28,7 @@ private:
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
 
     size_t max_frames_;
-    size_t count_ = 0;
+    int count_ = 0;
 };
 
 
