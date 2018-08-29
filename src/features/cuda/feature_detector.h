@@ -17,6 +17,7 @@ public:
     FeatureDetector();
 
     void detect(VOFrame *frame);
+    void compute(VOFrame *frame);
 
 private:
     const int kMaxFeatures = 10000;

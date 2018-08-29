@@ -14,5 +14,20 @@ void FeatureDetector::detect(VOFrame *frame) {
     for(const auto &kp : keypoints){
         frame->points.push_back(kp.pt);
     }
+
+}
+
+
+void FeatureDetector::compute(VOFrame *frame){
+
+    std::vector<cv::KeyPoint> keypoints;
+    for (const auto &p : frame->points ){
+
+        cv::KeyPoint kp;
+        kp.pt = p;
+        keypoints.push_back(kp);
+    }
+
+    detector_->compute(frame->image, keypoints, frame->descriptors);
 }
 

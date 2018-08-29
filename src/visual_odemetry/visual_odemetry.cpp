@@ -73,7 +73,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     hconcat(k_R, k_t, *pose_kalman);
 
     (*pose) = vo2.pose;
+
+
     //TODO keep sliding window and use bundle adjustment to correct pos of last frame
+
+    //IF moved enough create keyframe - extract descriptor first
 }
 
 cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){

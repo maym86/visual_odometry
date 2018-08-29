@@ -31,6 +31,8 @@ public:
     std::vector<cv::Point2f> points;
     std::vector<int> tracked_index;
 
+    cv::UMat descriptors;
+
     std::vector<cv::Point3d> points_3d;
 
     void setImage(cv::Mat image_in){

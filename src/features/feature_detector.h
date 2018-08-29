@@ -6,7 +6,7 @@
 #include <vector>
 #include <cv.hpp>
 
-#include "opencv2/features2d.hpp"
+#include <opencv2/features2d.hpp>
 #include "src/visual_odemetry/vo_frame.h"
 
 class FeatureDetector {
@@ -15,10 +15,9 @@ public:
     FeatureDetector();
 
     void detect(VOFrame *frame);
+    void compute(VOFrame *frame);
 
 private:
-    const int kMaxFeatures = 10000;
-
     cv::Ptr<cv::FastFeatureDetector> detector_;
 };
 

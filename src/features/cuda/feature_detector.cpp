@@ -16,3 +16,17 @@ void FeatureDetector::detect(VOFrame *frame) {
         frame->points.push_back(kp.pt);
     }
 }
+
+
+void FeatureDetector::compute(VOFrame *frame) {
+
+    std::vector<cv::KeyPoint> keypoints;
+    for (const auto &p : frame->points ){
+
+        cv::KeyPoint kp;
+        kp.pt = p;
+        keypoints.push_back(kp);
+    }
+
+    gpu_detector_->compute(frame->image, keypoints, frame->descriptors);
+}
