@@ -10,7 +10,7 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     pp_ = pp;
     last_keyframe_t_ = cv::Mat::zeros(3,1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(4);
+    bundle_adjustment_.init(10);
 }
 
 void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
@@ -74,13 +74,15 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     hconcat(k_R, k_t, *pose_kalman);
 
     //TODO keep sliding window and use bundle adjustment to correct pos of last frame
-    if(cv::norm(last_keyframe_t_ - vo2.pose_t) > 6){
+    if(cv::norm(last_keyframe_t_ - vo2.pose_t) > 5){
         feature_detector_.compute(&vo2);
         bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
 
         bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
         hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+
+        last_keyframe_t_ = vo2.pose_t;
     }
 
     (*pose) = vo2.pose;

@@ -5,7 +5,7 @@
 
 void BundleAdjustment::init(size_t max_frames) {
     adjuster_ = cv::makePtr<cv::detail::BundleAdjusterReproj>();
-    matcher_ = cv::makePtr<cv::detail::BestOf2NearestRangeMatcher>(2, true, 0.3);
+    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true, 0.3, 10, 10);
     max_frames_ =  max_frames;
 }
 
@@ -39,16 +39,12 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     }
 
     //Do pairwise matching first
-    (*matcher_)(features_, pairwise_matches_);
-    matcher_->collectGarbage();
+    matcher_->match(features_, pairwise_matches_);
+    //matcher_->collectGarbage();
     count_++;
 }
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
-
-    if(cameras_.size() < 2){
-        return 0;
-    }
 
     if (!(*adjuster_)(features_, pairwise_matches_, cameras_)) {
         LOG(INFO) << "Camera parameters adjusting failed.";

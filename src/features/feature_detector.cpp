@@ -2,7 +2,7 @@
 
 FeatureDetector::FeatureDetector(){
     detector_ = cv::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16);
-    descriptor_ = cv::xfeatures2d::BriefDescriptorExtractor::create(64);
+    descriptor_ = cv::ORB::create();
 }
 
 void FeatureDetector::detect(VOFrame *frame) {

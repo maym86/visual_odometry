@@ -16,10 +16,10 @@
 #endif
 
 #include "src/kalman_filter/kalman_filter.h"
+#include "src/sfm/bundle_adjustment.h"
+
 
 #include "vo_frame.h"
-
-
 
 class VisualOdemetry {
 public:

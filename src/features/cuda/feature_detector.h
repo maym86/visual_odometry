@@ -23,6 +23,9 @@ private:
     const int kMaxFeatures = 10000;
 
     cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_;
+
+    cv::Ptr<cv::cuda::ORB> descriptor_;
+
 };
 
 #endif //VO_FEATURES_CUDA_DETECTION_H

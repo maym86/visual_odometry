@@ -4,6 +4,8 @@
 
 FeatureDetector::FeatureDetector(){
     gpu_detector_ = cv::cuda::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
+    descriptor_ = cv::cuda::ORB::create(); //TODO check for GPU version
+
 }
 
 void FeatureDetector::detect(VOFrame *frame) {
@@ -18,15 +20,16 @@ void FeatureDetector::detect(VOFrame *frame) {
 }
 
 
-void FeatureDetector::compute(VOFrame *frame) {
+void FeatureDetector::compute(VOFrame *frame){
 
     std::vector<cv::KeyPoint> keypoints;
     for (const auto &p : frame->points ){
-
         cv::KeyPoint kp;
         kp.pt = p;
-        keypoints.push_back(kp);
+        keypoints.push_back(std::move(kp));
     }
 
-    gpu_detector_->compute(frame->image, keypoints, frame->descriptors);
+    cv::cuda::GpuMat descriptors;
+    descriptor_->compute(frame->gpu_image, keypoints, descriptors);
+    descriptors.download(frame->descriptors);
 }
