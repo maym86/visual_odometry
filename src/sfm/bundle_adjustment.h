@@ -28,6 +28,7 @@ private:
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
 
     size_t max_frames_;
+    size_t count_ = 0;
 };
 
 

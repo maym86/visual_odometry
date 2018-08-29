@@ -5,7 +5,7 @@
 
 void BundleAdjustment::init(size_t max_frames) {
     adjuster_ = cv::makePtr<cv::detail::BundleAdjusterReproj>();
-    matcher_ = cv::makePtr<cv::detail::BestOf2NearestRangeMatcher>(3, true, 0.3);
+    matcher_ = cv::makePtr<cv::detail::BestOf2NearestRangeMatcher>(2, true, 0.3);
     max_frames_ =  max_frames;
 }
 
@@ -14,7 +14,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     cv::detail::ImageFeatures image_feature;
     cv::detail::MatchesInfo pairwise_matches;
 
-    camera.R = frame.pose_R.clone();
+    frame.pose_R.convertTo(camera.R, CV_32F);
     camera.t = frame.pose_t.clone();
     camera.ppx = pp.x;
     camera.ppy = pp.y;
@@ -23,7 +23,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
 
     image_feature.img_size = frame.image.size();
     image_feature.descriptors = frame.descriptors.getUMat(cv::USAGE_DEFAULT);
-
+    image_feature.img_idx =  count_;
     for (const auto &p : frame.points) {
         cv::KeyPoint kp;
         kp.pt = p;
@@ -41,6 +41,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     //Do pairwise matching first
     (*matcher_)(features_, pairwise_matches_);
     matcher_->collectGarbage();
+    count_++;
 }
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
@@ -56,7 +57,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     auto last_cam = cameras_[cameras_.size() - 1];
 
-    *R = last_cam.R;
+    last_cam.R.convertTo(*R, CV_64F);
     *t = last_cam.t;
 
     return 0;
