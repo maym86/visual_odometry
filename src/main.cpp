@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
     bool done = false;
 
     VisualOdemetry vo(focal, pp);
+    bool resize = true;
 
     for (const auto &file_name : file_names) {
 
@@ -68,13 +69,25 @@ int main(int argc, char *argv[]) {
 
         //cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
-        cv::imshow("Map", map);
-        cv::imshow("Features", vo.drawMatches(image));
+        cv::Mat features = vo.drawMatches(image);
+        cv::Mat map_out;
+
+        if(resize){
+            cv::resize(features, features, cv::Size(), 0.5, 0.5);
+            cv::resize(map, map_out, cv::Size(), 0.5, 0.5);
+        } else {
+            map_out =  map;
+        }
+
+        cv::imshow("Map", map_out);
+        cv::imshow("Features", features);
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27) {
             done = true;
             break;
+        } else if (key == 'r') {
+            resize = !resize;
         }
     }
 

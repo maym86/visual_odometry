@@ -20,9 +20,9 @@
 
 
 
-class VisualOdemetry {
+class VisualOdometry {
 public:
-    VisualOdemetry(double focal, const cv::Point2d &pp);
+    VisualOdometry(double focal, const cv::Point2d &pp);
 
     void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
@@ -30,7 +30,7 @@ public:
 
 private:
     const size_t kFrameBufferCapacity = 3;
-    const size_t kMinTrackedPoints = 1500;
+    const size_t kMinTrackedPoints = 2000;
     const size_t kMinPosePoints = 8;
 
     FeatureDetector feature_detector_;
