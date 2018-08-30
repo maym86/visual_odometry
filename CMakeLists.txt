@@ -15,7 +15,7 @@ find_package(glog REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR})
 file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
-                    ${PROJECT_SOURCE_DIR}/src/visual_odemetry/*.cpp
+        ${PROJECT_SOURCE_DIR}/src/visual_odometry/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kalman_filter/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/utils/*.cpp

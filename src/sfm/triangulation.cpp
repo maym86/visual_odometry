@@ -7,14 +7,14 @@
 void triangulate(VOFrame *vo0, VOFrame *vo1) {
     if (!vo1->P.empty()) {
         cv::Mat points_3d;
-        cv::Mat_<double> p0(2, vo0->points.size(), CV_64FC1);
-        cv::Mat_<double> p1(2, vo1->points.size(), CV_64FC1);
+        cv::Mat_<float> p0(2, vo0->points.size(), CV_64FC1);
+        cv::Mat_<float> p1(2, vo1->points.size(), CV_64FC1);
 
         for (int i = 0; i < p0.cols; i++) {
-            p0.at<double>(0, i) = vo0->points[i].x;
-            p0.at<double>(1, i) = vo0->points[i].y;
-            p1.at<double>(0, i) = vo1->points[i].x;
-            p1.at<double>(1, i) = vo1->points[i].y;
+            p0.at<float>(0, i) = vo0->points[i].x;
+            p0.at<float>(1, i) = vo0->points[i].y;
+            p1.at<float>(0, i) = vo1->points[i].x;
+            p1.at<float>(1, i) = vo1->points[i].y;
         }
 
         cv::Mat P = cv::Mat::eye(3, 4, CV_64FC1);
@@ -22,15 +22,15 @@ void triangulate(VOFrame *vo0, VOFrame *vo1) {
         vo1->points_3d.clear();
 
         for (int i = 0; i < points_3d.cols; i++) {
-            vo1->points_3d.push_back(cv::Point3d(points_3d.at<double>(0, i) / points_3d.at<double>(3, i),
-                                                 points_3d.at<double>(1, i) / points_3d.at<double>(3, i),
-                                                 points_3d.at<double>(2, i) / points_3d.at<double>(3, i)));
+            vo1->points_3d.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i),
+                                                 points_3d.at<float>(1, i) / points_3d.at<float>(3, i),
+                                                 points_3d.at<float>(2, i) / points_3d.at<float>(3, i)));
         }
     }
 }
 
 
-double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
+float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
 
     if (vo0.points_3d.size() == 0 || vo1.points_3d.size() == 0) {
         LOG(INFO) << "O point size";
@@ -77,11 +77,18 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
         return 1;
     }
 
-    double scale = vo1_sum / vo0_sum;
+    float scale = vo1_sum / vo0_sum;
+
     if (std::isnan(scale) || std::isnan(scale) || scale == 0) {
         LOG(INFO) << "Scale invalid: " << scale;
         return 1;
     }
+
+    if(scale > 3){ //TODO this is wrong - fix in a different way
+        LOG(INFO) << "Scale is large: " << scale;
+        //return 1;
+    }
+
 
     return scale;
 }
