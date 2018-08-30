@@ -19,6 +19,6 @@ void FeatureDetector::detectFAST(VOFrame *frame) {
 }
 
 void FeatureDetector::detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors){
-    descriptor_->detectAndCompute(frame->image, *keypoints, *descriptors);
+    descriptor_->detectAndCompute(frame.image, cv::noArray(), *keypoints, *descriptors);
 }
 
