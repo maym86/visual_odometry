@@ -9,7 +9,7 @@
 #include <opencv2/stitching/detail/motion_estimators.hpp>
 #include <opencv2/stitching/detail/matchers.hpp>
 
-#include "src/visual_odemetry/vo_frame.h"
+#include "src/visual_odometry/vo_frame.h"
 
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
