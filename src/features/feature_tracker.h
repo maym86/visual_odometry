@@ -8,7 +8,7 @@
 
 #include <opencv2/video/tracking.hpp>
 
-#include "src/visual_odemetry/vo_frame.h"
+#include "src/visual_odometry/vo_frame.h"
 
 class FeatureTracker {
 public:

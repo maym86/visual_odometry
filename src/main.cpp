@@ -3,7 +3,7 @@
 
 #include <boost/range/iterator_range.hpp>
 
-#include "src/visual_odemetry/visual_odemetry.h"
+#include "src/visual_odometry/visual_odometry.h"
 #include "src/kitti/kitti.h"
 
 using namespace boost::filesystem;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 
     bool done = false;
 
-    VisualOdemetry vo(focal, pp);
+    VisualOdometry vo(focal, pp);
     bool resize = true;
 
     for (const auto &file_name : file_names) {

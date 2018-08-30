@@ -18,8 +18,6 @@
 
 #include "vo_frame.h"
 
-
-
 class VisualOdometry {
 public:
     VisualOdometry(double focal, const cv::Point2d &pp);
