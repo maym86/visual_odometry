@@ -5,7 +5,6 @@
 
 #include <vector>
 #include <boost/circular_buffer.hpp>
-#include <src/sfm/bundle_adjustment.h>
 
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
@@ -21,9 +20,9 @@
 
 #include "vo_frame.h"
 
-class VisualOdemetry {
+class VisualOdometry {
 public:
-    VisualOdemetry(double focal, const cv::Point2d &pp);
+    VisualOdometry(double focal, const cv::Point2d &pp);
 
     void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
@@ -31,7 +30,7 @@ public:
 
 private:
     const size_t kFrameBufferCapacity = 3;
-    const size_t kMinTrackedPoints = 1500;
+    const size_t kMinTrackedPoints = 2000;
     const size_t kMinPosePoints = 8;
 
     FeatureDetector feature_detector_;

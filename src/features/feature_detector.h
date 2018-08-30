@@ -6,9 +6,8 @@
 #include <vector>
 #include <cv.hpp>
 
-#include <opencv2/features2d.hpp>
-
-#include "src/visual_odemetry/vo_frame.h"
+#include "opencv2/features2d.hpp"
+#include "src/visual_odometry/vo_frame.h"
 
 class FeatureDetector {
 

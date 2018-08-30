@@ -3,7 +3,7 @@
 #define VO_FETAURES_UTILS_H
 
 #include <vector>
-#include "src/visual_odemetry/vo_frame.h"
+#include "src/visual_odometry/vo_frame.h"
 
 void removePoints(VOFrame *vo0, VOFrame *vo1, std::vector<unsigned char> *status){
 

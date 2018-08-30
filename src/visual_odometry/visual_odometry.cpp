@@ -1,10 +1,10 @@
-#include "visual_odemetry.h"
+#include "visual_odometry.h"
 
 #include "src/sfm/triangulation.h"
 
 #include <glog/logging.h>
 
-VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
+VisualOdometry::VisualOdometry(double focal, const cv::Point2d &pp) {
     tracking_ = false;
     focal_ = focal;
     pp_ = pp;
@@ -13,7 +13,7 @@ VisualOdemetry::VisualOdemetry(double focal, const cv::Point2d &pp) {
     bundle_adjustment_.init(10);
 }
 
-void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
+void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman){
 
     VOFrame frame;
     frame.setImage(image);
@@ -22,15 +22,15 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         return;
     }
 
-    VOFrame &vo1 = frame_buffer_[1];
-    VOFrame &vo2 = frame_buffer_[2];
+    VOFrame &vo1 = frame_buffer_[frame_buffer_.size() - 2];
+    VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
     color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
         color_ = cv::Scalar(255,0,0);
         feature_detector_.detectFAST(&vo1);
 
-        VOFrame &vo0 = frame_buffer_[0];
+        VOFrame &vo0 = frame_buffer_[frame_buffer_.size() - 3];
         if(!vo0.image.empty() && !vo1.E.empty()){ //Backtrack for new points for scale calculation later
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have R|t from vo0 to vo1
@@ -53,11 +53,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         hconcat(vo2.R, vo2.t, vo2.P);
         triangulate(&vo1, &vo2);
 
-        double scale = getScale(vo1, vo2, kMinPosePoints, 200);
-        LOG(INFO) << "Scale: " << scale;
+        vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
+        LOG(INFO) << "Scale: " << vo2.scale;
 
         vo2.pose_R = vo2.R * vo1.pose_R;
-        vo2.pose_t = vo1.pose_t + scale * (vo1.pose_R * vo2.t);
+        vo2.pose_t = vo1.pose_t + vo2.scale * (vo1.pose_R * vo2.t);
     } else {
         //Copy last pose
         LOG(INFO) << "RecoverPose, too few points";
@@ -92,7 +92,7 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     (*pose) = vo2.pose;
 }
 
-cv::Mat VisualOdemetry::drawMatches(const cv::Mat &image){
+cv::Mat VisualOdometry::drawMatches(const cv::Mat &image){
 
     cv::Mat output = image.clone();
 
