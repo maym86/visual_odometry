@@ -28,7 +28,7 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     color_ = cv::Scalar(0,0,255);
     if (!tracking_) {
         color_ = cv::Scalar(255,0,0);
-        feature_detector_.detect(&vo1);
+        feature_detector_.detectFAST(&vo1);
 
         VOFrame &vo0 = frame_buffer_[0];
         if(!vo0.image.empty() && !vo1.E.empty()){ //Backtrack for new points for scale calculation later
@@ -76,14 +76,11 @@ void VisualOdemetry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     //TODO keep sliding window and use bundle adjustment to correct pos of last frame
     if(cv::norm(last_keyframe_t_ - vo2.pose_t) > 3 ){ //TODO what happens for big rotation??
 
-        LOG(INFO) << "Extracting descriptor";
-        feature_detector_.compute(&vo2);
-
         LOG(INFO) << "Matching: " << vo2.points.size();
         bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
 
         LOG(INFO) << "solving";
-        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t); //TODO replace with sba library
 
         if (res == 0) {
             hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);

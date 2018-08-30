@@ -11,6 +11,12 @@
 
 #include "src/visual_odemetry/vo_frame.h"
 
+#if __has_include("opencv2/cudafeatures2d.hpp")
+#include "src/features/cuda/feature_detector.h"
+#else
+#include "src/features/feature_detector.h"
+#endif
+
 class BundleAdjustment {
 
 public:
@@ -19,6 +25,9 @@ public:
     int slove(cv::Mat *R, cv::Mat *t);
 
 private:
+
+    FeatureDetector feature_detector_;
+
     cv::Ptr<cv::detail::BundleAdjusterBase> adjuster_;
     cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 

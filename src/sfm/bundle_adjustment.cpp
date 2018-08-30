@@ -33,31 +33,11 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     camera.aspect = static_cast<float>(frame.image.rows) / static_cast<float>(frame.image.cols);
 
 
-    if(feature_count > 0) {
-        //Using a subset of the found features for speed
-        auto indices = randomIndices(feature_count, frame.points.size());
-        image_feature.img_size = frame.image.size();
-        image_feature.img_idx = count_;
-
-        cv::Mat des(feature_count, frame.descriptors.cols, frame.descriptors.type());
-        for (int i = 0; i < indices.size(); i++) {
-            cv::KeyPoint kp;
-            kp.pt = frame.points[indices[i]];
-            image_feature.keypoints.push_back(std::move(kp));
-            frame.descriptors.row(indices[i]).copyTo(des.row(i));
-        }
-        image_feature.descriptors = des.getUMat(cv::USAGE_DEFAULT);
-
-    } else {
-        image_feature.img_size = frame.image.size();
-        image_feature.img_idx = count_;
-        for (const auto &p : frame.points) {
-            cv::KeyPoint kp;
-            kp.pt = p;
-            image_feature.keypoints.push_back(std::move(kp));
-        }
-        image_feature.descriptors = frame.descriptors.getUMat(cv::USAGE_DEFAULT);
-    }
+    cv::Mat descriptors;
+    feature_detector_.detectComputeORB(frame, &image_feature.keypoints, &descriptors);
+    image_feature.descriptors = descriptors.getUMat(cv::USAGE_DEFAULT);
+    image_feature.img_idx = count_;
+    image_feature.img_size = frame.image.size();
 
     features_.push_back(image_feature);
     cameras_.push_back(camera);

@@ -15,8 +15,8 @@ class FeatureDetector {
 public:
     FeatureDetector();
 
-    void detect(VOFrame *frame);
-    void compute(VOFrame *frame);
+    void detectFAST(VOFrame *frame);
+    void detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
 
 private:
     cv::Ptr<cv::FastFeatureDetector> detector_;

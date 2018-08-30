@@ -78,10 +78,18 @@ double getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_
     }
 
     double scale = vo1_sum / vo0_sum;
+
+
     if (std::isnan(scale) || std::isnan(scale) || scale == 0) {
         LOG(INFO) << "Scale invalid: " << scale;
         return 1;
     }
+
+    if(scale > 3){ //TODO this is wrong - fix in a different way
+        LOG(INFO) << "Scale invalid - too big: " << scale;
+        return 1;
+    }
+
 
     return scale;
 }
