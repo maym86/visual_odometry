@@ -21,7 +21,7 @@
 #if !defined(SPARSE_BUNDLE_CPU_H)
 #define SPARSE_BUNDLE_CPU_H
 
-#include <malloc.h>
+#include <stdlib.h> //#include <malloc.h>
 
 //BYTE-ALIGNMENT for data allocation (16 required for SSE, 32 required for AVX)
 //PREVIOUS version uses only SSE. The new version will include AVX. 
