@@ -4,13 +4,10 @@
 #include <random>
 #include <cv.hpp>
 #include <glog/logging.h>
-#include <src/sfm/pba/src/pba/DataInterface.h>
 
 //Init random
 std::random_device rd;
 std::mt19937 rng(rd());
-
-
 
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
 
@@ -37,48 +34,10 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
     return results;
 }
 
-
-void triangulatePairwiseMatches(const std::vector<std::vector<cv::Point2f>> &keypoints, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
-                                std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx){
-
-    for(int i = 0; i < pairwise_matches.size(); i++){
-        const auto &pwm = pairwise_matches[i];
-
-        int idx_s = pwm.src_img_idx;
-        int idx_d = pwm.dst_img_idx;
-
-        if(idx_s != -1 && idx_d != -1) {
-            std::vector<cv::Point3f> points3d = triangulate(keypoints[idx_s], keypoints[idx_d], poses[idx_s], poses[idx_d]);
-
-            for(int j = 0; j < points3d.size(); j++){
-                Point3D p3d;
-                p3d.xyz[0] = points3d[i].x;
-                p3d.xyz[1] = points3d[i].y;
-                p3d.xyz[2] = points3d[i].z;
-
-                Point2D p2d;
-                p2d.x = keypoints[idx_s][j].x;
-                p2d.y = keypoints[idx_s][j].y;
-
-                pba_point_data->push_back(p3d);
-                pba_measurements->push_back(p2d);
-                pba_camidx->push_back(idx_s);
-                pba_ptidx->push_back(pba_ptidx->size());
-            }
-
-        }
-
-    }
-
-}
-
-
-
 void triangulateFrame(VOFrame *vo0, VOFrame *vo1) {
     if (!vo1->P.empty()) {
-
-        cv::Mat P_src = cv::Mat::eye(3, 4, CV_64FC1);
-        vo1->points_3d = triangulate(vo0->points, vo1->points, P_src, vo1->P);
+        cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
+        vo1->points_3d = triangulate(vo0->points, vo1->points, P0, vo1->P);
     }
 }
 

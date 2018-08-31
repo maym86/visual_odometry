@@ -29,6 +29,9 @@ public:
 
 private:
 
+    void setPBAData(const std::vector<std::vector<cv::Point2f>> &keypoints, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
+            std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx);
+
     FeatureDetector feature_detector_;
 
     cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
