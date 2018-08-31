@@ -3,16 +3,6 @@
 
 #include <glog/logging.h>
 
-
-
-std::vector<int> randomIndices(int count, size_t max){
-    std::vector<int> res(count);
-    for(int i = 0; i< count; i++){
-        res[i] = rand() % max;
-    }
-    return res;
-}
-
 void BundleAdjustment::init(size_t max_frames) {
 
     ParallelBA::DeviceT device = ParallelBA::PBA_CUDA_DEVICE_DEFAULT; //device = ParallelBA::PBA_CPU_DOUBLE;
@@ -60,9 +50,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     //Do pairwise matching first
     (*matcher_)(features_, pairwise_matches_);
     count_++;
-
-
-
 
 }
 
