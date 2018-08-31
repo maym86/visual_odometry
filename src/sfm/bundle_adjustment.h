@@ -19,8 +19,6 @@
 
 
 #include "pba/src/pba/pba.h"
-#include "pba/src/pba/util.h"
-
 
 class BundleAdjustment {
 
