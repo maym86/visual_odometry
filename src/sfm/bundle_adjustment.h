@@ -17,6 +17,11 @@
 #include "src/features/feature_detector.h"
 #endif
 
+
+#include "pba/src/pba/pba.h"
+#include "pba/src/pba/util.h"
+
+
 class BundleAdjustment {
 
 public:
@@ -32,9 +37,16 @@ private:
     cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 
 
-    std::vector<cv::detail::CameraParams> cameras_;
     std::vector<cv::detail::ImageFeatures> features_;
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
+
+
+    std::vector<CameraT>        pba_cameras_;    //camera (input/ouput)
+    std::vector<Point3D>        pba_point_data_;     //3D point(iput/output)
+    std::vector<Point2D>        pba_measurements_;   //measurment/projection vector
+    std::vector<int>            pba_camidx_, pba_ptidx_;  //index of camera/point for each projection
+
+
 
     size_t max_frames_;
     int count_ = 0;

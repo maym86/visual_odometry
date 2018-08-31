@@ -3,15 +3,6 @@
 
 #include <glog/logging.h>
 
-#include "pba/src/pba/pba.h"
-#include "pba/src/pba/util.h"
-
-
-std::vector<CameraT>        camera_data;    //camera (input/ouput)
-std::vector<Point3D>        point_data;     //3D point(iput/output)
-std::vector<Point2D>        measurements;   //measurment/projection vector
-std::vector<int>            camidx, ptidx;  //index of camera/point for each projection
-
 
 
 std::vector<int> randomIndices(int count, size_t max){
@@ -24,10 +15,10 @@ std::vector<int> randomIndices(int count, size_t max){
 
 void BundleAdjustment::init(size_t max_frames) {
 
-    ParallelBA::DeviceT device = ParallelBA::PBA_CUDA_DEVICE_DEFAULT;
+    ParallelBA::DeviceT device = ParallelBA::PBA_CUDA_DEVICE_DEFAULT; //device = ParallelBA::PBA_CPU_DOUBLE;
     ParallelBA pba(device);
-
-
+    pba.SetFixedIntrinsics(true);
+    pba.
     ///TODO replace bundle adjustment algo https://stackoverflow.com/questions/13921720/bundle-adjustment-functions
     // TODO sba https://stackoverflow.com/questions/52005362/sparse-bundle-adjustment-using-fiducial-markers
     adjuster_ = cv::makePtr<cv::detail::BundleAdjusterReproj>();
@@ -36,23 +27,21 @@ void BundleAdjustment::init(size_t max_frames) {
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2d pp, int feature_count){
-    cv::detail::CameraParams camera;
     cv::detail::ImageFeatures image_feature;
     cv::detail::MatchesInfo pairwise_matches;
 
-    frame.pose_R.convertTo(camera.R, CV_32F);
-    camera.t = frame.pose_t.clone();
-    camera.ppx = pp.x;
-    camera.ppy = pp.y;
-    camera.focal = focal;
-    camera.aspect = static_cast<float>(frame.image.rows) / static_cast<float>(frame.image.cols);
+    CameraT cam;
+    cam.f = focal;
+    for(int r=0; r < frame.pose_R.rows; r++){
+        for(int c=0; c < frame.pose_R.cols; c++) {
+            cam.m[r][c] = frame.pose_R.at<double>(r, c);
+        }
+    }
+    for(int c=0; c < frame.pose_t.cols; c++) {
+        cam.t[c] = frame.pose_t.at<double>(c);
+    }
 
-
-    CameraT cd;
-    cd.f = focal;
-    cd.m = frame.pose_R.data;
-    cd.t = frame.pose_t.data;
-
+    pba_cameras_.push_back(cam);
 
     cv::Mat descriptors;
     feature_detector_.detectComputeORB(frame, &image_feature.keypoints, &descriptors);
@@ -61,7 +50,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     image_feature.img_size = frame.image.size();
 
     features_.push_back(image_feature);
-    cameras_.push_back(camera);
 
     if(cameras_.size() > max_frames_) {
         cameras_.erase(cameras_.begin());
