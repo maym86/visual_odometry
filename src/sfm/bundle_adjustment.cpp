@@ -16,9 +16,11 @@ std::vector<int> randomIndices(int count, size_t max){
 void BundleAdjustment::init(size_t max_frames) {
 
     ParallelBA::DeviceT device = ParallelBA::PBA_CUDA_DEVICE_DEFAULT; //device = ParallelBA::PBA_CPU_DOUBLE;
-    ParallelBA pba(device);
-    pba.SetFixedIntrinsics(true);
-    pba.
+    pba_ = ParallelBA(device);
+    pba_.SetFixedIntrinsics(true);
+    pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
+
+
     ///TODO replace bundle adjustment algo https://stackoverflow.com/questions/13921720/bundle-adjustment-functions
     // TODO sba https://stackoverflow.com/questions/52005362/sparse-bundle-adjustment-using-fiducial-markers
     adjuster_ = cv::makePtr<cv::detail::BundleAdjusterReproj>();
@@ -51,8 +53,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
 
     features_.push_back(image_feature);
 
-    if(cameras_.size() > max_frames_) {
-        cameras_.erase(cameras_.begin());
+    if(features_.size() > max_frames_) {
         features_.erase(features_.begin());
     }
 

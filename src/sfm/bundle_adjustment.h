@@ -36,11 +36,11 @@ private:
     cv::Ptr<cv::detail::BundleAdjusterBase> adjuster_;
     cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 
-
+    std::vector<cv::detail::CameraParams> cameras_;
     std::vector<cv::detail::ImageFeatures> features_;
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
 
-
+    ParallelBA pba_;
     std::vector<CameraT>        pba_cameras_;    //camera (input/ouput)
     std::vector<Point3D>        pba_point_data_;     //3D point(iput/output)
     std::vector<Point2D>        pba_measurements_;   //measurment/projection vector
