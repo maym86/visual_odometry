@@ -4,10 +4,11 @@
 
 #include <glog/logging.h>
 
-VisualOdometry::VisualOdometry(double focal, const cv::Point2d &pp) {
+VisualOdometry::VisualOdometry(double focal, const cv::Point2d &pp, size_t min_tracked_points) {
     tracking_ = false;
     focal_ = focal;
     pp_ = pp;
+    min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3,1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
     bundle_adjustment_.init(10);
@@ -42,7 +43,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     feature_tracker_.trackPoints(&vo1, &vo2);
 
-    if (vo2.points.size() < kMinTrackedPoints) {
+    if (vo2.points.size() < min_tracked_points_) {
         tracking_ = false;
     }
 

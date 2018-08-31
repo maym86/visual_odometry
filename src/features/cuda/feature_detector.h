@@ -8,7 +8,7 @@
 
 #include <opencv2/cudafeatures2d.hpp>
 
-#include "src/visual_odemetry/vo_frame.h"
+#include "src/visual_odometry/vo_frame.h"
 
 class FeatureDetector {
 

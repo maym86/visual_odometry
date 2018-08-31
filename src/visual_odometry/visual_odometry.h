@@ -22,7 +22,7 @@
 
 class VisualOdometry {
 public:
-    VisualOdometry(double focal, const cv::Point2d &pp);
+    VisualOdometry(double focal, const cv::Point2d &pp, size_t min_tracked_points);
 
     void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
@@ -30,13 +30,13 @@ public:
 
 private:
     const size_t kFrameBufferCapacity = 3;
-    const size_t kMinTrackedPoints = 2000;
     const size_t kMinPosePoints = 8;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
 
     bool tracking_;
+    size_t  min_tracked_points_;
 
     boost::circular_buffer<VOFrame> frame_buffer_;
 
