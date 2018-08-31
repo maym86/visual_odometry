@@ -3,6 +3,17 @@
 
 #include <glog/logging.h>
 
+#include "pba/src/pba/pba.h"
+#include "pba/src/pba/util.h"
+
+
+std::vector<CameraT>        camera_data;    //camera (input/ouput)
+std::vector<Point3D>        point_data;     //3D point(iput/output)
+std::vector<Point2D>        measurements;   //measurment/projection vector
+std::vector<int>            camidx, ptidx;  //index of camera/point for each projection
+
+
+
 std::vector<int> randomIndices(int count, size_t max){
     std::vector<int> res(count);
     for(int i = 0; i< count; i++){
@@ -13,10 +24,14 @@ std::vector<int> randomIndices(int count, size_t max){
 
 void BundleAdjustment::init(size_t max_frames) {
 
+    ParallelBA::DeviceT device = ParallelBA::PBA_CUDA_DEVICE_DEFAULT;
+    ParallelBA pba(device);
+
+
     ///TODO replace bundle adjustment algo https://stackoverflow.com/questions/13921720/bundle-adjustment-functions
     // TODO sba https://stackoverflow.com/questions/52005362/sparse-bundle-adjustment-using-fiducial-markers
     adjuster_ = cv::makePtr<cv::detail::BundleAdjusterReproj>();
-    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true, 0.3, 10, 10);
+    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true, 0.2, 10, 10);
     max_frames_ =  max_frames;
 }
 
@@ -31,6 +46,12 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     camera.ppy = pp.y;
     camera.focal = focal;
     camera.aspect = static_cast<float>(frame.image.rows) / static_cast<float>(frame.image.cols);
+
+
+    CameraT cd;
+    cd.f = focal;
+    cd.m = frame.pose_R.data;
+    cd.t = frame.pose_t.data;
 
 
     cv::Mat descriptors;
@@ -50,6 +71,10 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     //Do pairwise matching first
     (*matcher_)(features_, pairwise_matches_);
     count_++;
+
+
+
+
 }
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {

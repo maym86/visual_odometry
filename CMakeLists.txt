@@ -15,11 +15,13 @@ find_package(glog REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR})
 file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
-        ${PROJECT_SOURCE_DIR}/src/visual_odometry/*.cpp
+                    ${PROJECT_SOURCE_DIR}/src/visual_odometry/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kalman_filter/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/utils/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kitti/*.cpp)
+
+LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/sfm/pba/bin)
 
 if(OpenCV_CUDA_VERSION)
     file(GLOB SRC_FILES_FEATURES ${PROJECT_SOURCE_DIR}/src/features/cuda/*.cpp)
@@ -29,5 +31,5 @@ endif()
 
 add_executable( vo ${SRC_FILES} ${SRC_FILES_FEATURES})
 
-target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog)
+target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog pba)
 
