@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     gflags::ParseCommandLineFlags(&argc, &argv, true);
     google::InitGoogleLogging(argv[0]);
-    FLAGS_logtostderr = 1;
+    FLAGS_logtostderr = true;
 
     std::string data_dir = FLAGS_data_dir + "/" + FLAGS_seq + "/";
 
@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
 
     VisualOdometry vo(focal, pp);
     bool resize = true;
+
 
     for (const auto &file_name : file_names) {
 
