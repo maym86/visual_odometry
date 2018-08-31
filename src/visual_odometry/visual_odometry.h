@@ -28,7 +28,7 @@ public:
 
 private:
     const size_t kFrameBufferCapacity = 3;
-    const size_t kMinTrackedPoints = 1000;
+    const size_t kMinTrackedPoints = 500;
     const size_t kMinPosePoints = 8;
 
     FeatureDetector feature_detector_;

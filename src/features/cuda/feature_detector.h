@@ -19,7 +19,7 @@ public:
     void detect(VOFrame *frame);
 
 private:
-    const int kMaxFeatures = 10000;
+    const int kMaxFeatures = 5000;
 
     cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_;
 };

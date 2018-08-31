@@ -93,9 +93,8 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
 
     if(scale > 5){ //TODO this is wrong - fix in a different way
         LOG(INFO) << "Scale is large: " << scale;
-        return 2; //TODO try some different values here
+        return 5; //TODO try some different values here
     }
-
 
     return scale;
 }
