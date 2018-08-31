@@ -3,7 +3,7 @@
 #include "src/features/utils.h"
 
 FeatureTracker::FeatureTracker(){
-     gpu_optical_flow_ = cv::cuda::SparsePyrLKOpticalFlow::create(cv::Size(21, 21), 3, 30);
+     gpu_optical_flow_ = cv::cuda::SparsePyrLKOpticalFlow::create();
 }
 
 void FeatureTracker::trackPoints(VOFrame *vo0, VOFrame *vo1) {

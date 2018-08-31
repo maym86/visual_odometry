@@ -1,14 +1,19 @@
 
 #include "triangulation.h"
 
+#include <random>
 #include <cv.hpp>
 #include <glog/logging.h>
+
+//Init random
+std::random_device rd;
+std::mt19937 rng(rd());
 
 void triangulate(VOFrame *vo0, VOFrame *vo1) {
     if (!vo1->P.empty()) {
         cv::Mat points_3d;
-        cv::Mat_<float> p0(2, vo0->points.size(), CV_64FC1);
-        cv::Mat_<float> p1(2, vo1->points.size(), CV_64FC1);
+        cv::Mat_<float> p0(2, static_cast<int>(vo0->points.size()), CV_32FC1);
+        cv::Mat_<float> p1(2, static_cast<int>(vo1->points.size()), CV_32FC1);
 
         for (int i = 0; i < p0.cols; i++) {
             p0.at<float>(0, i) = vo0->points[i].x;
@@ -32,17 +37,19 @@ void triangulate(VOFrame *vo0, VOFrame *vo1) {
 
 float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
 
-    if (vo0.points_3d.size() == 0 || vo1.points_3d.size() == 0) {
+    if (vo0.points_3d.empty() || vo1.points_3d.empty()) {
         LOG(INFO) << "O point size";
         return 1;
     }
 
     //Pick random points in prev that match to two points in now;
+    //TODO Maybe just use all the points???
+    std::uniform_int_distribution<int> uni(0, static_cast<int>(vo1.points.size() - 1));
     std::vector<int> indices;
     int last = -1;
     for (int i = 0; i < max_points; i++) {
         for (int j = 0; j < 1000; j++) {
-            int index = rand() % static_cast<int>(vo1.points_3d.size());
+            int index = uni(rng);
             if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo0.tracked_index[index]) && index != last) {
                 last = index;
                 indices.push_back(index);
@@ -77,18 +84,17 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
         return 1;
     }
 
-    float scale = vo1_sum / vo0_sum;
+    auto scale = static_cast<float>(vo1_sum / vo0_sum);
 
-    if (std::isnan(scale) || std::isnan(scale) || scale == 0) {
+    if (std::isnan(scale) || std::isinf(scale) || scale == 0) {
         LOG(INFO) << "Scale invalid: " << scale;
         return 1;
     }
 
-    if(scale > 3){ //TODO this is wrong - fix in a different way
+    if(scale > 5){ //TODO this is wrong - fix in a different way
         LOG(INFO) << "Scale is large: " << scale;
-        //return 1;
+        return 5; //TODO Arbitrary
     }
-
 
     return scale;
 }
