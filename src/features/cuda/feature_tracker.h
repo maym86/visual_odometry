@@ -9,7 +9,7 @@
 
 #include <opencv2/cudaoptflow.hpp>
 
-#include "src/visual_odemetry/vo_frame.h"
+#include "src/visual_odometry/vo_frame.h"
 
 class FeatureTracker {
 public:

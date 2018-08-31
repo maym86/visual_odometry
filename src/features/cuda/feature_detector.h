@@ -8,7 +8,7 @@
 
 #include <opencv2/cudafeatures2d.hpp>
 
-#include "src/visual_odemetry/vo_frame.h"
+#include "src/visual_odometry/vo_frame.h"
 
 class FeatureDetector {
 
@@ -19,7 +19,7 @@ public:
     void detect(VOFrame *frame);
 
 private:
-    const int kMaxFeatures = 5000;
+    const int kMaxFeatures = 10000;
 
     cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_;
 };
