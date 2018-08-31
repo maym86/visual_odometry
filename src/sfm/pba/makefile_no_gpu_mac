@@ -23,7 +23,7 @@ _HEADER_PBA = pba.h ConfigBA.h CuTexImage.h DataInterface.h SparseBundleCU.h
 _HEADER_PBA_LIB = pba.h
 _OBJ_PBA = pba.o ConfigBA.o SparseBundleCPU.o
 
-all: makepath pba driver
+all: makepath pba
 
 #the dependencies of SiftGPU library
 DEPS_PBA = $(patsubst %, $(SRC_PBA)/%, $(_HEADER_PBA))
