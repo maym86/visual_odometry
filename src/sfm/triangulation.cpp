@@ -4,33 +4,81 @@
 #include <random>
 #include <cv.hpp>
 #include <glog/logging.h>
+#include <src/sfm/pba/src/pba/DataInterface.h>
 
 //Init random
 std::random_device rd;
 std::mt19937 rng(rd());
 
-void triangulate(VOFrame *vo0, VOFrame *vo1) {
+
+
+std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
+
+    cv::Mat points_3d;
+    cv::Mat_<float> p_mat0(2, static_cast<int>(points0.size()), CV_32FC1);
+    cv::Mat_<float> p_mat1(2, static_cast<int>(points1.size()), CV_32FC1);
+
+
+    for (int i = 0; i < p_mat0.cols; i++) {
+        p_mat0.at<float>(0, i) = points0[i].x;
+        p_mat0.at<float>(1, i) = points0[i].y;
+        p_mat1.at<float>(0, i) = points1[i].x;
+        p_mat1.at<float>(1, i) = points1[i].y;
+    }
+
+    cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_3d);
+
+    std::vector<cv::Point3f> results;
+    for (int i = 0; i < points_3d.cols; i++) {
+        results.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i),
+                                      points_3d.at<float>(1, i) / points_3d.at<float>(3, i),
+                                      points_3d.at<float>(2, i) / points_3d.at<float>(3, i)));
+    }
+    return results;
+}
+
+
+void triangulatePairwiseMatches(const std::vector<std::vector<cv::Point2f>> &keypoints, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
+                                std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx){
+
+    for(int i = 0; i < pairwise_matches.size(); i++){
+        const auto &pwm = pairwise_matches[i];
+
+        int idx_s = pwm.src_img_idx;
+        int idx_d = pwm.dst_img_idx;
+
+        if(idx_s != -1 && idx_d != -1) {
+            std::vector<cv::Point3f> points3d = triangulate(keypoints[idx_s], keypoints[idx_d], poses[idx_s], poses[idx_d]);
+
+            for(int j = 0; j < points3d.size(); j++){
+                Point3D p3d;
+                p3d.xyz[0] = points3d[i].x;
+                p3d.xyz[1] = points3d[i].y;
+                p3d.xyz[2] = points3d[i].z;
+
+                Point2D p2d;
+                p2d.x = keypoints[idx_s][j].x;
+                p2d.y = keypoints[idx_s][j].y;
+
+                pba_point_data->push_back(p3d);
+                pba_measurements->push_back(p2d);
+                pba_camidx->push_back(idx_s);
+                pba_ptidx->push_back(pba_ptidx->size());
+            }
+
+        }
+
+    }
+
+}
+
+
+
+void triangulateFrame(VOFrame *vo0, VOFrame *vo1) {
     if (!vo1->P.empty()) {
-        cv::Mat points_3d;
-        cv::Mat_<float> p0(2, static_cast<int>(vo0->points.size()), CV_32FC1);
-        cv::Mat_<float> p1(2, static_cast<int>(vo1->points.size()), CV_32FC1);
 
-        for (int i = 0; i < p0.cols; i++) {
-            p0.at<float>(0, i) = vo0->points[i].x;
-            p0.at<float>(1, i) = vo0->points[i].y;
-            p1.at<float>(0, i) = vo1->points[i].x;
-            p1.at<float>(1, i) = vo1->points[i].y;
-        }
-
-        cv::Mat P = cv::Mat::eye(3, 4, CV_64FC1);
-        cv::triangulatePoints(P, vo1->P, p0, p1, points_3d); //TODO this is relative to previous frame center
-        vo1->points_3d.clear();
-
-        for (int i = 0; i < points_3d.cols; i++) {
-            vo1->points_3d.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i),
-                                                 points_3d.at<float>(1, i) / points_3d.at<float>(3, i),
-                                                 points_3d.at<float>(2, i) / points_3d.at<float>(3, i)));
-        }
+        cv::Mat P_src = cv::Mat::eye(3, 4, CV_64FC1);
+        vo1->points_3d = triangulate(vo0->points, vo1->points, P_src, vo1->P);
     }
 }
 

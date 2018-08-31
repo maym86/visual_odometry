@@ -26,17 +26,19 @@ License: CC BY-NC-SA 4.0
 
 Unzip the archives.
 
-`mkdir opencv-3.4.2/build`
+```
+mkdir opencv-3.4.2/build
+cd opencv-3.4.2/build
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_EXTRA_MODULES_PATH=/home/maym86/Downloads/opencv_contrib-3.4.2/modules -D WITH_CUDA=ON -D WITH_CUBLAS=ON -D WITH_TBB=ON -D WITH_V4L=ON -D WITH_OPENGL=ON -D WITH_OPENCL=ON -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D -D CUDA_NVCC_FLAGS="-D_FORCE_INLINES" ..
+make -j 3
+sudo make install
+```
 
-`cd opencv-3.4.2/build`
+## PBA - Parallel Bundle Adjustment
 
-`cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D OPENCV_EXTRA_MODULES_PATH=/home/maym86/Downloads/opencv_contrib-3.4.2/modules -D WITH_CUDA=ON -D WITH_CUBLAS=ON -D WITH_TBB=ON -D WITH_V4L=ON -D WITH_OPENGL=ON -D WITH_OPENCL=ON -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D -D CUDA_NVCC_FLAGS="-D_FORCE_INLINES" ..`
+http://grail.cs.washington.edu/projects/mcba/
 
-`make -j 3`
-
-`sudo make install`
-
-
-# SBA
-
-install https://github.com/balintfodor/sba
+```
+cd src/sfm/pba/
+make
+```
