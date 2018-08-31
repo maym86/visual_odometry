@@ -43,6 +43,7 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
     }
 
     //Pick random points in prev that match to two points in now;
+    //TODO Maybe just use all the points???
     std::uniform_int_distribution<int> uni(0, static_cast<int>(vo1.points.size() - 1));
     std::vector<int> indices;
     int last = -1;
@@ -92,7 +93,7 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
 
     if(scale > 5){ //TODO this is wrong - fix in a different way
         LOG(INFO) << "Scale is large: " << scale;
-        return 1;
+        return 2; //TODO try some different values here
     }
 
 
