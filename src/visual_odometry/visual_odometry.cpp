@@ -74,17 +74,13 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     hconcat(k_R, k_t, *pose_kalman);
 
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2) {
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
         bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
+        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
-        cv::Mat ba_R, ba_t;
-        int res = bundle_adjustment_.slove(&ba_R, &ba_t);
-
-        LOG(INFO) << "BA Diff " << cv::norm(vo2.pose_t - ba_t);
         if (res == 0) {
-            hconcat(ba_R, ba_t, vo2.pose);
+            hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
         }
-
         last_keyframe_t_ = vo2.pose_t;
     }
 

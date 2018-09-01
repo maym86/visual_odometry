@@ -31,8 +31,10 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
             cam.m[r][c] = frame.pose_R.at<double>(r, c);
         }
     }
+
+
     for (int r = 0; r < frame.pose_t.rows; r++) {
-        cam.t[r] = frame.pose_t.at<double>(r);
+        cam.t[r] = frame.pose_t.at<double>(r); /// T in  P = K[R T], T = - RC ????? WHat is the -RC part??
     }
 
     pba_cameras_.push_back(cam);
@@ -134,6 +136,8 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     for (int r = 0; r < t->rows; r++) {
         t->at<double>(r) = last_cam.t[r];
     }
+
+    LOG(INFO) << *t;
 
     return 0;
 }
