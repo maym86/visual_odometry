@@ -10,6 +10,10 @@ std::random_device rd;
 std::mt19937 rng(rd());
 
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
+    std::vector<cv::Point3f> results;
+
+    if(points0.size() == 0 || points1.size() == 0)
+        return results;
 
     cv::Mat points_3d;
     cv::Mat_<float> p_mat0(2, static_cast<int>(points0.size()), CV_32FC1);
@@ -25,7 +29,6 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
 
     cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_3d);
 
-    std::vector<cv::Point3f> results;
     for (int i = 0; i < points_3d.cols; i++) {
         results.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i),
                                       points_3d.at<float>(1, i) / points_3d.at<float>(3, i),

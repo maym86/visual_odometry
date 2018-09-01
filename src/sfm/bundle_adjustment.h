@@ -29,7 +29,7 @@ public:
 
 private:
 
-    void setPBAData(const std::vector<std::vector<cv::Point2f>> &keypoints, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
+    void setPBAData(const std::vector<cv::detail::ImageFeatures> &features, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
             std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx);
 
     FeatureDetector feature_detector_;
@@ -39,7 +39,6 @@ private:
     std::vector<cv::Mat> poses_;
     std::vector<cv::detail::ImageFeatures> features_;
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
-    std::vector<std::vector<cv::Point2f>> keypoints_;
 
     ParallelBA pba_;
 
