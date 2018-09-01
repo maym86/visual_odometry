@@ -30,7 +30,7 @@ public:
 private:
 
     void setPBAData(const std::vector<cv::detail::ImageFeatures> &features, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
-                    const cv::Point2f &pp, std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx);
+                    const cv::Point2f &pp, std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_pt3d_idx, std::vector<int> *pba_camidx);
 
     FeatureDetector feature_detector_;
 
@@ -46,7 +46,7 @@ private:
 
     std::vector<Point3D>        pba_point_data_;     //3D point(iput/output)
     std::vector<Point2D>        pba_measurements_;   //measurment/projection vector
-    std::vector<int>            pba_camidx_, pba_ptidx_;  //index of camera/point for each projection
+    std::vector<int>            pba_pt3D_idx_, pba_camidx_;  //index of camera/point for each projection
 
 
 

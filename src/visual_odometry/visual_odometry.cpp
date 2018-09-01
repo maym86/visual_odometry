@@ -79,7 +79,9 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
         cv::Mat ba_R, ba_t;
         int res = bundle_adjustment_.slove(&ba_R, &ba_t);
-        if (res == 0 && cv::norm(vo2.pose_t - ba_t) < 5) {
+
+        LOG(INFO) << "BA Diff " << cv::norm(vo2.pose_t - ba_t);
+        if (res == 0) {
             hconcat(ba_R, ba_t, vo2.pose);
         }
 
