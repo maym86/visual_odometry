@@ -74,18 +74,13 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     hconcat(k_R, k_t, *pose_kalman);
 
-    //TODO keep sliding window and use bundle adjustment to correct pos of last frame
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) { //TODO what happens for big rotation??
-
-        LOG(INFO) << "Matching: " << vo2.points.size();
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2) {
         bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
 
-        LOG(INFO) << "solving";
-        LOG(INFO) << vo2.pose_R << " " << vo2.pose_t;
-        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t); //TODO replace with sba library
-        LOG(INFO) << vo2.pose_R << " " << vo2.pose_t;
-        if (res == 0) {
-            hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+        cv::Mat ba_R, ba_t;
+        int res = bundle_adjustment_.slove(&ba_R, &ba_t);
+        if (res == 0 && cv::norm(vo2.pose_t - ba_t) < 5) {
+            hconcat(ba_R, ba_t, vo2.pose);
         }
 
         last_keyframe_t_ = vo2.pose_t;

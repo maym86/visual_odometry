@@ -6,22 +6,28 @@
 #include "triangulation.h"
 
 void BundleAdjustment::init(size_t max_frames) {
-    /*
+
+
+    //ParallelBA::DeviceT device = ParallelBA::PBA_CUDA_DEVICE_DEFAULT; //
+    //device = ParallelBA::PBA_CPU_DOUBLE;
+    //pba_ = ParallelBA(device);
+
     char * argv[] = { "-v", "1" };
     int argc = sizeof(argv) / sizeof(char*);
     pba_.ParseParam(argc, argv);
-*/
+
+
     pba_.SetFixedIntrinsics(true);
     pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
 
-    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true, 0.3, 10, 10);
+    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
     max_frames_ =  max_frames;
 }
 
 
 
 
-void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2d pp, int feature_count){
+void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2f pp){
 
     CameraT cam;
     cam.f = focal;
@@ -51,11 +57,12 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
     if(features_.size() > max_frames_) {
         features_.erase(features_.begin());
         poses_.erase(poses_.begin());
+        pba_cameras_.erase(pba_cameras_.begin());
     }
 
     (*matcher_)(features_, pairwise_matches_);
 
-    setPBAData(features_, pairwise_matches_, poses_, &pba_point_data_, &pba_measurements_, &pba_camidx_, &pba_ptidx_);
+    setPBAData(features_, pairwise_matches_, poses_, pp, &pba_point_data_, &pba_measurements_, &pba_camidx_, &pba_ptidx_);
 
     pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]);                                              //set camera parameters
     pba_.SetPointData(pba_point_data_.size(), &pba_point_data_[0]);                                         //set 3D point data
@@ -63,53 +70,28 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal, cv::Point2
 
 }
 
-//TODO use full history rather than just the last point
-int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
-
-    if (!pba_.RunBundleAdjustment()) {
-        LOG(INFO) << "Camera parameters adjusting failed.";
-        return 1;
-    }
-
-    auto last_cam = pba_cameras_[pba_cameras_.size() - 1];
-
-    *R = cv::Mat::eye(3, 3, CV_64FC1);
-    *t = cv::Mat::zeros(3, 1, CV_64FC1);
-
-
-    for(int r=0; r < R->rows; r++){
-        for(int c=0; c < R->cols; c++) {
-            R->at<double>(r, c) = last_cam.m[r][c];
-        }
-    }
-    for(int c=0; c < t->cols; c++) {
-        t->at<double>(c) = last_cam.t[c];
-    }
-
-    return 0;
-}
-
 //TODO This is wrong --- USe this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
 // Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
+
 void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &features, const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
-                                                  std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx){
+                                  const cv::Point2f &pp, std::vector<Point3D> *pba_point_data, std::vector<Point2D> *pba_measurements, std::vector<int> *pba_camidx, std::vector<int> *pba_ptidx) {
+    pba_point_data->clear();
+    pba_measurements->clear();
+    pba_camidx->clear();
+    pba_ptidx->clear();
 
     for(const auto & pwm : pairwise_matches){
         int idx_s = pwm.src_img_idx;
         int idx_d = pwm.dst_img_idx;
-        LOG(INFO) << idx_s << " " << idx_d;
 
         if(idx_s != -1 && idx_d != -1) {
 
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
-            for (const auto &match : pwm.matches){ //TODO use inliers mask??? Or matcher that doesnt use homography
 
-                LOG(INFO) << match.queryIdx << " " << match.trainIdx;
-                points0.push_back(features[idx_s].keypoints[match.queryIdx].pt);
-                points1.push_back(features[idx_d].keypoints[match.trainIdx].pt);
-                LOG(INFO) << points0[points0.size() -1] << " " << points1[points1.size() -1];
-
+            for (const auto &match : pwm.matches){
+                points0.push_back(features[idx_s].keypoints[match.queryIdx].pt - pp);
+                points1.push_back(features[idx_d].keypoints[match.trainIdx].pt - pp);
             }
 
             std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_s], poses[idx_d]);
@@ -133,4 +115,29 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
 
         }
     }
+}
+
+//TODO use full history rather than just the last point
+int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
+
+    if (!pba_.RunBundleAdjustment()) {
+        LOG(INFO) << "Camera parameters adjusting failed.";
+        return 1;
+    }
+
+    auto last_cam = pba_cameras_[pba_cameras_.size() - 1];
+
+    *R = cv::Mat::eye(3, 3, CV_64FC1);
+    *t = cv::Mat::zeros(3, 1, CV_64FC1);
+
+    for(int r=0; r < R->rows; r++){
+        for(int c=0; c < R->cols; c++) {
+            R->at<double>(r, c) = last_cam.m[r][c];
+        }
+    }
+    for(int c=0; c < t->cols; c++) {
+        t->at<double>(c) = last_cam.t[c];
+    }
+
+    return 0;
 }
