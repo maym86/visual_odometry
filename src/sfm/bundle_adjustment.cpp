@@ -5,7 +5,7 @@
 
 #include "triangulation.h"
 
-void BundleAdjustment::init(double focal, const cv::Point2d &pp, size_t max_frames) {
+void BundleAdjustment::init(float focal, const cv::Point2d &pp, size_t max_frames) {
 
     char *argv[] = {"-lmi<100>", "-v", "1"};
     int argc = sizeof(argv) / sizeof(char *);
@@ -130,8 +130,6 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     last_cam.GetTranslation((double*)t->data);
     last_cam.GetMatrixRotation((double*)R->data);
-
-    LOG(INFO) << *t;
 
     return 0;
 }

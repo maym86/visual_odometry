@@ -22,7 +22,7 @@
 
 class VisualOdometry {
 public:
-    VisualOdometry(double focal, const cv::Point2d &pp, size_t min_tracked_points);
+    VisualOdometry(float focal, const cv::Point2d &pp, size_t min_tracked_points);
 
     void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
@@ -42,7 +42,7 @@ private:
 
     cv::Scalar color_;
 
-    double focal_;
+    float focal_;
     cv::Point2d pp_;
 
     cv::Mat last_keyframe_t_;
