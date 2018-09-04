@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 #include "src/sfm/bundle_adjustment.h"
-#include <boost/filesystem.hpp>
+
 #include <glog/logging.h>
 
 TEST(BundleAdjustmentTest, Passes) {
@@ -10,9 +10,6 @@ TEST(BundleAdjustmentTest, Passes) {
 
     VOFrame vo0;
     VOFrame vo1;
-
-    boost::filesystem::path full_path(boost::filesystem::current_path());
-    std::cout << "Current path is : " << full_path << std::endl;
 
     vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
     vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
@@ -24,10 +21,11 @@ TEST(BundleAdjustmentTest, Passes) {
     vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
     hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
 
-    vo1.pose_R = cv::Mat::eye(3, 3, CV_64FC1);
-
-    float t_data[3] = {2.573699e-16, -1.059758e-16, 1.614870e-16};
+    double R_data[9] = {9.993513e-01, 1.860866e-02, -3.083487e-02, -1.887662e-02, 9.997863e-01, -8.421873e-03, 3.067156e-02, 8.998467e-03, 9.994890e-01};
+    vo1.pose_R = cv::Mat(3, 3, CV_64FC1, R_data);
+    double t_data[3] = {-5.370000e-01, 4.822061e-03, -1.252488e-02};
     vo1.pose_t = cv::Mat(3, 1, CV_64FC1, t_data);
+
     hconcat(vo1.pose_R, vo1.pose_t, vo1.pose);
 
     ba.init(718.856 , cv::Point2f(607.193, 185.216) , 2);
@@ -38,6 +36,8 @@ TEST(BundleAdjustmentTest, Passes) {
     cv::Mat R, t;
     ba.slove(&R, &t);
 
-    LOG(INFO) << R << " " << t;
+    LOG(INFO) << vo1.pose_t;
+    LOG(INFO) << t;
+    LOG(INFO) << cv::norm(vo1.pose_t - t);
 
 }
