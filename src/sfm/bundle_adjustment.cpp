@@ -5,7 +5,7 @@
 
 #include "triangulation.h"
 
-void BundleAdjustment::init(size_t max_frames, const cv::Point2f &pp) {
+void BundleAdjustment::init(double focal, const cv::Point2d &pp, size_t max_frames) {
 
     char *argv[] = {"-lmi<100>", "-v", "1"};
     int argc = sizeof(argv) / sizeof(char *);
@@ -17,12 +17,13 @@ void BundleAdjustment::init(size_t max_frames, const cv::Point2f &pp) {
     max_frames_ = max_frames;
 
     pp_ = pp;
+    focal_ = focal;
 }
 
-void BundleAdjustment::addKeyFrame(const VOFrame &frame, float focal) {
+void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
-    cam.f = focal;
+    cam.f = focal_;
 
     cam.SetTranslation((double*)frame.pose_t.data);
     cam.SetMatrixRotation((double*)frame.pose_R.data);

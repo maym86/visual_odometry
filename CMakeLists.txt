@@ -14,6 +14,7 @@ find_package(gflags REQUIRED)
 find_package(glog REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR})
+
 file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/visual_odometry/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kalman_filter/*.cpp
@@ -33,3 +34,17 @@ add_executable( vo ${SRC_FILES} ${SRC_FILES_FEATURES})
 
 target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog pba)
 
+# Setup testing
+enable_testing()
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIR})
+
+file(GLOB TEST_FILES ${PROJECT_SOURCE_DIR}/src/sfm/test/*.cpp
+                     ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
+                     ${PROJECT_SOURCE_DIR}/src/features/*.cpp)
+
+# Add test cpp file
+add_executable(unit_tests ${TEST_FILES})
+
+target_link_libraries(unit_tests ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog pba gtest gtest_main)
+add_test( unit_tests unit_tests )
