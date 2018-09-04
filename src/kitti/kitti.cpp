@@ -52,6 +52,8 @@ void saveResults(const std::string &gt_poses_path, const std::string &res_dir, c
 
     boost::filesystem::create_directory(res_dir);
     std::vector<Matrix> gt_poses = loadPoses(gt_poses_path);
+
+    gt_poses.resize(result_poses.size()); //Resize gt poses if we stopped early
     std::string plot_dir = res_dir + "/plot/";
 
     boost::filesystem::create_directory(plot_dir);

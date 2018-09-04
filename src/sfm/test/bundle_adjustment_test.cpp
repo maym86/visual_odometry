@@ -39,8 +39,7 @@ TEST(BundleAdjustmentTest, Passes) {
     LOG(INFO) << vo1.pose_t;
     LOG(INFO) << t;
 
-    float dist = cv::norm(vo1.pose_t - t);
+    double dist = cv::norm(vo1.pose_t - t);
     LOG(INFO) << dist;
     EXPECT_NEAR(dist, 0.023, 0.005);
-
 }
