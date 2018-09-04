@@ -11,7 +11,7 @@ VisualOdometry::VisualOdometry(double focal, const cv::Point2d &pp, size_t min_t
     min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(10);
+    bundle_adjustment_.init(10, pp);
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {
@@ -75,7 +75,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     hconcat(k_R, k_t, *pose_kalman);
 
     if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
-        bundle_adjustment_.addKeyFrame(vo2, focal_, pp_);
+        bundle_adjustment_.addKeyFrame(vo2, focal_);
         int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
         if (res == 0) {

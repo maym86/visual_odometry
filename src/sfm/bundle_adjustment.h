@@ -25,9 +25,9 @@
 class BundleAdjustment {
 
 public:
-    void init(size_t max_frames);
+    void init(size_t max_frames, const cv::Point2f &pp);
 
-    void addKeyFrame(const VOFrame &frame, float focal, cv::Point2f pp);
+    void addKeyFrame(const VOFrame &frame, float focal);
 
     int slove(cv::Mat *R, cv::Mat *t);
 
@@ -35,26 +35,25 @@ private:
 
     void setPBAData(const std::vector<cv::detail::ImageFeatures> &features,
                     const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
-                    const cv::Point2f &pp, std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
+                    std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
                     std::vector<int> *pba_2d3d_idx, std::vector<int> *pba_cam_idx);
 
     FeatureDetector feature_detector_;
 
     cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 
-    std::vector<CameraT> pba_cameras_;    //camera (input/ouput)
     std::vector<cv::Mat> poses_;
+    std::vector<CameraT> pba_cameras_;    //camera (input/ouput)
     std::vector<cv::detail::ImageFeatures> features_;
-    std::vector<cv::detail::MatchesInfo> pairwise_matches_;
 
     ParallelBA pba_;
 
-
+    std::vector<cv::detail::MatchesInfo> pairwise_matches_;
     std::vector<Point3D> pba_3d_points_;     //3D point(iput/output)
     std::vector<Point2D> pba_image_points_;   //measurment/projection vector
     std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
-
+    cv::Point2f pp_;
 
     size_t max_frames_;
     int count_ = 0;
