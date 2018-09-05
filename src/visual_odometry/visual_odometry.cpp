@@ -54,6 +54,16 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         hconcat(vo2.R, vo2.t, vo2.P);
         triangulateFrame(&vo1, &vo2);
 
+        cv::Mat draw3d(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
+
+        for (int j = 0; j < vo2.points_3d.size(); j++) {
+
+            cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x + draw3d.cols / 2,
+                                               vo2.points_3d[j].z + draw3d.rows / 1.5);
+            cv::circle(draw3d, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+        }
+        cv::imshow("draw3d", draw3d);
+
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
 
