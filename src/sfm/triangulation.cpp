@@ -9,6 +9,12 @@
 std::random_device rd;
 std::mt19937 rng(rd());
 
+
+cv::Mat K = (cv::Mat_<double>(3,3) <<   718.856, 0, 607.1928,
+                                        0, 718.856, 185.2157,
+                                        0, 0, 1);
+
+
 //http://answers.opencv.org/question/118966/is-cvtriangulatepoints-returning-3d-points-in-world-coordinate-system/
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     std::vector<cv::Point3f> results;
@@ -23,13 +29,11 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
     std::vector<cv::Point2d> p_vec1;
 
     for (int i = 0; i < points0.size(); i++) {
-
-        LOG(INFO) << points0[i] << points1[i];
         p_vec0.emplace_back(cv::Point2d(points0[i].x, points0[i].y));
         p_vec1.emplace_back(cv::Point2d(points1[i].x, points1[i].y));
     }
 
-    cv::triangulatePoints(P0, P1, p_vec0, p_vec1, points_4d);
+    cv::triangulatePoints(P0, K * P1, p_vec0, p_vec1, points_4d);
 
     for (int i = 0; i < points_4d.cols; i++) {
         results.emplace_back(cv::Point3f(static_cast<float>(points_4d.at<double>(0, i) / points_4d.at<double>(3, i)),
