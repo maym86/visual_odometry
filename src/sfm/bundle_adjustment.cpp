@@ -5,10 +5,15 @@
 
 #include "triangulation.h"
 
+BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
+
+}
+
 void BundleAdjustment::init(float focal, const cv::Point2d &pp, size_t max_frames) {
 
     char *argv[] = {"-lmi<100>", "-v", "1"};
     int argc = sizeof(argv) / sizeof(char *);
+
     pba_.ParseParam(argc, argv);
 
     pba_.SetFixedIntrinsics(true);
@@ -25,10 +30,10 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     CameraT cam;
     cam.f = focal_;
 
-    cam.SetTranslation((double*)frame.pose_t.data);
-    cam.SetMatrixRotation((double*)frame.pose_R.data);
+    cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
+    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
-    if(count_ == 0){
+    if (count_ == 0) {
         cam.SetConstantCamera();
     }
 
@@ -55,7 +60,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     (*matcher_)(features_, pairwise_matches_);
 
     setPBAData(features_, pairwise_matches_, poses_, &pba_3d_points_, &pba_image_points_,
-            &pba_2d3d_idx_, &pba_cam_idx_);
+               &pba_2d3d_idx_, &pba_cam_idx_);
 
     pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
     pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
@@ -128,8 +133,8 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     *R = cv::Mat::eye(3, 3, CV_64FC1);
     *t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-    last_cam.GetTranslation((double*)t->data);
-    last_cam.GetMatrixRotation((double*)R->data);
+    last_cam.GetTranslation(reinterpret_cast<double *>(t->data));
+    last_cam.GetMatrixRotation(reinterpret_cast<double *>(R->data));
 
     return 0;
 }

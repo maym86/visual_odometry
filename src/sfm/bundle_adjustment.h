@@ -25,6 +25,8 @@
 class BundleAdjustment {
 
 public:
+    BundleAdjustment();
+
     void init(float focal, const cv::Point2d &pp, size_t max_frames);
 
     void addKeyFrame(const VOFrame &frame);
