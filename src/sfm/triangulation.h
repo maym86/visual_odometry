@@ -7,7 +7,7 @@
 
 #include <opencv2/stitching/detail/matchers.hpp>
 
-void triangulateFrame(VOFrame *vo0, VOFrame *vo1);
+void triangulateFrame(VOFrame *frame0, VOFrame *frame1);
 
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1);
 

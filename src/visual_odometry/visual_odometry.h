@@ -28,6 +28,9 @@ public:
 
     cv::Mat drawMatches(const cv::Mat &image);
 
+    cv::Mat draw3D();
+
+
 private:
     const size_t kFrameBufferCapacity = 3;
     const size_t kMinPosePoints = 8;

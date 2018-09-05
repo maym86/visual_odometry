@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 
         cv::imshow("Map", map_out);
         cv::imshow("Features", vo.drawMatches(image));
+        cv::imshow("3D", vo.draw3D());
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27) {

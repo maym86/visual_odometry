@@ -13,8 +13,9 @@ std::mt19937 rng(rd());
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     std::vector<cv::Point3f> results;
 
-    if(points0.size() == 0 || points1.size() == 0)
+    if(points0.size() == 0 || points1.size() == 0) {
         return results;
+    }
 
     cv::Mat points_3d;
     cv::Mat_<float> p_mat0(2, static_cast<int>(points0.size()), CV_32FC1);
@@ -74,10 +75,10 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
     return results;
 }*/
 
-void triangulateFrame(VOFrame *vo0, VOFrame *vo1) {
-    if (!vo1->P.empty()) {
+void triangulateFrame(VOFrame *frame0, VOFrame *frame1) {
+    if (!frame1->P.empty()) {
         cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
-        vo1->points_3d = triangulate(vo0->points, vo1->points, P0, vo1->P);
+        frame1->points_3d = triangulate(frame0->points, frame1->points, P0, frame1->P);
     }
 }
 

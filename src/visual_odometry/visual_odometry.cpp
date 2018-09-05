@@ -54,16 +54,6 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         hconcat(vo2.R, vo2.t, vo2.P);
         triangulateFrame(&vo1, &vo2);
 
-        cv::Mat draw3d(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
-
-        for (int j = 0; j < vo2.points_3d.size(); j++) {
-
-            cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x + draw3d.cols / 2,
-                                               vo2.points_3d[j].z + draw3d.rows / 1.5);
-            cv::circle(draw3d, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
-        }
-        cv::imshow("draw3d", draw3d);
-
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
 
@@ -102,8 +92,8 @@ cv::Mat VisualOdometry::drawMatches(const cv::Mat &image) {
     cv::Mat output = image.clone();
 
     if (frame_buffer_.full()) {
-        VOFrame &vo1 = frame_buffer_[1];
-        VOFrame &vo2 = frame_buffer_[2];
+        VOFrame &vo1 = frame_buffer_[frame_buffer_.size() - 2];
+        VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
         for (int i = 0; i < vo1.points.size(); i++) {
             if (vo2.mask.at<bool>(i)) {
@@ -114,3 +104,20 @@ cv::Mat VisualOdometry::drawMatches(const cv::Mat &image) {
     return output;
 }
 
+
+cv::Mat VisualOdometry::draw3D() {
+
+    cv::Mat draw3d(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
+
+    if (frame_buffer_.full()) {
+        VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
+
+        for (int j = 0; j < vo2.points_3d.size(); j++) {
+
+            cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale + draw3d.cols / 2,
+                                               vo2.points_3d[j].y * vo2.scale + draw3d.rows / 1.5);
+            cv::circle(draw3d, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+        }
+    }
+    return draw3d;
+}
