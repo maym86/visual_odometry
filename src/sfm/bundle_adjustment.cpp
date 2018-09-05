@@ -23,6 +23,10 @@ void BundleAdjustment::init(float focal, const cv::Point2d &pp, size_t max_frame
 
     pp_ = pp;
     focal_ = focal;
+
+    K_ = (cv::Mat_<double>(3, 3) << focal_, 0.f, pp_.x,
+            0.f, focal_, pp_.y,
+            0.f, 0.f, 1.f);
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
@@ -90,7 +94,8 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 &&
+            idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
 
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
@@ -100,11 +105,11 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
                 points1.push_back(features[idx_cam1].keypoints[match.trainIdx].pt);
             }
 
-            std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_cam0], poses[idx_cam1]);
+            std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_cam0], K_ * poses[idx_cam1]);
 
             for (int j = 0; j < points3d.size(); j++) {
 
-                if(j == 50) {
+                if (j == 50) {
                     LOG(INFO) << points0[j] << " " << points1[j] << " " << points3d[j];
                 }
 

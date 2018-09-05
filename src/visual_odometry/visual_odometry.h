@@ -47,6 +47,7 @@ private:
 
     float focal_;
     cv::Point2d pp_;
+    cv::Mat K_;
 
     cv::Mat last_keyframe_t_;
 
