@@ -17,68 +17,30 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
         return results;
     }
 
-    cv::Mat points_3d;
-    cv::Mat_<float> p_mat0(2, static_cast<int>(points0.size()), CV_32FC1);
-    cv::Mat_<float> p_mat1(2, static_cast<int>(points1.size()), CV_32FC1);
-
+    cv::Mat points_4d;
+    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64FC1);
+    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64FC1);
 
     for (int i = 0; i < p_mat0.cols; i++) {
-        p_mat0.at<float>(0, i) = points0[i].x;
-        p_mat0.at<float>(1, i) = points0[i].y;
-        p_mat1.at<float>(0, i) = points1[i].x;
-        p_mat1.at<float>(1, i) = points1[i].y;
+        p_mat0.at<double>(0, i) = points0[i].x;
+        p_mat0.at<double>(1, i) = points0[i].y;
+        p_mat1.at<double>(0, i) = points1[i].x;
+        p_mat1.at<double>(1, i) = points1[i].y;
     }
 
-    cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_3d);
+    cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_4d);
 
-    for (int i = 0; i < points_3d.cols; i++) {
-        results.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i),
-                                      points_3d.at<float>(1, i) / points_3d.at<float>(3, i),
-                                      points_3d.at<float>(2, i) / points_3d.at<float>(3, i)));
+    for (int i = 0; i < points_4d.cols; i++) {
+        results.emplace_back(cv::Point3f(static_cast<float>(points_4d.at<double>(0, i) / points_4d.at<double>(3, i)),
+                                         static_cast<float>(points_4d.at<double>(1, i) / points_4d.at<double>(3, i)),
+                                         static_cast<float>(points_4d.at<double>(2, i) / points_4d.at<double>(3, i))));
     }
     return results;
 }
 
-/*
-std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
-    std::vector<cv::Point3f> results;
-
-    if(points0.size() == 0 || points1.size() == 0)
-        return results;
-
-    cv::Mat points_3d;
-    cv::Mat_<float> p_mat0(2, static_cast<int>(points0.size()), CV_32FC1);
-    cv::Mat_<float> p_mat1(2, static_cast<int>(points1.size()), CV_32FC1);
-
-
-    for (int i = 0; i < p_mat0.cols; i++) {
-        p_mat0.at<float>(0, i) = points0[i].x;
-        p_mat0.at<float>(1, i) = points0[i].y;
-        p_mat1.at<float>(0, i) = points1[i].x;
-        p_mat1.at<float>(1, i) = points1[i].y;
-    }
-
-    cv::Mat P0_origin = cv::Mat::eye(3, 4, CV_64FC1);
-    cv::Mat P1_origin = P1.clone();
-
-    P1_origin.at<double>(0,3) -= P0.at<double>(0,3);
-    P1_origin.at<double>(1,3) -= P0.at<double>(1,3);
-    P1_origin.at<double>(2,3) -= P0.at<double>(2,3);
-
-    cv::triangulatePoints(P0_origin, P1_origin, p_mat0, p_mat1, points_3d);
-
-    for (int i = 0; i < points_3d.cols; i++) {
-        results.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i) + P0.at<double>(0,3),
-                                      points_3d.at<float>(1, i) / points_3d.at<float>(3, i) + P0.at<double>(1,3),
-                                      points_3d.at<float>(2, i) / points_3d.at<float>(3, i) + P0.at<double>(2,3)));
-    }
-    return results;
-}*/
-
-void triangulateFrame(VOFrame *frame0, VOFrame *frame1) {
+void triangulateFrame(const VOFrame &frame0, VOFrame *frame1) {
     if (!frame1->P.empty()) {
-        cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
-        frame1->points_3d = triangulate(frame0->points, frame1->points, P0, frame1->P);
+        frame1->points_3d = triangulate(frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->P);
     }
 }
 

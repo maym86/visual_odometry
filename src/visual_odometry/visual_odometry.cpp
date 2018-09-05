@@ -36,7 +36,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have R|t from vo0 to vo1
             cv::findEssentialMat(vo1.points, vo0.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            triangulateFrame(&vo0, &vo1);
+            triangulateFrame(vo0, &vo1);
         }
         tracking_ = true;
     }
@@ -52,7 +52,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     if (res > kMinPosePoints) {
         hconcat(vo2.R, vo2.t, vo2.P);
-        triangulateFrame(&vo1, &vo2);
+        triangulateFrame(vo1, &vo2);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
@@ -109,13 +109,16 @@ cv::Mat VisualOdometry::draw3D() {
 
     cv::Mat draw3d(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
+    cv::line(draw3d, cv::Point(draw3d.cols / 2, 0), cv::Point(draw3d.cols / 2, draw3d.rows), cv::Scalar(0, 0, 255));
+    cv::line(draw3d, cv::Point(0, draw3d.rows / 2), cv::Point(draw3d.cols, draw3d.rows / 2), cv::Scalar(0, 0, 255));
+
     if (frame_buffer_.full()) {
         VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
             cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale + draw3d.cols / 2,
-                                               vo2.points_3d[j].y * vo2.scale + draw3d.rows / 1.5);
+                                               vo2.points_3d[j].y * vo2.scale + draw3d.rows / 2);
             cv::circle(draw3d, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
         }
     }
