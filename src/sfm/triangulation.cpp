@@ -9,6 +9,11 @@
 std::random_device rd;
 std::mt19937 rng(rd());
 
+//https://github.com/nghiaho12/SFM_example/blob/master/src/main.cpp
+
+//http://nghiaho.com/
+
+//https://gist.github.com/cashiwamochi/8ac3f8bab9bf00e247a01f63075fedeb
 
 cv::Mat K = (cv::Mat_<double>(3,3) <<   718.856, 0, 607.1928,
                                         0, 718.856, 185.2157,
