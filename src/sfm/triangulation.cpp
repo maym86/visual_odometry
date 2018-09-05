@@ -9,6 +9,7 @@
 std::random_device rd;
 std::mt19937 rng(rd());
 
+//http://answers.opencv.org/question/118966/is-cvtriangulatepoints-returning-3d-points-in-world-coordinate-system/
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     std::vector<cv::Point3f> results;
 
@@ -36,6 +37,42 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
     }
     return results;
 }
+
+/*
+std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
+    std::vector<cv::Point3f> results;
+
+    if(points0.size() == 0 || points1.size() == 0)
+        return results;
+
+    cv::Mat points_3d;
+    cv::Mat_<float> p_mat0(2, static_cast<int>(points0.size()), CV_32FC1);
+    cv::Mat_<float> p_mat1(2, static_cast<int>(points1.size()), CV_32FC1);
+
+
+    for (int i = 0; i < p_mat0.cols; i++) {
+        p_mat0.at<float>(0, i) = points0[i].x;
+        p_mat0.at<float>(1, i) = points0[i].y;
+        p_mat1.at<float>(0, i) = points1[i].x;
+        p_mat1.at<float>(1, i) = points1[i].y;
+    }
+
+    cv::Mat P0_origin = cv::Mat::eye(3, 4, CV_64FC1);
+    cv::Mat P1_origin = P1.clone();
+
+    P1_origin.at<double>(0,3) -= P0.at<double>(0,3);
+    P1_origin.at<double>(1,3) -= P0.at<double>(1,3);
+    P1_origin.at<double>(2,3) -= P0.at<double>(2,3);
+
+    cv::triangulatePoints(P0_origin, P1_origin, p_mat0, p_mat1, points_3d);
+
+    for (int i = 0; i < points_3d.cols; i++) {
+        results.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i) + P0.at<double>(0,3),
+                                      points_3d.at<float>(1, i) / points_3d.at<float>(3, i) + P0.at<double>(1,3),
+                                      points_3d.at<float>(2, i) / points_3d.at<float>(3, i) + P0.at<double>(2,3)));
+    }
+    return results;
+}*/
 
 void triangulateFrame(VOFrame *vo0, VOFrame *vo1) {
     if (!vo1->P.empty()) {

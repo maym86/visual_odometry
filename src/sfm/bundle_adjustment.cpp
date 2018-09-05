@@ -90,7 +90,7 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && pwm.confidence > 0) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
 
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
@@ -102,7 +102,20 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
 
             std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_cam0], poses[idx_cam1]);
 
+
+            cv::Point3f t(static_cast<float>(poses[idx_cam0].at<double>(0,3)),
+                          static_cast<float>(poses[idx_cam0].at<double>(1,3)),
+                          static_cast<float>(poses[idx_cam0].at<double>(2,3)));
+
+
             for (int j = 0; j < points3d.size(); j++) {
+
+                if(j == 10) {
+                    auto subtracted = points3d[j] - t;
+
+                    LOG(INFO) << points0[j] << " " << points1[j];
+                    LOG(INFO) << points3d[j] << t << subtracted;
+                }
 
                 pba_3d_points->push_back(Point3D{points3d[j].x, points3d[j].y, points3d[j].z});
 
