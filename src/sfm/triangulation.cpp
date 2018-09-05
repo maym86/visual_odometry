@@ -9,7 +9,7 @@
 std::random_device rd;
 std::mt19937 rng(rd());
 
-
+//http://www.morethantechnical.com/2012/01/04/simple-triangulation-with-opencv-from-harley-zisserman-w-code/
 /**
  From "Triangulation", Hartley, R.I. and Sturm, P., Computer vision and image understanding, 1997
  */
@@ -41,6 +41,47 @@ cv::Mat LinearLSTriangulation(cv::Point3d u,       //homogenous image point (u,v
 }
 
 
+cv::Mat_<double> IterativeLinearLSTriangulation(cv::Point3d u,    //homogenous image point (u,v,1)
+                                            cv::Matx34d P,          //camera 1 matrix
+                                                cv::Point3d u1,         //homogenous image point in 2nd camera
+                                                cv::Matx34d P1          //camera 2 matrix
+) {
+
+    double EPSILON = 1e-6;
+    double wi = 1, wi1 = 1;
+    cv::Mat_<double> X(4,1);
+    for (int i=0; i<10; i++) { //Hartley suggests 10 iterations at most
+        cv::Mat_<double> X_ = LinearLSTriangulation(u,P,u1,P1);
+        X(0) = X_(0); X(1) = X_(1); X(2) = X_(2); X_(3) = 1.0;
+
+        //recalculate weights
+        double p2x = cv::Mat_<double>(cv::Mat_<double>(P).row(2)*X)(0);
+        double p2x1 = cv::Mat_<double>(cv::Mat_<double>(P1).row(2)*X)(0);
+
+        //breaking point
+        if(fabsf(wi - p2x) <= EPSILON && fabsf(wi1 - p2x1) <= EPSILON) break;
+
+        wi = p2x;
+        wi1 = p2x1;
+
+        //reweight equations and solve
+        cv::Matx43d A((u.x*P(2,0)-P(0,0))/wi,       (u.x*P(2,1)-P(0,1))/wi,         (u.x*P(2,2)-P(0,2))/wi,
+                  (u.y*P(2,0)-P(1,0))/wi,       (u.y*P(2,1)-P(1,1))/wi,         (u.y*P(2,2)-P(1,2))/wi,
+                  (u1.x*P1(2,0)-P1(0,0))/wi1,   (u1.x*P1(2,1)-P1(0,1))/wi1,     (u1.x*P1(2,2)-P1(0,2))/wi1,
+                  (u1.y*P1(2,0)-P1(1,0))/wi1,   (u1.y*P1(2,1)-P1(1,1))/wi1,     (u1.y*P1(2,2)-P1(1,2))/wi1
+        );
+        cv::Mat_<double> B = (cv::Mat_<double>(4,1) <<    -(u.x*P(2,3)    -P(0,3))/wi,
+                -(u.y*P(2,3)  -P(1,3))/wi,
+                -(u1.x*P1(2,3)    -P1(0,3))/wi1,
+                -(u1.y*P1(2,3)    -P1(1,3))/wi1
+        );
+
+        solve(A,B,X_,cv::DECOMP_SVD);
+        X(0) = X_(0); X(1) = X_(1); X(2) = X_(2); X_(3) = 1.0;
+    }
+    return X;
+}
+
 //http://answers.opencv.org/question/118966/is-cvtriangulatepoints-returning-3d-points-in-world-coordinate-system/
 std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     std::vector<cv::Point3f> results;
@@ -54,14 +95,9 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
 
 
     for (int i = 0; i < p_mat0.cols; i++) {
-        p_mat0.at<float>(0, i) = points0[i].x;
-        p_mat0.at<float>(1, i) = points0[i].y;
-        p_mat1.at<float>(0, i) = points1[i].x;
-        p_mat1.at<float>(1, i) = points1[i].y;
-
         cv::Point3d p0(points0[i].x, points0[i].y, 1);
         cv::Point3d p1(points1[i].x, points1[i].y, 1);
-        cv::Mat p3d = LinearLSTriangulation(p0, P0, p1, P1);
+        cv::Mat p3d = IterativeLinearLSTriangulation(p0, P0, p1, P1);
 
         //LOG(INFO) << p3d;
         auto p = cv::Point3f(p3d.at<double>(0) + P0.at<double>(0,3),
@@ -200,6 +236,11 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
     if (std::isnan(scale) || std::isinf(scale) || scale == 0) {
         LOG(INFO) << "Scale invalid: " << scale;
         return 1;
+    }
+
+    if(scale > 5){ //TODO this is wrong - fix in a different way
+        LOG(INFO) << "Scale is large: " << scale;
+        //return 5; //TODO Arbitrary
     }
 
     return scale;
