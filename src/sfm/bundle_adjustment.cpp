@@ -71,7 +71,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
 }
 
-// TODO This is wrong --- USe this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
+// TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
 // Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
 // https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
 void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &features,
@@ -102,19 +102,10 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
 
             std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_cam0], poses[idx_cam1]);
 
-
-            cv::Point3f t(static_cast<float>(poses[idx_cam0].at<double>(0,3)),
-                          static_cast<float>(poses[idx_cam0].at<double>(1,3)),
-                          static_cast<float>(poses[idx_cam0].at<double>(2,3)));
-
-
             for (int j = 0; j < points3d.size(); j++) {
 
-                if(j == 10) {
-                    auto subtracted = points3d[j] - t;
-
-                    LOG(INFO) << points0[j] << " " << points1[j];
-                    LOG(INFO) << points3d[j] << t << subtracted;
+                if(j == 50) {
+                    LOG(INFO) << points0[j] << " " << points1[j] << " " << points3d[j];
                 }
 
                 pba_3d_points->push_back(Point3D{points3d[j].x, points3d[j].y, points3d[j].z});
@@ -133,7 +124,7 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
     }
 }
 
-//TODO use full history rather than just updaing the newest point
+//TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     if (!pba_.RunBundleAdjustment()) {

@@ -88,6 +88,7 @@ TEST(BundleAdjustmentOffsetTest, Passes) {
     cv::Mat R, t;
     ba.slove(&R, &t);
 
+    LOG(INFO) << vo0.pose_t;
     LOG(INFO) << vo1.pose_t;
     LOG(INFO) << t;
 
