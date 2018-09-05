@@ -59,8 +59,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     (*matcher_)(features_, pairwise_matches_);
 
-    setPBAData(features_, pairwise_matches_, poses_, &pba_3d_points_, &pba_image_points_,
-               &pba_2d3d_idx_, &pba_cam_idx_);
+    setPBAData(&pba_3d_points_, &pba_image_points_, &pba_2d3d_idx_, &pba_cam_idx_);
 
     pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
     pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
@@ -74,10 +73,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 // TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
 // Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
 // https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
-void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &features,
-                                  const std::vector<cv::detail::MatchesInfo> &pairwise_matches,
-                                  const std::vector<cv::Mat> &poses,
-                                  std::vector<Point3D> *pba_3d_points,
+void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
                                   std::vector<Point2D> *pba_image_points, std::vector<int> *pba_2d3d_idx,
                                   std::vector<int> *pba_cam_idx) {
 
@@ -86,7 +82,7 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
     pba_cam_idx->clear();
     pba_2d3d_idx->clear();
 
-    for (const auto &pwm : pairwise_matches) {
+    for (const auto &pwm : pairwise_matches_) {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
@@ -96,17 +92,24 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
             std::vector<cv::Point2f> points1;
 
             for (const auto &match : pwm.matches) {
-                points0.push_back(features[idx_cam0].keypoints[match.queryIdx].pt - pp_);
-                points1.push_back(features[idx_cam1].keypoints[match.trainIdx].pt - pp_);
+                points0.push_back(features_[idx_cam0].keypoints[match.queryIdx].pt - pp_);
+                points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt - pp_);
             }
 
-            std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_cam0], poses[idx_cam1]);
+            std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses_[idx_cam0], poses_[idx_cam1]);
+
+            cv::Mat map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
             for (int j = 0; j < points3d.size(); j++) {
 
-                if(j == 50) {
+                cv::Point2d draw_pos = cv::Point2d(points3d[j].x + map.cols / 2,
+                                                   points3d[j].z + map.rows / 1.5);
+                cv::circle(map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+
+                if(j == 2) {
                     LOG(INFO) << points0[j] << " " << points1[j] << " " << points3d[j];
                 }
+
 
                 pba_3d_points->push_back(Point3D{points3d[j].x, points3d[j].y, points3d[j].z});
 
@@ -120,6 +123,9 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
                 pba_cam_idx->push_back(idx_cam1);
                 pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
             }
+
+            cv::imshow("3d", map);
+            cv::waitKey(0);
         }
     }
 }
