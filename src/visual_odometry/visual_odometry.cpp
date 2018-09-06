@@ -51,7 +51,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
             cv::findEssentialMat(vo1.points, vo0.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            triangulateFrame(vo0, &vo1);
+            triangulateFrame(K_, vo0, &vo1);
         }
         tracking_ = true;
     }
@@ -67,13 +67,8 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     if (res > kMinPosePoints) {
         hconcat(vo2.local_R, vo2.local_t, vo2.local_P);
-
-        vo2.local_P(cv::Range(0, 3), cv::Range(0, 3)) = vo2.local_R.t();
-        vo2.local_P(cv::Range(0, 3), cv::Range(3, 4)) = -vo2.local_R.t()*vo2.local_t;
         vo2.local_P = K_ * vo2.local_P;
-
-        ///cv::decomposeProjectionMatrix()??
-        triangulateFrame(vo1, &vo2);
+        triangulateFrame(K_, vo1, &vo2);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
