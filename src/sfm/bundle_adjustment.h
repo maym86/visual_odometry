@@ -35,16 +35,14 @@ public:
 
 private:
 
-    void setPBAData(const std::vector<cv::detail::ImageFeatures> &features,
-                    const std::vector<cv::detail::MatchesInfo> &pairwise_matches, const std::vector<cv::Mat> &poses,
-                    std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
+    void setPBAData(std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
                     std::vector<int> *pba_2d3d_idx, std::vector<int> *pba_cam_idx);
 
     FeatureDetector feature_detector_;
 
     cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 
-    std::vector<cv::Mat> poses_;
+    std::vector<cv::Mat> projection_matrices_;
     std::vector<CameraT> pba_cameras_;    //camera (input/ouput)
     std::vector<cv::detail::ImageFeatures> features_;
 

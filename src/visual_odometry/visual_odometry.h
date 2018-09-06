@@ -17,6 +17,7 @@
 #include "src/kalman_filter/kalman_filter.h"
 #include "src/sfm/bundle_adjustment.h"
 
+#include <opencv2/viz.hpp>
 
 #include "vo_frame.h"
 
@@ -55,6 +56,7 @@ private:
 
     BundleAdjustment bundle_adjustment_;
 
+    cv::viz::Viz3d window_;
 };
 
 

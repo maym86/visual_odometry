@@ -4,19 +4,29 @@
 
 #include <glog/logging.h>
 
+
 VisualOdometry::VisualOdometry(float focal, const cv::Point2d &pp, size_t min_tracked_points) {
     tracking_ = false;
     focal_ = focal;
     pp_ = pp;
 
-    K_ = (cv::Mat_<double>(3, 3) << focal_, 0.f, pp_.x,
-            0.f, focal_, pp_.y,
-            0.f, 0.f, 1.f);
+    K_ = cv::Mat::eye(3,3, CV_64FC1);
+
+    K_.at<double>(0,0) = focal_;
+    K_.at<double>(1,1) = focal_;
+    K_.at<double>(0,2) = pp_.x;
+    K_.at<double>(1,2) = pp_.y;
 
     min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
     bundle_adjustment_.init(focal, pp, 10);
+
+    window_ = cv::viz::Viz3d("Window");
+    window_.setWindowSize(cv::Size(800,800));
+    window_.setWindowPosition(cv::Point(150,150));
+    window_.setBackgroundColor(); // black by default
+
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {
@@ -39,9 +49,9 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         VOFrame &vo0 = frame_buffer_[frame_buffer_.size() - 3];
         if (!vo0.image.empty() && !vo1.E.empty()) { //Backtrack for new points for scale calculation later
             feature_tracker_.trackPoints(&vo1, &vo0);
-            //This finds good correspondences (mask) using RANSAC - we already have R|t from vo0 to vo1
+            //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
             cv::findEssentialMat(vo1.points, vo0.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            triangulateFrame(K_, vo0, &vo1);
+            triangulateFrame(vo0, &vo1);
         }
         tracking_ = true;
     }
@@ -57,7 +67,10 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     if (res > kMinPosePoints) {
         hconcat(vo2.R, vo2.t, vo2.P);
-        triangulateFrame(K_, vo1, &vo2);
+        vo2.P = K_ * vo2.P;
+
+        ///cv::decomposeProjectionMatrix()??
+        triangulateFrame(vo1, &vo2);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
@@ -72,13 +85,6 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    //Kalman Filter
-    //kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
-    //cv::Mat k_R, k_t;
-    //kf_.updateKalmanFilter(&k_R, &k_t);
-
-    //hconcat(k_R, k_t, *pose_kalman);
-
     /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
         bundle_adjustment_.addKeyFrame(vo2);
         res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
@@ -88,6 +94,13 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         }
         last_keyframe_t_ = vo2.pose_t;
     }*/
+
+    //Kalman Filter
+    //kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
+    //cv::Mat k_R, k_t;
+    //kf_.updateKalmanFilter(&k_R, &k_t);
+
+    //hconcat(k_R, k_t, *pose_kalman);
 
     (*pose) = vo2.pose;
 }
@@ -120,10 +133,17 @@ cv::Mat VisualOdometry::draw3D() {
     if (frame_buffer_.full()) {
         VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
+        if(!vo2.points_3d.empty()) {
+            cv::viz::WCloud cloud_widget(vo2.points_3d, cv::viz::Color::green());
+            window_.showWidget("point_cloud", cloud_widget);
+            window_.spinOnce();
+        }
+
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
-            cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale * 0.5 + drawXY.cols / 2,
-                                               vo2.points_3d[j].y * vo2.scale * 0.5 + drawXY.rows / 2);
+            cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale + drawXY.cols / 2,
+                                               vo2.points_3d[j].y * vo2.scale + drawXY.rows / 2);
+
             cv::circle(drawXY, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
         }
     }
