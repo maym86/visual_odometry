@@ -4,8 +4,6 @@
 #include <random>
 #include <cv.hpp>
 
-#include <opencv2/sfm.hpp>
-
 #include <glog/logging.h>
 
 //Init random
@@ -45,42 +43,7 @@ std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d){
     return results;
 }
 
-//http://answers.opencv.org/question/171898/sfm-triangulatepoints-input-array-assertion-failed/
-std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const double focal, const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
-    std::vector<cv::Point3d> results;
 
-    if(points0.size() == 0 || points1.size() == 0) {
-        return results;
-    }
-
-    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64FC1);
-    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64FC1);
-
-    for (int i = 0; i < p_mat0.cols; i++) {
-
-        LOG(INFO) << points0[i] << points1[i];
-
-        p_mat0.at<double>(0, i) = (points0[i].x  - pp.x) / focal;
-        p_mat0.at<double>(1, i) = (points0[i].y  - pp.y) / focal;
-        p_mat1.at<double>(0, i) = (points1[i].x - pp.x) / focal;
-        p_mat1.at<double>(1, i) = (points1[i].y  - pp.y) / focal;
-    }
-
-    std::vector<cv::Mat> sfmPoints2d;
-    sfmPoints2d.push_back(p_mat0);
-    sfmPoints2d.push_back(p_mat1);
-
-    std::vector<cv::Mat> sfmProjMats;
-    sfmProjMats.push_back(P0);
-    sfmProjMats.push_back(P1);
-    cv::Mat points3d;
-
-    cv::sfm::triangulatePoints(sfmPoints2d, sfmProjMats, points3d);
-
-    results = points3dToVec(points3d);
-    return results;
-}
-/*
 std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const double focal, const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     std::vector<cv::Point3d> results;
 
@@ -104,7 +67,7 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const double focal, 
 
     results = points4dToVec(points_4d);
     return results;
-}*/
+}
 
 void triangulateFrame(const cv::Point2f &pp, const double focal, const VOFrame &frame0, VOFrame *frame1) {
     if (!frame1->local_P.empty()) {
