@@ -10,13 +10,6 @@ VisualOdometry::VisualOdometry(float focal, const cv::Point2d &pp, size_t min_tr
     focal_ = focal;
     pp_ = pp;
 
-    K_ = cv::Mat::eye(3,3, CV_64FC1);
-
-    K_.at<double>(0,0) = focal_;
-    K_.at<double>(1,1) = focal_;
-    K_.at<double>(0,2) = pp_.x;
-    K_.at<double>(1,2) = pp_.y;
-
     min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
@@ -68,7 +61,12 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_, pp_, vo2.mask);
 
     if (res > kMinPosePoints) {
+
+        LOG(INFO) << vo2.local_R << vo2.local_t;
         hconcat(vo2.local_R, vo2.local_t, vo2.local_P);
+
+        LOG(INFO) << vo2.local_P;
+
         triangulateFrame(pp_, focal_, vo1, &vo2);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
