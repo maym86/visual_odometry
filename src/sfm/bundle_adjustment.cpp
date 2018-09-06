@@ -23,12 +23,6 @@ void BundleAdjustment::init(float focal, const cv::Point2d &pp, size_t max_frame
 
     pp_ = pp;
     focal_ = focal;
-
-    K_ = cv::Mat::eye(3,3, CV_64FC1);
-    K_.at<double>(0,0) = focal_;
-    K_.at<double>(1,1) = focal_;
-    K_.at<double>(0,2) = pp_.x;
-    K_.at<double>(1,2) = pp_.y;
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
@@ -45,7 +39,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     pba_cameras_.push_back(cam);
 
-    projection_matrices_.push_back(K_ * frame.pose);
+    projection_matrices_.push_back(frame.pose);
 
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
@@ -103,7 +97,7 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
                 points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
             }
 
-            std::vector<cv::Point3d> points3d = triangulate(points0, points1, projection_matrices_[idx_cam0], projection_matrices_[idx_cam1]);
+            std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, projection_matrices_[idx_cam0], projection_matrices_[idx_cam1]);
 
             for (int j = 0; j < points3d.size(); j++) {
 
@@ -111,7 +105,9 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
                     LOG(INFO) << points0[j] << " " << points1[j] << " " << points3d[j];
                 }
 
-                pba_3d_points->push_back(Point3D{points3d[j].x, points3d[j].y, points3d[j].z});
+                pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x),
+                                                 static_cast<float>(points3d[j].y),
+                                                 static_cast<float>(points3d[j].z)});
 
                 //First 2dpoint that relates to 3d point
                 pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});

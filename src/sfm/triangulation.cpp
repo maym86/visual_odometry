@@ -30,7 +30,7 @@ std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d){
     return results;
 }
 
-std::vector<cv::Point3d> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
+std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const double focal, const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     std::vector<cv::Point3d> results;
 
     if(points0.size() == 0 || points1.size() == 0) {
@@ -39,23 +39,25 @@ std::vector<cv::Point3d> triangulate(const std::vector<cv::Point2f> &points0, co
 
     cv::Mat points_4d;
 
-    std::vector<cv::Point2d> p_vec0;
-    std::vector<cv::Point2d> p_vec1;
+    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64FC1);
+    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64FC1);
 
-    for (int i = 0; i < points0.size(); i++) {
-        p_vec0.emplace_back(cv::Point2d(points0[i].x, points0[i].y));
-        p_vec1.emplace_back(cv::Point2d(points1[i].x, points1[i].y));
+    for (int i = 0; i < p_mat0.cols; i++) {
+        p_mat0.at<double>(0, i) = (points0[i].x  - pp.x) / focal;
+        p_mat0.at<double>(1, i) = (points0[i].y  - pp.y) / focal;
+        p_mat1.at<double>(0, i) = (points1[i].x - pp.x) / focal;
+        p_mat1.at<double>(1, i) = (points1[i].y  - pp.y) / focal;
     }
 
-    cv::triangulatePoints(P0, P1, p_vec0, p_vec1, points_4d);
+    cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_4d);
 
     results = points4dToVec(points_4d);
     return results;
 }
 
-void triangulateFrame(const cv::Mat &K, const VOFrame &frame0, VOFrame *frame1) {
+void triangulateFrame(const cv::Point2f &pp, const double focal, const VOFrame &frame0, VOFrame *frame1) {
     if (!frame1->local_P.empty()) {
-        frame1->points_3d = triangulate(frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->local_P);
+        frame1->points_3d = triangulate(pp, focal, frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->local_P);
     }
 }
 

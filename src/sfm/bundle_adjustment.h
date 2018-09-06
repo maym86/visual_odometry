@@ -55,7 +55,6 @@ private:
 
     cv::Point2f pp_;
     float focal_;
-    cv::Mat K_;
 
     size_t max_frames_;
     int count_ = 0;

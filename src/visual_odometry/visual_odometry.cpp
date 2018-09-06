@@ -28,9 +28,6 @@ VisualOdometry::VisualOdometry(float focal, const cv::Point2d &pp, size_t min_tr
     window_.setWindowPosition(cv::Point(150,150));
     window_.setBackgroundColor(); // black by default
 #endif
-
-
-
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {
@@ -55,7 +52,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
             cv::findEssentialMat(vo1.points, vo0.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            triangulateFrame(K_, vo0, &vo1);
+            triangulateFrame(pp_, focal_, vo0, &vo1);
         }
         tracking_ = true;
     }
@@ -67,15 +64,12 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
 
     vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    cv::Mat triangulatedPoints;
 
-    int res = recoverPose(vo2.E, vo2.points, vo1.points, K_, vo2.local_R, vo2.local_t, 500, vo2.mask, triangulatedPoints);
-
-    vo2.points_3d = points4dToVec(triangulatedPoints);
+    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_, pp_, vo2.mask);
 
     if (res > kMinPosePoints) {
         hconcat(vo2.local_R, vo2.local_t, vo2.local_P);
-        //vo2.local_P = K_ * vo2.local_P;
+        triangulateFrame(pp_, focal_, vo1, &vo2);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
