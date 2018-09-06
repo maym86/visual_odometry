@@ -5,16 +5,10 @@
 
 #include <glog/logging.h>
 
+double P1[12] = {0.999994351093655, 0.00216084437549141, -0.002574593630994021, -0.08315501607210679,
+        -0.002166127328107902, 0.9999955507641086, -0.002050937440673792, 0.02514760517749096,
+        0.002570150419386047, 0.002056502752743189, 0.9999945825469503, 0.9962192736821971};
 
-double R[12] = {0.9999899726688515, -0.0002398295194755593, -0.004471805401671894, -10.001475811533083541,
-        0.0002404186852745609, 0.9999999624908545, 0.0001312141258476285, -10.02857142671942455,
-        0.004471773764917525, -0.0001322879156956044, 0.9999899928195798, 10.9995906639997874};
-/*
-double P1[12] = {1, 0., 0, 4.3953258083993223e+002,
-                 0., 1, 0, 0.,
-                 0., 0., 1., 0. };
-
-*/
 cv::Point2d pp(607.1928, 185.2157);
 double focal = 718.856;
 
@@ -26,15 +20,14 @@ TEST(TriangulationTest, Passes) {
     vo0.local_P = cv::Mat::eye(3, 4, CV_64FC1);
     vo1.local_P = cv::Mat(3, 4, CV_64FC1, P1);
 
-    vo0.points.emplace_back(cv::Point2f(919,686));
-    vo0.points.emplace_back(cv::Point2f(919+100,686));
-    vo1.points.emplace_back(cv::Point2f(586,694));
-    vo1.points.emplace_back(cv::Point2f(586+100,694));
+    cv::FileStorage store("../src/sfm/test/test_data/test_points.bin", cv::FileStorage::READ);
+    cv::FileNode n0 = store["p0"];
+    cv::read(n0,vo0.points);
+    cv::FileNode n1 = store["p1"];
+    cv::read(n1,vo1.points);
+    store.release();
 
     triangulateFrame(pp, focal, vo0, &vo1);
-
-    LOG(INFO) << vo1.points_3d[0];
-    LOG(INFO) << vo1.points_3d[1];
 
     cv::Mat drawXY(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
