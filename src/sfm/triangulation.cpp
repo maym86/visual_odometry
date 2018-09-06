@@ -40,13 +40,14 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
         results.emplace_back(cv::Point3f(static_cast<float>(points_4d.at<double>(0, i) / points_4d.at<double>(3, i)),
                                          static_cast<float>(points_4d.at<double>(1, i) / points_4d.at<double>(3, i)),
                                          static_cast<float>(points_4d.at<double>(2, i) / points_4d.at<double>(3, i))));
+
     }
     return results;
 }
 
 void triangulateFrame(const cv::Mat &K, const VOFrame &frame0, VOFrame *frame1) {
     if (!frame1->P.empty()) {
-        frame1->points_3d = triangulate(frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), K * frame1->P);
+        frame1->points_3d = triangulate(frame0.points, frame1->points, K * cv::Mat::eye(3, 4, CV_64FC1), K * frame1->P);
     }
 }
 
@@ -107,9 +108,9 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
         return 1;
     }
 
-    if(scale > 5){ //TODO this is wrong - fix in a different way
+    if(scale > 10){ //TODO this is wrong - fix in a different way
         LOG(INFO) << "Scale is large: " << scale;
-        return 5; //TODO Arbitrary
+        return 10; //TODO Arbitrary
     }
 
     return scale;

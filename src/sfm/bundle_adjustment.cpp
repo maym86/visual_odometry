@@ -105,7 +105,7 @@ void BundleAdjustment::setPBAData(const std::vector<cv::detail::ImageFeatures> &
                 points1.push_back(features[idx_cam1].keypoints[match.trainIdx].pt);
             }
 
-            std::vector<cv::Point3f> points3d = triangulate(points0, points1, poses[idx_cam0], K_ * poses[idx_cam1]);
+            std::vector<cv::Point3f> points3d = triangulate(points0, points1, K_ * poses[idx_cam0], K_ * poses[idx_cam1]);
 
             for (int j = 0; j < points3d.size(); j++) {
 
