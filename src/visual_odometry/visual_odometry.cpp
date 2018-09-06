@@ -63,12 +63,15 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
 
     vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_, pp_, vo2.mask);
+    cv::Mat triangulatedPoints;
+
+    int res = recoverPose(vo2.E, vo2.points, vo1.points, K_, vo2.local_R, vo2.local_t, 500, vo2.mask, triangulatedPoints);
+
+    vo2.points_3d = points4dToVec(triangulatedPoints);
 
     if (res > kMinPosePoints) {
         hconcat(vo2.local_R, vo2.local_t, vo2.local_P);
-        vo2.local_P = K_ * vo2.local_P;
-        triangulateFrame(K_, vo1, &vo2);
+        //vo2.local_P = K_ * vo2.local_P;
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;

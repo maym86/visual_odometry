@@ -33,7 +33,7 @@ public:
     std::vector<cv::Point2f> points;
     std::vector<int> tracked_index;
 
-    std::vector<cv::Point3f> points_3d;
+    std::vector<cv::Point3d> points_3d;
 
     void setImage(cv::Mat image_in){
         image = image_in;

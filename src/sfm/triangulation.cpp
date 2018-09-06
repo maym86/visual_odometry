@@ -17,8 +17,21 @@ std::mt19937 rng(rd());
 
 
 //http://answers.opencv.org/question/118966/is-cvtriangulatepoints-returning-3d-points-in-world-coordinate-system/
-std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
-    std::vector<cv::Point3f> results;
+
+std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d){
+    std::vector<cv::Point3d> results;
+    for (int i = 0; i < points4d.cols; i++) {
+        results.emplace_back(cv::Point3d(points4d.at<double>(0, i) / points4d.at<double>(3, i),
+                                         points4d.at<double>(1, i) / points4d.at<double>(3, i),
+                                         points4d.at<double>(2, i) / points4d.at<double>(3, i)));
+
+    }
+
+    return results;
+}
+
+std::vector<cv::Point3d> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
+    std::vector<cv::Point3d> results;
 
     if(points0.size() == 0 || points1.size() == 0) {
         return results;
@@ -36,12 +49,7 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
 
     cv::triangulatePoints(P0, P1, p_vec0, p_vec1, points_4d);
 
-    for (int i = 0; i < points_4d.cols; i++) {
-        results.emplace_back(cv::Point3f(static_cast<float>(points_4d.at<double>(0, i) / points_4d.at<double>(3, i)),
-                                         static_cast<float>(points_4d.at<double>(1, i) / points_4d.at<double>(3, i)),
-                                         static_cast<float>(points_4d.at<double>(2, i) / points_4d.at<double>(3, i))));
-
-    }
+    results = points4dToVec(points_4d);
     return results;
 }
 
