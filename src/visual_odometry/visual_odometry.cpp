@@ -22,10 +22,14 @@ VisualOdometry::VisualOdometry(float focal, const cv::Point2d &pp, size_t min_tr
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
     bundle_adjustment_.init(focal, pp, 10);
 
+#if __has_include("opencv2/viz.hpp")
     window_ = cv::viz::Viz3d("Window");
     window_.setWindowSize(cv::Size(800,800));
     window_.setWindowPosition(cv::Point(150,150));
     window_.setBackgroundColor(); // black by default
+#endif
+
+
 
 }
 
@@ -134,11 +138,13 @@ cv::Mat VisualOdometry::draw3D() {
     if (frame_buffer_.full()) {
         VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
+#if __has_include("opencv2/viz.hpp")
         if(!vo2.points_3d.empty()) {
             cv::viz::WCloud cloud_widget(vo2.points_3d, cv::viz::Color::green());
             window_.showWidget("point_cloud", cloud_widget);
             window_.spinOnce();
         }
+#endif
 
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
