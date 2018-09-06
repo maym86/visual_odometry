@@ -63,11 +63,14 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
 
     vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.R, vo2.t, focal_, pp_, vo2.mask);
+    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_, pp_, vo2.mask);
 
     if (res > kMinPosePoints) {
-        hconcat(vo2.R, vo2.t, vo2.P);
-        vo2.P = K_ * vo2.P;
+        hconcat(vo2.local_R, vo2.local_t, vo2.local_P);
+
+        vo2.local_P(cv::Range(0, 3), cv::Range(0, 3)) = vo2.local_R.t();
+        vo2.local_P(cv::Range(0, 3), cv::Range(3, 4)) = -vo2.local_R.t()*vo2.local_t;
+        vo2.local_P = K_ * vo2.local_P;
 
         ///cv::decomposeProjectionMatrix()??
         triangulateFrame(vo1, &vo2);
@@ -75,8 +78,8 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
 
-        vo2.pose_R = vo2.R * vo1.pose_R;
-        vo2.pose_t = vo1.pose_t + vo2.scale * (vo1.pose_R * vo2.t);
+        vo2.pose_R = vo2.local_R * vo1.pose_R;
+        vo2.pose_t = vo1.pose_t + vo2.scale * (vo1.pose_R * vo2.local_t);
     } else {
         //Copy last pose
         LOG(INFO) << "RecoverPose, too few points";

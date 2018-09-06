@@ -16,14 +16,14 @@ class VOFrame {
 public:
     //Local transform between frames
     cv::Mat E; // Essential matrix
-    cv::Mat R; // Rotation
-    cv::Mat t; // Translation
-    cv::Mat P; // Projection matrix R|t
+    cv::Mat local_R; // Rotation
+    cv::Mat local_t; // Translation
     cv::Mat mask;
 
     //Global pose
     cv::Mat pose_R = cv::Mat::eye(3, 3, CV_64FC1);
     cv::Mat pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
+    cv::Mat local_P; // Projection matrix K[R|t]
     cv::Mat pose; //global
 
     float scale;

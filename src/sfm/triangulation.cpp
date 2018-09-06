@@ -46,8 +46,8 @@ std::vector<cv::Point3f> triangulate(const std::vector<cv::Point2f> &points0, co
 }
 
 void triangulateFrame(const VOFrame &frame0, VOFrame *frame1) {
-    if (!frame1->P.empty()) {
-        frame1->points_3d = triangulate(frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->P);
+    if (!frame1->local_P.empty()) {
+        frame1->points_3d = triangulate(frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->local_P);
     }
 }
 
