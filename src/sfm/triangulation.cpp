@@ -16,10 +16,9 @@ std::mt19937 rng(rd());
 
 //https://gist.github.com/cashiwamochi/8ac3f8bab9bf00e247a01f63075fedeb
 
-
 //http://answers.opencv.org/question/118966/is-cvtriangulatepoints-returning-3d-points-in-world-coordinate-system/
 
-std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d){
+std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d) {
     std::vector<cv::Point3d> results;
 
     LOG(INFO) << points4d.type();
@@ -31,7 +30,7 @@ std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d){
     return results;
 }
 
-std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d){
+std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d) {
     std::vector<cv::Point3d> results;
     for (int i = 0; i < points3d.cols; i++) {
         results.emplace_back(cv::Point3d(points3d.at<double>(0, i),
@@ -41,8 +40,10 @@ std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d){
     return results;
 }
 
-std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
-    if(points0.size() == 0 || points1.size() == 0) {
+std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const std::vector<cv::Point2f> &points0,
+                                     const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1) {
+
+    if (points0.size() == 0 || points1.size() == 0) {
         return std::vector<cv::Point3d>();
     }
 
@@ -50,10 +51,10 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const 
     cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64F);
 
     for (int i = 0; i < p_mat0.cols; i++) {
-        p_mat0.at<double>(0, i) = (points0[i].x  - pp.x) / focal;
-        p_mat0.at<double>(1, i) = (points0[i].y  - pp.y) / focal;
-        p_mat1.at<double>(0, i) = (points1[i].x  - pp.x) / focal;
-        p_mat1.at<double>(1, i) = (points1[i].y  - pp.y) / focal;
+        p_mat0.at<double>(0, i) = (points0[i].x - pp.x) / focal;
+        p_mat0.at<double>(1, i) = (points0[i].y - pp.y) / focal;
+        p_mat1.at<double>(0, i) = (points1[i].x - pp.x) / focal;
+        p_mat1.at<double>(1, i) = (points1[i].y - pp.y) / focal;
     }
 
     cv::Mat points_4d;
@@ -124,7 +125,7 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
         return 1;
     }
 
-    if(scale > 10){ //TODO this is wrong - fix in a different way
+    if (scale > 10) { //TODO this is wrong - fix in a different way
         LOG(INFO) << "Scale is large: " << scale;
         return 10; //TODO Arbitrary
     }
