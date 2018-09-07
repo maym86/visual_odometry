@@ -4,6 +4,9 @@
 #include "src/sfm/triangulation.h"
 #include "src/utils/draw.h"
 
+#include "src/features/feature_detector.h"
+#include "src/features/feature_tracker.h"
+
 #include <glog/logging.h>
 
 double R1[12] = {0.9999947416807112, 0.0008410819119621252, -0.003131962985946667,
@@ -34,7 +37,7 @@ TEST(TriangulationTest, Passes) {
     cv::Mat R = cv::Mat(3, 3, CV_64F, R1);
     cv::Mat t = cv::Mat(3, 1, CV_64F, t1);
 
-    hconcat(R.t(), -t, vo1.local_P);
+    hconcat(R, t, vo1.local_P);
 
     cv::FileStorage store("../src/sfm/test/test_data/test_points.bin", cv::FileStorage::READ);
     cv::FileNode n0 = store["p0"];
@@ -50,4 +53,28 @@ TEST(TriangulationTest, Passes) {
 }
 
 
+TEST(TriangulationTestFull, Passes) {
+    FeatureDetector feature_detector;
+    FeatureTracker feature_tracker;
 
+    VOFrame vo0;
+    VOFrame vo1;
+
+    vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
+    vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+
+    feature_detector.detectFAST(&vo0);
+
+    feature_tracker.trackPoints(&vo0, &vo1);
+
+    vo1.E = cv::findEssentialMat(vo1.points, vo0.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo1.mask);
+    int res = recoverPose(vo1.E, vo1.points, vo0.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
+
+    hconcat(vo1.local_R, vo1.local_t, vo1.local_P);
+
+    LOG(INFO) << vo1.local_P;
+
+    triangulateFrame(pp, focal, vo0, &vo1);
+    draw3D(vo1, 10);
+    cv::waitKey(0);
+}

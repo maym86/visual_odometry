@@ -43,6 +43,24 @@ public:
             gpu_image.upload(image_grey);
         }
     };
+
+    VOFrame& operator =(const VOFrame& a) {
+        E = a.E.clone();
+        local_R = a.local_R.clone();
+        local_t = a.local_t.clone();
+        local_P = a.local_P.clone();
+        mask = a.mask.clone();
+        pose_R = a.pose_R.clone();
+        pose_t = a.pose_t.clone();
+        pose = a.pose.clone();
+        scale = scale;
+        image = image.clone();
+        gpu_image = a.gpu_image.clone();
+        points = a.points;
+        points_3d = a.points_3d;
+        tracked_index = a.tracked_index;
+        return *this;
+    }
 };
 
 

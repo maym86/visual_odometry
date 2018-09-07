@@ -10,18 +10,9 @@
 std::random_device rd;
 std::mt19937 rng(rd());
 
-//https://github.com/nghiaho12/SFM_example/blob/master/src/main.cpp
-
-//http://nghiaho.com/
-
-//https://gist.github.com/cashiwamochi/8ac3f8bab9bf00e247a01f63075fedeb
-
-//http://answers.opencv.org/question/118966/is-cvtriangulatepoints-returning-3d-points-in-world-coordinate-system/
-
 std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d) {
     std::vector<cv::Point3d> results;
 
-    LOG(INFO) << points4d.type();
     for (int i = 0; i < points4d.cols; i++) {
         results.emplace_back(cv::Point3d(points4d.at<double>(0, i) / points4d.at<double>(3, i),
                                          points4d.at<double>(1, i) / points4d.at<double>(3, i),

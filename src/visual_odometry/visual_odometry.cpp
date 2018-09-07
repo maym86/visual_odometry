@@ -76,7 +76,6 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    LOG(INFO) << vo2.local_P;
     /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
         bundle_adjustment_.addKeyFrame(vo2);
         res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
@@ -94,7 +93,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     //hconcat(k_R, k_t, *pose_kalman);
 
-    (*pose) = vo2.pose;
+    (*pose) = vo2.pose.clone();
 }
 
 cv::Mat VisualOdometry::drawMatches(const cv::Mat &image) {
