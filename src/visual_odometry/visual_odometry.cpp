@@ -61,6 +61,8 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     if (res > kMinPosePoints) {
         hconcat(vo2.local_R.t(), -vo2.local_t, vo2.local_P);
+
+        //TODO clean 3D points here - inliers mask and remove far points and backward points.
         triangulateFrame(pp_, focal_, vo1, &vo2);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);

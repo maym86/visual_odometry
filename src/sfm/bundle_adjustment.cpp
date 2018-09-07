@@ -97,6 +97,10 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
                 points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
             }
 
+            // TODO clean 3D points here - inliers mask and remove far points and backward points.
+            // Use recover pose for mask???
+
+
             std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, projection_matrices_[idx_cam0], projection_matrices_[idx_cam1]);
 
             for (int j = 0; j < points3d.size(); j++) {
