@@ -75,7 +75,7 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
     for (int i = 0; i < max_points; i++) {
         for (int j = 0; j < 1000; j++) {
             int index = uni(rng);
-            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo0.tracked_index[index]) && index != last) {
+            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo0.tracked_index[index]) && vo1.points_3d[index].z  > 0 && index != last) {
                 last = index;
                 indices.push_back(index);
                 break;
