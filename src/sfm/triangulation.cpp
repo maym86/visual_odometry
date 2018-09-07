@@ -21,13 +21,13 @@ std::mt19937 rng(rd());
 
 std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d){
     std::vector<cv::Point3d> results;
+
+    LOG(INFO) << points4d.type();
     for (int i = 0; i < points4d.cols; i++) {
         results.emplace_back(cv::Point3d(points4d.at<double>(0, i) / points4d.at<double>(3, i),
                                          points4d.at<double>(1, i) / points4d.at<double>(3, i),
                                          points4d.at<double>(2, i) / points4d.at<double>(3, i)));
-
     }
-
     return results;
 }
 
@@ -37,20 +37,17 @@ std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d){
         results.emplace_back(cv::Point3d(points3d.at<double>(0, i),
                                          points3d.at<double>(1, i),
                                          points3d.at<double>(2, i)));
-
     }
-
     return results;
 }
-
 
 std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1){
     if(points0.size() == 0 || points1.size() == 0) {
         return std::vector<cv::Point3d>();
     }
 
-    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64FC1);
-    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64FC1);
+    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64F);
+    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64F);
 
     for (int i = 0; i < p_mat0.cols; i++) {
         p_mat0.at<double>(0, i) = (points0[i].x  - pp.x) / focal;
