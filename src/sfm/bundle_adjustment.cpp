@@ -29,7 +29,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
     cam.f = focal_.x;
-41
+
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
     cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 

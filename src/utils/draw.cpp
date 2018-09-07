@@ -3,7 +3,7 @@
 #include "draw.h"
 
 
-void draw3D(VOFrame &frame, float scale){
+void draw3D(const std::string &name, VOFrame &frame, float scale){
     cv::Mat drawXY(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat drawXZ(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
@@ -25,7 +25,7 @@ void draw3D(VOFrame &frame, float scale){
         cv::circle(drawXZ, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
-    cv::imshow("drawXY", drawXY);
-    cv::imshow("drawXZ", drawXZ);
+    cv::imshow(name + " drawXY", drawXY);
+    cv::imshow(name + " drawXZ", drawXZ);
 
 }

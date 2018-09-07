@@ -18,8 +18,8 @@ TEST(BundleAdjustmentTest, Passes) {
     VOFrame vo0;
     VOFrame vo1;
 
-    vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
-    vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+    vo0.image = cv::imread("../src/sfm/test/test_data/000000.png");
+    vo1.image = cv::imread("../src/sfm/test/test_data/000001.png");
 
     EXPECT_GT(vo0.image.rows, 0);
     EXPECT_GT(vo1.image.rows, 0);

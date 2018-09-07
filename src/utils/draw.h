@@ -6,6 +6,6 @@
 
 #include "src/visual_odometry/vo_frame.h"
 
-void draw3D(VOFrame &frame, float scale=1.0);
+void draw3D(const std::string &name, VOFrame &frame, float scale);
 
 #endif //VO_DRAW_H
