@@ -11,5 +11,4 @@ bool isRotationMatrix(cv::Mat &R);
 
 cv::Mat rotationMatrixToEulerAngles(cv::Mat &R);
 
-
 #endif //VO_UTILS_H

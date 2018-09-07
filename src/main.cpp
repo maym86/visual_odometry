@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     cv::Mat intrinsics = loadKittiCalibration(data_dir + FLAGS_calib_file, FLAGS_calib_line_number);
     LOG(INFO) << "Camera matrix: " << intrinsics;
 
-    float focal = intrinsics.at<double>(0, 0) * FLAGS_image_scale;
+    cv::Point2f focal(intrinsics.at<double>(0, 0) * FLAGS_image_scale,intrinsics.at<double>(1, 1) * FLAGS_image_scale);
     cv::Point2d pp(intrinsics.at<double>(0, 2) * FLAGS_image_scale, intrinsics.at<double>(1, 2) * FLAGS_image_scale);
 
     LOG(INFO) << "Focal length " << focal << ", principal point: " << pp;

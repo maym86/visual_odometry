@@ -5,7 +5,7 @@
 #include <glog/logging.h>
 
 
-VisualOdometry::VisualOdometry(float focal, const cv::Point2d &pp, size_t min_tracked_points) {
+VisualOdometry::VisualOdometry(const cv::Point2f &focal, const cv::Point2f &pp, size_t min_tracked_points) {
     tracking_ = false;
     focal_ = focal;
     pp_ = pp;
@@ -44,7 +44,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         if (!vo0.image.empty() && !vo1.E.empty()) { //Backtrack for new points for scale calculation later
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
-            cv::findEssentialMat(vo1.points, vo0.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
+            cv::findEssentialMat(vo1.points, vo0.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
             triangulateFrame(pp_, focal_, vo0, &vo1);
         }
         tracking_ = true;
@@ -56,8 +56,8 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         tracking_ = false;
     }
 
-    vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_, pp_, vo2.mask);
+    vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
+    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_.x, pp_, vo2.mask);
 
     if (res > kMinPosePoints) {
         hconcat(vo2.local_R, vo2.local_t, vo2.local_P);

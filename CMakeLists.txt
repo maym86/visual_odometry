@@ -41,7 +41,8 @@ include_directories(${GTEST_INCLUDE_DIR})
 
 file(GLOB TEST_FILES ${PROJECT_SOURCE_DIR}/src/sfm/test/*.cpp
                      ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
-                     ${PROJECT_SOURCE_DIR}/src/features/*.cpp)
+                     ${PROJECT_SOURCE_DIR}/src/features/*.cpp
+                     ${PROJECT_SOURCE_DIR}/src/utils/*.cpp)
 
 # Add test cpp file
 add_executable(unit_tests ${TEST_FILES})

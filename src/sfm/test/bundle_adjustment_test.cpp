@@ -34,7 +34,7 @@ TEST(BundleAdjustmentTest, Passes) {
 
     hconcat(vo1.pose_R, vo1.pose_t, vo1.pose);
 
-    ba.init(718.856 , cv::Point2f(607.193, 185.216) , 2);
+    ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 2);
 
     ba.addKeyFrame(vo0);
     ba.addKeyFrame(vo1);
@@ -83,7 +83,7 @@ TEST(BundleAdjustmentOffsetTest, Passes) {
 
     hconcat(vo1.pose_R, vo1.pose_t, vo1.pose);
 
-    ba.init(718.856 , cv::Point2f(607.193, 185.216) , 2);
+    ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 2);
 
     ba.addKeyFrame(vo0);
     ba.addKeyFrame(vo1);

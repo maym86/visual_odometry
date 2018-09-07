@@ -9,7 +9,7 @@ BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE)
 
 }
 
-void BundleAdjustment::init(float focal, const cv::Point2d &pp, size_t max_frames) {
+void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
     char *argv[] = {"-lmi<100>", "-v", "1"};
     int argc = sizeof(argv) / sizeof(char *);
@@ -28,7 +28,7 @@ void BundleAdjustment::init(float focal, const cv::Point2d &pp, size_t max_frame
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
-    cam.f = focal_;
+    cam.f = focal_.x;
 
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
     cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));

@@ -27,7 +27,7 @@ class BundleAdjustment {
 public:
     BundleAdjustment();
 
-    void init(float focal, const cv::Point2d &pp, size_t max_frames);
+    void init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames);
 
     void addKeyFrame(const VOFrame &frame);
 
@@ -54,7 +54,7 @@ private:
     std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
     cv::Point2f pp_;
-    float focal_;
+    cv::Point2f focal_;
 
     size_t max_frames_;
     int count_ = 0;

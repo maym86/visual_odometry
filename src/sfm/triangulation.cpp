@@ -40,7 +40,7 @@ std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d) {
     return results;
 }
 
-std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const std::vector<cv::Point2f> &points0,
+std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &focal, const std::vector<cv::Point2f> &points0,
                                      const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1) {
 
     if (points0.size() == 0 || points1.size() == 0) {
@@ -51,10 +51,10 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const 
     cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64F);
 
     for (int i = 0; i < p_mat0.cols; i++) {
-        p_mat0.at<double>(0, i) = (points0[i].x - pp.x) / focal;
-        p_mat0.at<double>(1, i) = (points0[i].y - pp.y) / focal;
-        p_mat1.at<double>(0, i) = (points1[i].x - pp.x) / focal;
-        p_mat1.at<double>(1, i) = (points1[i].y - pp.y) / focal;
+        p_mat0.at<double>(0, i) = (points0[i].x - pp.x) / focal.x;
+        p_mat0.at<double>(1, i) = (points0[i].y - pp.y) / focal.y;
+        p_mat1.at<double>(0, i) = (points1[i].x - pp.x) / focal.x;
+        p_mat1.at<double>(1, i) = (points1[i].y - pp.y) / focal.y;
     }
 
     cv::Mat points_4d;
@@ -62,7 +62,7 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, double focal, const 
     return points4dToVec(points_4d);
 }
 
-void triangulateFrame(const cv::Point2f &pp, double focal, const VOFrame &frame0, VOFrame *frame1) {
+void triangulateFrame(const cv::Point2f &pp, const cv::Point2f &focal, const VOFrame &frame0, VOFrame *frame1) {
     if (!frame1->local_P.empty()) {
         frame1->points_3d = triangulate(pp, focal, frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->local_P);
     }
