@@ -118,7 +118,7 @@ cv::Mat VisualOdometry::drawMatches(const cv::Mat &image) {
 
 cv::Mat VisualOdometry::draw3D() {
 
-    cv::Mat drawXY(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat drawXY(500, 1000, CV_8UC3, cv::Scalar(0, 0, 0));
 
     cv::line(drawXY, cv::Point(drawXY.cols / 2, 0), cv::Point(drawXY.cols / 2, drawXY.rows), cv::Scalar(0, 0, 255));
     cv::line(drawXY, cv::Point(0, drawXY.rows / 2), cv::Point(drawXY.cols, drawXY.rows / 2), cv::Scalar(0, 0, 255));
@@ -126,23 +126,27 @@ cv::Mat VisualOdometry::draw3D() {
     if (frame_buffer_.full()) {
         VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
+
+        std::vector<cv::Point3d> inliers;
+        for (int j = 0; j < vo2.points_3d.size(); j++) {
+
+            if(vo2.mask.at<bool>(j) * vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < 200) {
+                cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale * 20 + drawXY.cols / 2,
+                                                   vo2.points_3d[j].y * vo2.scale * 20 + drawXY.rows / 2);
+
+                inliers.push_back(vo2.points_3d[j]);
+                cv::circle(drawXY, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+            }
+        }
+
 #if __has_include("opencv2/viz.hpp")
         if(!vo2.points_3d.empty()) {
-            cv::viz::WCloud cloud_widget(vo2.points_3d, cv::viz::Color::green());
+            cv::viz::WCloud cloud_widget(inliers, cv::viz::Color::green());
             window_.showWidget("point_cloud", cloud_widget);
             window_.spinOnce();
         }
 #endif
 
-        for (int j = 0; j < vo2.points_3d.size(); j++) {
-
-            if(vo2.mask.at<bool>(j) * vo2.points_3d[j].z > 0) {
-                cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x *  10 + drawXY.cols / 2,
-                                                   vo2.points_3d[j].y *  10 + drawXY.rows / 2);
-
-                cv::circle(drawXY, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
-            }
-        }
     }
     return drawXY;
 }
