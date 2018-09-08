@@ -104,15 +104,13 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
             cv::Mat pose_t = projection_matrices_[idx_cam0].col(3).t();
             cv::Mat R = projection_matrices_[idx_cam0].colRange(cv::Range(0,3)).clone();
 
-            LOG(INFO) << R;
-
+            //TODO get inliers and plot them so we can see the 3d points
             for (int j = 0; j < points3d.size(); j++) {
 
                 cv::Mat p(1,3, CV_64F);
                 p.at<double>(0,0) = points3d[j].x;
                 p.at<double>(0,1) = points3d[j].y;
                 p.at<double>(0,2) = points3d[j].z;
-                LOG(INFO) << p << pose_t;
                 float d = cv::norm(p - pose_t);
                 cv::Mat p_rot = p * R.t();
 
@@ -132,6 +130,8 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
                     pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
                 }
             }
+
+            LOG(INFO ) << pba_3d_points->size();
         }
     }
 }
