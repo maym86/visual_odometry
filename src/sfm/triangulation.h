@@ -7,8 +7,6 @@
 
 #include <opencv2/stitching/detail/matchers.hpp>
 
-void triangulateFrame(const cv::Point2f &pp, const cv::Point2f &focal, const VOFrame &frame0, VOFrame *frame1);
-
 std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d);
 
 std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d);

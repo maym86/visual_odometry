@@ -53,13 +53,6 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &f
     return points4dToVec(points_4d);
 }
 
-void triangulateFrame(const cv::Point2f &pp, const cv::Point2f &focal, const VOFrame &frame0, VOFrame *frame1) {
-    if (!frame1->local_P.empty()) {
-        frame1->points_3d = triangulate(pp, focal, frame0.points, frame1->points, cv::Mat::eye(3, 4, CV_64FC1), frame1->local_P);
-    }
-}
-
-
 float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
 
     if (vo0.points_3d.empty() || vo1.points_3d.empty()) {
@@ -75,7 +68,13 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
     for (int i = 0; i < max_points; i++) {
         for (int j = 0; j < 1000; j++) {
             int index = uni(rng);
-            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo0.tracked_index[index]) && vo1.points_3d[index].z  > 0  && cv::norm(vo1.points_3d[index] - cv::Point3d(0,0,0)) < 200 && index != last) {
+            int vo_index = vo0.tracked_index[index];
+
+            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo_index) &&
+                vo1.points_3d[index].z  > 0  && cv::norm(vo1.points_3d[index] - cv::Point3d(0,0,0)) < 200 &&
+                vo0.points_3d[vo_index].z  > 0  && cv::norm(vo0.points_3d[vo_index] - cv::Point3d(0,0,0)) < 200 &&
+                index != last) {
+
                 last = index;
                 indices.push_back(index);
                 break;

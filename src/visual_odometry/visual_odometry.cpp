@@ -41,11 +41,11 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         feature_detector_.detectFAST(&vo1);
 
         VOFrame &vo0 = frame_buffer_[frame_buffer_.size() - 3];
-        if (!vo0.image.empty() && !vo1.E.empty()) { //Backtrack for new points for scale calculation later
+        if (!vo0.image.empty() && !vo1.E.empty() && !vo1.local_P.empty()) { //Backtrack for new points for scale calculation later
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
             cv::findEssentialMat(vo1.points, vo0.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            triangulateFrame(pp_, focal_, vo0, &vo1);
+            vo1.points_3d = triangulate(pp_, focal_, vo0.points, vo1.points, cv::Mat::eye(3, 4, CV_64FC1), vo1.local_P);
         }
         tracking_ = true;
     }
@@ -63,7 +63,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         hconcat(vo2.local_R.t(), -vo2.local_t, vo2.local_P);
 
         //TODO clean 3D points here - inliers mask and remove far points and backward points.
-        triangulateFrame(pp_, focal_, vo1, &vo2);
+        vo2.points_3d = triangulate(pp_, focal_, vo1.points, vo2.points, cv::Mat::eye(3, 4, CV_64FC1), vo2.local_P);
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
         LOG(INFO) << "Scale: " << vo2.scale;
