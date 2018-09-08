@@ -13,6 +13,6 @@ std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d);
 
 std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &focal, const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1);
 
-float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points);
+float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int max_points);
 
 #endif //VO_SFM_TRIANGULATION_H

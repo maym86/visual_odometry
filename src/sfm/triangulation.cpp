@@ -53,26 +53,26 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &f
     return points4dToVec(points_4d);
 }
 
-float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
+float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int max_points) {
 
-    if (vo0.points_3d.empty() || vo1.points_3d.empty()) {
+    if (frame0.points_3d.empty() || frame1.points_3d.empty()) {
         LOG(INFO) << "O point size";
         return 1;
     }
 
     //Pick random points in prev that match to two points in now;
     //TODO Maybe just use all the points???
-    std::uniform_int_distribution<int> uni(0, static_cast<int>(vo1.points.size() - 1));
+    std::uniform_int_distribution<int> uni(0, static_cast<int>(frame1.points.size() - 1));
     std::vector<int> indices;
     int last = -1;
     for (int i = 0; i < max_points; i++) {
         for (int j = 0; j < 1000; j++) {
             int index = uni(rng);
-            int vo_index = vo0.tracked_index[index];
+            int vo_index = frame0.tracked_index[index];
 
-            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo_index) &&
-                vo1.points_3d[index].z  > 0  && cv::norm(vo1.points_3d[index] - cv::Point3d(0,0,0)) < 200 &&
-                vo0.points_3d[vo_index].z  > 0  && cv::norm(vo0.points_3d[vo_index] - cv::Point3d(0,0,0)) < 200 &&
+            if (frame1.mask.at<bool>(index) && frame0.mask.at<bool>(vo_index) &&
+                frame1.points_3d[index].z  > 0  && cv::norm(frame1.points_3d[index] - cv::Point3d(0,0,0)) < 200 &&
+                frame0.points_3d[vo_index].z  > 0  && cv::norm(frame0.points_3d[vo_index] - cv::Point3d(0,0,0)) < 200 &&
                 index != last) {
 
                 last = index;
@@ -93,8 +93,8 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
     for (int i = 0; i < indices.size() - 1; i++) {
         int i0 = indices[i];
         int i1 = indices[i + 1];
-        double n0 = cv::norm(vo0.points_3d[vo0.tracked_index[i0]] - vo0.points_3d[vo0.tracked_index[i1]]);
-        double n1 = cv::norm(vo1.points_3d[i0] - vo1.points_3d[i1]);
+        double n0 = cv::norm(frame0.points_3d[frame0.tracked_index[i0]] - frame0.points_3d[frame0.tracked_index[i1]]);
+        double n1 = cv::norm(frame1.points_3d[i0] - frame1.points_3d[i1]);
 
         if (!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1) && std::fabs(n1 - n0) < 200) {
             vo0_sum += n0;
