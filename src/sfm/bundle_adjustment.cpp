@@ -102,6 +102,9 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
 
             //TODO clean 3D points here - remove far points and backward points.
             cv::Mat pose_t = projection_matrices_[idx_cam0].col(3).t();
+            cv::Mat R = projection_matrices_[idx_cam0].colRange(cv::Range(0,3)).clone();
+
+            LOG(INFO) << R;
 
             for (int j = 0; j < points3d.size(); j++) {
 
@@ -111,7 +114,9 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
                 p.at<double>(0,2) = points3d[j].z;
                 LOG(INFO) << p << pose_t;
                 float d = cv::norm(p - pose_t);
-                if(d < 100) {
+                cv::Mat p_rot = p * R.t();
+
+                if(d < 100 && p_rot.at<double>(0,2) >  pose_t.at<double>(0,2) ) {
                     pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x),
                                                      static_cast<float>(points3d[j].y),
                                                      static_cast<float>(points3d[j].z)});
