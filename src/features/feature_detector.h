@@ -14,12 +14,12 @@ class FeatureDetector {
 public:
     FeatureDetector();
 
-    void detect(VOFrame *frame);
+    void detectFAST(VOFrame *frame);
+    void detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
 
 private:
-    const int kMaxFeatures = 10000;
-
     cv::Ptr<cv::FastFeatureDetector> detector_;
+    cv::Ptr<cv::ORB> descriptor_;
 };
 
 

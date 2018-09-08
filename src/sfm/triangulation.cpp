@@ -3,37 +3,55 @@
 
 #include <random>
 #include <cv.hpp>
+
 #include <glog/logging.h>
 
 //Init random
 std::random_device rd;
 std::mt19937 rng(rd());
 
-void triangulate(VOFrame *vo0, VOFrame *vo1) {
-    if (!vo1->P.empty()) {
-        cv::Mat points_3d;
-        cv::Mat_<float> p0(2, static_cast<int>(vo0->points.size()), CV_32FC1);
-        cv::Mat_<float> p1(2, static_cast<int>(vo1->points.size()), CV_32FC1);
+std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d) {
+    std::vector<cv::Point3d> results;
 
-        for (int i = 0; i < p0.cols; i++) {
-            p0.at<float>(0, i) = vo0->points[i].x;
-            p0.at<float>(1, i) = vo0->points[i].y;
-            p1.at<float>(0, i) = vo1->points[i].x;
-            p1.at<float>(1, i) = vo1->points[i].y;
-        }
-
-        cv::Mat P = cv::Mat::eye(3, 4, CV_64FC1);
-        cv::triangulatePoints(P, vo1->P, p0, p1, points_3d); //TODO this is relative to previous frame center
-        vo1->points_3d.clear();
-
-        for (int i = 0; i < points_3d.cols; i++) {
-            vo1->points_3d.push_back(cv::Point3d(points_3d.at<float>(0, i) / points_3d.at<float>(3, i),
-                                                 points_3d.at<float>(1, i) / points_3d.at<float>(3, i),
-                                                 points_3d.at<float>(2, i) / points_3d.at<float>(3, i)));
-        }
+    for (int i = 0; i < points4d.cols; i++) {
+        results.emplace_back(cv::Point3d(points4d.at<double>(0, i) / points4d.at<double>(3, i),
+                                         points4d.at<double>(1, i) / points4d.at<double>(3, i),
+                                         points4d.at<double>(2, i) / points4d.at<double>(3, i)));
     }
+    return results;
 }
 
+std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d) {
+    std::vector<cv::Point3d> results;
+    for (int i = 0; i < points3d.cols; i++) {
+        results.emplace_back(cv::Point3d(points3d.at<double>(0, i),
+                                         points3d.at<double>(1, i),
+                                         points3d.at<double>(2, i)));
+    }
+    return results;
+}
+
+std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &focal, const std::vector<cv::Point2f> &points0,
+                                     const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1) {
+
+    if (points0.size() == 0 || points1.size() == 0) {
+        return std::vector<cv::Point3d>();
+    }
+
+    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64F);
+    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64F);
+
+    for (int i = 0; i < p_mat0.cols; i++) {
+        p_mat0.at<double>(0, i) = (points0[i].x - pp.x) / focal.x;
+        p_mat0.at<double>(1, i) = (points0[i].y - pp.y) / focal.y;
+        p_mat1.at<double>(0, i) = (points1[i].x - pp.x) / focal.x;
+        p_mat1.at<double>(1, i) = (points1[i].y - pp.y) / focal.y;
+    }
+
+    cv::Mat points_4d;
+    cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_4d);
+    return points4dToVec(points_4d);
+}
 
 float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_points) {
 
@@ -50,7 +68,13 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
     for (int i = 0; i < max_points; i++) {
         for (int j = 0; j < 1000; j++) {
             int index = uni(rng);
-            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo0.tracked_index[index]) && index != last) {
+            int vo_index = vo0.tracked_index[index];
+
+            if (vo1.mask.at<bool>(index) && vo0.mask.at<bool>(vo_index) &&
+                vo1.points_3d[index].z  > 0  && cv::norm(vo1.points_3d[index] - cv::Point3d(0,0,0)) < 200 &&
+                vo0.points_3d[vo_index].z  > 0  && cv::norm(vo0.points_3d[vo_index] - cv::Point3d(0,0,0)) < 200 &&
+                index != last) {
+
                 last = index;
                 indices.push_back(index);
                 break;
@@ -91,11 +115,10 @@ float getScale(const VOFrame &vo0, const VOFrame &vo1, int min_points, int max_p
         return 1;
     }
 
-    if(scale > 5){ //TODO this is wrong - fix in a different way
+    if (scale > 10) { //TODO this is wrong - fix in a different way
         LOG(INFO) << "Scale is large: " << scale;
-        return 5; //TODO Arbitrary
+        return 10; //TODO Arbitrary
     }
 
     return scale;
 }
-

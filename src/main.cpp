@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     cv::Mat intrinsics = loadKittiCalibration(data_dir + FLAGS_calib_file, FLAGS_calib_line_number);
     LOG(INFO) << "Camera matrix: " << intrinsics;
 
-    double focal = intrinsics.at<double>(0, 0) * FLAGS_image_scale;
+    cv::Point2f focal(intrinsics.at<double>(0, 0) * FLAGS_image_scale, intrinsics.at<double>(1, 1) * FLAGS_image_scale);
     cv::Point2d pp(intrinsics.at<double>(0, 2) * FLAGS_image_scale, intrinsics.at<double>(1, 2) * FLAGS_image_scale);
 
     LOG(INFO) << "Focal length " << focal << ", principal point: " << pp;
@@ -62,11 +62,11 @@ int main(int argc, char *argv[]) {
         result_poses.emplace_back(kittiResultMat(pose));
 
         cv::Point2d draw_pos = cv::Point2d(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
-                                           kDrawScale * -pose.at<double>(2, 3) + map.rows / 2);
+                                           kDrawScale * -pose.at<double>(2, 3) + map.rows / 1.5);
         cv::circle(map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
 
         cv::Point2d draw_pos_kalman = cv::Point2d(kDrawScale * pose_kalman.at<double>(0, 3) + map.cols / 2,
-                                                  kDrawScale * -pose_kalman.at<double>(2, 3) + map.rows / 2);
+                                                  kDrawScale * -pose_kalman.at<double>(2, 3) + map.rows / 1.5);
 
         //cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 
         cv::imshow("Map", map_out);
         cv::imshow("Features", vo.drawMatches(image));
+        cv::imshow("3D", vo.draw3D());
 
         char key = static_cast<char>(cv::waitKey(1));
         if (key == 27) {

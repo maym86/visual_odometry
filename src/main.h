@@ -37,8 +37,8 @@ DEFINE_string(seq, "00", "Sequence number");
 
 DEFINE_string(image_dir, "image_0", "Image directory");
 
-DEFINE_double(image_scale, 1, "Rescale input image");
-DEFINE_double(min_tracked_features, 1500, "Rescale input image");
+DEFINE_double(image_scale, 0.75, "Rescale input image");
+DEFINE_double(min_tracked_features, 750, "Rescale input image");
 
 DEFINE_string(calib_file, "calib.txt", "Calibration data file");
 DEFINE_int32(calib_line_number, 0, "Calibration data line number");
