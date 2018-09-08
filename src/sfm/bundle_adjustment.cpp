@@ -60,14 +60,15 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     (*matcher_)(features_, pairwise_matches_);
 
     setPBAData( &pba_3d_points_, &pba_image_points_, &pba_2d3d_idx_, &pba_cam_idx_);
+    if(pba_3d_points_.size() > 0 && pba_image_points_.size()>0) {
 
-    pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
-    pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
+        pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
+        pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
 
-    LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
-    //set the projections
-    pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
-    pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
+        //set the projections
+        pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
+        pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
+    }
 }
 
 // TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
@@ -99,25 +100,32 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
 
             std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, projection_matrices_[idx_cam0], projection_matrices_[idx_cam1]);
 
+            //TODO clean 3D points here - remove far points and backward points.
+            cv::Mat pose_t = projection_matrices_[idx_cam0].col(3).t();
+
             for (int j = 0; j < points3d.size(); j++) {
 
-                if (j == 50) {
-                    LOG(INFO) << points0[j] << " " << points1[j] << " " << points3d[j];
+                cv::Mat p(1,3, CV_64F);
+                p.at<double>(0,0) = points3d[j].x;
+                p.at<double>(0,1) = points3d[j].y;
+                p.at<double>(0,2) = points3d[j].z;
+                LOG(INFO) << p << pose_t;
+                float d = cv::norm(p - pose_t);
+                if(d < 100) {
+                    pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x),
+                                                     static_cast<float>(points3d[j].y),
+                                                     static_cast<float>(points3d[j].z)});
+
+                    //First 2dpoint that relates to 3d point
+                    pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});
+                    pba_cam_idx->push_back(idx_cam0);
+                    pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
+
+                    //Second 2dpoint that relates to 3D point
+                    pba_image_points->push_back(Point2D{points1[j].x, points1[j].y});
+                    pba_cam_idx->push_back(idx_cam1);
+                    pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
                 }
-
-                pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x),
-                                                 static_cast<float>(points3d[j].y),
-                                                 static_cast<float>(points3d[j].z)});
-
-                //First 2dpoint that relates to 3d point
-                pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});
-                pba_cam_idx->push_back(idx_cam0);
-                pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
-
-                //Second 2dpoint that relates to 3D point
-                pba_image_points->push_back(Point2D{points1[j].x, points1[j].y});
-                pba_cam_idx->push_back(idx_cam1);
-                pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
             }
         }
     }
