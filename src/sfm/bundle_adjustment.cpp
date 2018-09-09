@@ -74,9 +74,8 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 // TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
 // Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
 // https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
-void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
-                                  std::vector<Point2D> *pba_image_points, std::vector<int> *pba_2d3d_idx,
-                                  std::vector<int> *pba_cam_idx) {
+void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
+                                    std::vector<int> *pba_2d3d_idx, std::vector<int> *pba_cam_idx) {
 
     pba_3d_points->clear();
     pba_image_points->clear();
@@ -87,8 +86,7 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 &&
-            idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
 
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
@@ -107,17 +105,15 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
             //TODO get inliers and plot them so we can see the 3d points
             for (int j = 0; j < points3d.size(); j++) {
 
-                cv::Mat p(1,3, CV_64F);
-                p.at<double>(0,0) = points3d[j].x;
-                p.at<double>(0,1) = points3d[j].y;
-                p.at<double>(0,2) = points3d[j].z;
-                float d = cv::norm(p - pose_t);
+                cv::Mat p =  cv::Mat(points3d[j]).t();
+                double d = cv::norm(p - cv::Mat::zeros(1,3,CV_64F));
                 cv::Mat p_rot = p * R.t();
 
-                if(d < 100 && p_rot.at<double>(0,2) >  pose_t.at<double>(0,2) ) {
-                    pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x),
-                                                     static_cast<float>(points3d[j].y),
-                                                     static_cast<float>(points3d[j].z)});
+                if( p_rot.at<double>(0,2) > 0 ) {
+
+                    pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x ),
+                                                     static_cast<float>(points3d[j].y ),
+                                                     static_cast<float>(points3d[j].z )});
 
                     //First 2dpoint that relates to 3d point
                     pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});
@@ -134,6 +130,26 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
             LOG(INFO ) << pba_3d_points->size();
         }
     }
+
+
+    cv::Mat ba_map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
+
+    for (const auto &p : (*pba_3d_points)) {
+
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] + ba_map.cols / 2, p.xyz[2] + ba_map.rows / 1.5);
+        cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+    }
+
+    for (const auto &pose : projection_matrices_){
+
+        cv::Mat pose_t = pose.col(3).t();
+
+        LOG(INFO) << pose_t.at<double>(0,0)<< " " << pose_t.at<double>(0,1) << " " << pose_t.at<double>(0,2);
+
+        cv::Point2d draw_pos = cv::Point2d(pose_t.at<double>(0,0) + ba_map.cols / 2, pose_t.at<double>(0,2) + ba_map.rows / 1.5);
+        cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 0, 255), 1);
+    }
+    cv::imshow("BA_Map", ba_map);
 }
 
 //TODO use full history rather than just updating the newest point

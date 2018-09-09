@@ -77,15 +77,15 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
         bundle_adjustment_.addKeyFrame(vo2);
-        res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        res = 1;// bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
         if (res == 0) {
             hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
         }
         last_keyframe_t_ = vo2.pose_t;
-    }*/
+    }
 
     //Kalman Filter
     //kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
@@ -129,7 +129,7 @@ cv::Mat VisualOdometry::draw3D() {
         std::vector<cv::Point3d> inliers;
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
-            if(vo2.mask.at<bool>(j) * vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < 200) {
+            if(vo2.mask.at<bool>(j) && vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < 200) {
                 cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale * 20 + drawXY.cols / 2,
                                                    vo2.points_3d[j].y * vo2.scale * 20 + drawXY.rows / 2);
 
