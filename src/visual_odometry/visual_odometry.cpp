@@ -56,11 +56,11 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         tracking_ = false;
     }
 
-    vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_.x, pp_, vo2.mask);
+    vo2.E = cv::findEssentialMat(vo1.points, vo2.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
+    int res = recoverPose(vo2.E, vo1.points, vo2.points, vo2.local_R, vo2.local_t, focal_.x, pp_, vo2.mask);
 
     if (res > kMinPosePoints) {
-        hconcat(vo2.local_R.t(), -vo2.local_t, vo2.local_P);
+        hconcat(vo2.local_R, vo2.local_t, vo2.local_P);
 
         vo2.points_3d = triangulate(pp_, focal_, vo1.points, vo2.points, cv::Mat::eye(3, 4, CV_64FC1), vo2.local_P);
 
@@ -77,7 +77,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
+    /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
         bundle_adjustment_.addKeyFrame(vo2);
         res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
 
@@ -85,7 +85,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
             hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
         }
         last_keyframe_t_ = vo2.pose_t;
-    }
+    }*/
 
     //Kalman Filter
     //kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
