@@ -60,7 +60,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     (*matcher_)(features_, pairwise_matches_);
 
     setPBAData( &pba_3d_points_, &pba_image_points_, &pba_2d3d_idx_, &pba_cam_idx_);
-    if(pba_3d_points_.size() > 0 && pba_image_points_.size()>0) {
+    if(!pba_3d_points_.empty() && !pba_image_points_.empty()) {
 
         pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
         pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
@@ -96,24 +96,30 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points, std::vect
                 points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
             }
 
-            std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, projection_matrices_[idx_cam0], projection_matrices_[idx_cam1]);
-
-            //TODO clean 3D points here - remove far points and backward points.
-            cv::Mat pose_t = projection_matrices_[idx_cam0].col(3).t();
+            cv::Mat t = projection_matrices_[idx_cam0].col(3);
             cv::Mat R = projection_matrices_[idx_cam0].colRange(cv::Range(0,3)).clone();
 
-            //TODO get inliers and plot them so we can see the 3d points
+            cv::Mat P0 =  cv::Mat::eye(3,4, CV_64F);
+            cv::Mat P1 = projection_matrices_[idx_cam1].clone();
+
+            P1.col(3) -= t;
+            P1.colRange(cv::Range(0,3)) *= R.t();
+
+            std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, P0, P1);
+
+            //TODO clean 3D points here - remove far points and backward points.
             for (int j = 0; j < points3d.size(); j++) {
 
                 cv::Mat p =  cv::Mat(points3d[j]).t();
-                double d = cv::norm(p - cv::Mat::zeros(1,3,CV_64F));
-                cv::Mat p_rot = p * R.t();
+                double dist = cv::norm(p - cv::Mat::zeros(1,3,CV_64F));
 
-                if( p_rot.at<double>(0,2) > 0 ) {
+                if( dist < 200 && p.at<double>(0,2) < 0 ) {
 
-                    pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x ),
-                                                     static_cast<float>(points3d[j].y ),
-                                                     static_cast<float>(points3d[j].z )});
+                    p = (R * p.t()) + t;
+
+                    pba_3d_points->push_back(Point3D{static_cast<float>(p.at<double>(0,0)),
+                                                     static_cast<float>(p.at<double>(0,1)),
+                                                     static_cast<float>(p.at<double>(0,2))});
 
                     //First 2dpoint that relates to 3d point
                     pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});
@@ -131,24 +137,19 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points, std::vect
         }
     }
 
-
-    cv::Mat ba_map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
     for (const auto &p : (*pba_3d_points)) {
-
         cv::Point2d draw_pos = cv::Point2d(p.xyz[0] + ba_map.cols / 2, p.xyz[2] + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &pose : projection_matrices_){
-
         cv::Mat pose_t = pose.col(3).t();
-
-        LOG(INFO) << pose_t.at<double>(0,0)<< " " << pose_t.at<double>(0,1) << " " << pose_t.at<double>(0,2);
-
         cv::Point2d draw_pos = cv::Point2d(pose_t.at<double>(0,0) + ba_map.cols / 2, pose_t.at<double>(0,2) + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 0, 255), 1);
     }
+
     cv::imshow("BA_Map", ba_map);
 }
 
