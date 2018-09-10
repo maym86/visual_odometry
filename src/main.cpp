@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 
         auto kitti_res = kittiResultMat(pose);
         kitti_res.val[2][3] *= -1;
-        result_poses.emplace_back(kitti_res); //TODO cleaner coversionn to kitti coordinates
+        result_poses.push_back(std::move(kitti_res)); //TODO cleaner coversionn to kitti coordinates
 
         cv::Point2d draw_pos = cv::Point2d(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
                                            kDrawScale * pose.at<double>(2, 3) + map.rows / 1.5);
