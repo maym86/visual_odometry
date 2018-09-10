@@ -35,8 +35,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     pba_cameras_.push_back(cam);
 
-    projection_matrices_.push_back(frame.pose);
-
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
 
@@ -49,15 +47,14 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     if (features_.size() > max_frames_) {
         features_.erase(features_.begin());
-        projection_matrices_.erase(projection_matrices_.begin());
         pba_cameras_.erase(pba_cameras_.begin());
     }
 
     pba_cameras_[0].SetConstantCamera();
 
-    (*matcher_)(features_, pairwise_matches_); //TODO replace this matcher with something not homography based?
+    (*matcher_)(features_, pairwise_matches_);
 
-    setPBAData( &pba_3d_points_, &pba_image_points_, &pba_2d3d_idx_, &pba_cam_idx_);
+    setPBAData();
     if(!pba_3d_points_.empty() && !pba_image_points_.empty()) {
 
         pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
@@ -72,19 +69,19 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 // TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
 // Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
 // https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
-void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
-                                    std::vector<int> *pba_2d3d_idx, std::vector<int> *pba_cam_idx) {
+void BundleAdjustment::setPBAData() {
 
-    pba_3d_points->clear();
-    pba_image_points->clear();
-    pba_cam_idx->clear();
-    pba_2d3d_idx->clear();
+    pba_3d_points_.clear();
+    pba_image_points_.clear();
+    pba_cam_idx_.clear();
+    pba_2d3d_idx_.clear();
 
     for (const auto &pwm : pairwise_matches_) {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 &&
+            idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
 
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
@@ -94,60 +91,76 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points, std::vect
                 points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
             }
 
-            cv::Mat t = projection_matrices_[idx_cam0].col(3);
-            cv::Mat R = projection_matrices_[idx_cam0].colRange(cv::Range(0,3)).clone();
+            cv::Mat R0 = cv::Mat::eye(3, 3, CV_64FC1);
+            cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
 
-            cv::Mat P0 =  cv::Mat::eye(3,4, CV_64F);
-            cv::Mat P1 = projection_matrices_[idx_cam1].clone();
+            pba_cameras_[idx_cam0].GetTranslation(reinterpret_cast<double *>(t0.data));
+            pba_cameras_[idx_cam0].GetTranslation(reinterpret_cast<double *>(R0.data));
 
-            P1.col(3) -= t;
-            P1.colRange(cv::Range(0,3)) *= R.t();
+            cv::Mat R1 = cv::Mat::eye(3, 3, CV_64FC1);
+            cv::Mat t1 = cv::Mat::zeros(3, 1, CV_64FC1);
+
+            pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
+            pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(R1.data));
+
+            cv::Mat P0 = cv::Mat::eye(3, 4, CV_64F);
+            cv::Mat P1;
+
+            hconcat(R1, t1, P1);
+
+            //Remove P0 offset
+            P1.col(3) -= t0;
+            P1.colRange(cv::Range(0, 3)) *= R0.t();
 
             std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, P0, P1);
 
             //TODO clean 3D points here - remove far points and backward points.
             for (int j = 0; j < points3d.size(); j++) {
 
-                cv::Mat p =  cv::Mat(points3d[j]).t();
-                double dist = cv::norm(p - cv::Mat::zeros(1,3,CV_64F));
+                cv::Mat p = cv::Mat(points3d[j]).t();
+                double dist = cv::norm(p - cv::Mat::zeros(1, 3, CV_64F));
 
-                if( dist < 200 && p.at<double>(0,2) < 0 ) {
+                if (dist < kMax3DDist && p.at<double>(0, 2) < 0) {
 
-                    p = (R * p.t()) + t;
+                    p = (R0 * p.t()) + t0;
 
-                    pba_3d_points->push_back(Point3D{static_cast<float>(p.at<double>(0,0)),
-                                                     static_cast<float>(p.at<double>(0,1)),
-                                                     static_cast<float>(p.at<double>(0,2))});
+                    pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
+                                                     static_cast<float>(p.at<double>(0, 1)),
+                                                     static_cast<float>(p.at<double>(0, 2))});
 
                     //First 2dpoint that relates to 3d point
-                    pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});
-                    pba_cam_idx->push_back(idx_cam0);
-                    pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
+                    pba_image_points_.emplace_back(Point2D{points0[j].x - pp_.x, points0[j].y - pp_.y});
+                    pba_cam_idx_.push_back(idx_cam0);
+                    pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
 
                     //Second 2dpoint that relates to 3D point
-                    pba_image_points->push_back(Point2D{points1[j].x, points1[j].y});
-                    pba_cam_idx->push_back(idx_cam1);
-                    pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
+                    pba_image_points_.emplace_back(Point2D{points1[j].x - pp_.x, points1[j].y - pp_.y});
+                    pba_cam_idx_.push_back(idx_cam1);
+                    pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
                 }
             }
         }
     }
 
+    LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
+}
+
+void BundleAdjustment::draw(){
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
-    for (const auto &p : (*pba_3d_points)) {
+    for (const auto &p : pba_3d_points_) {
         cv::Point2d draw_pos = cv::Point2d(p.xyz[0] + ba_map.cols / 2, p.xyz[2] + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
-    for (const auto &pose : projection_matrices_){
-        cv::Mat pose_t = pose.col(3).t();
-        cv::Point2d draw_pos = cv::Point2d(pose_t.at<double>(0,0) + ba_map.cols / 2, pose_t.at<double>(0,2) + ba_map.rows / 1.5);
+    for (const auto &cam : pba_cameras_){
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] + ba_map.cols / 2, cam.t[2] + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 0, 255), 1);
     }
 
     cv::imshow("BA_Map", ba_map);
 }
+
 
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {

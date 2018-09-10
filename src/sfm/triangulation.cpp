@@ -53,7 +53,7 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &f
     return points4dToVec(points_4d);
 }
 
-float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int max_points, float max_3d_dist) {
+float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, size_t max_points, float max_3d_dist) {
 
     if (frame0.points_3d.empty() || frame1.points_3d.empty()) {
         LOG(INFO) << "O point size";

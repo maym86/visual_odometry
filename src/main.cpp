@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     bool done = false;
 
     VisualOdometry vo(focal, pp, FLAGS_min_tracked_features);
-    bool resize = false;
+    bool resize = true;
 
     for (const auto &file_name : file_names) {
 
