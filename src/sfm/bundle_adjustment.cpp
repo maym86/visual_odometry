@@ -33,10 +33,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
     cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
-    if (count_ == 0) {
-        cam.SetConstantCamera();
-    }
-
     pba_cameras_.push_back(cam);
 
     projection_matrices_.push_back(frame.pose);
@@ -57,7 +53,9 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
         pba_cameras_.erase(pba_cameras_.begin());
     }
 
-    (*matcher_)(features_, pairwise_matches_);
+    pba_cameras_[0].SetConstantCamera();
+
+    (*matcher_)(features_, pairwise_matches_); //TODO replace this matcher with something not homography based?
 
     setPBAData( &pba_3d_points_, &pba_image_points_, &pba_2d3d_idx_, &pba_cam_idx_);
     if(!pba_3d_points_.empty() && !pba_image_points_.empty()) {
@@ -132,8 +130,6 @@ void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points, std::vect
                     pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
                 }
             }
-
-            LOG(INFO ) << pba_3d_points->size();
         }
     }
 

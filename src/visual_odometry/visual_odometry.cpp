@@ -64,9 +64,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
         vo2.points_3d = triangulate(pp_, focal_, vo1.points, vo2.points, cv::Mat::eye(3, 4, CV_64FC1), vo2.local_P);
 
-        vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
-        LOG(INFO) << "Scale: " << vo2.scale;
-
+        vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200, kMax3DDist);
         vo2.pose_R = vo2.local_R * vo1.pose_R;
         vo2.pose_t = vo1.pose_t + vo2.scale * (vo1.pose_R * vo2.local_t);
     } else {
@@ -129,7 +127,7 @@ cv::Mat VisualOdometry::draw3D() {
         std::vector<cv::Point3d> inliers;
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
-            if(vo2.mask.at<bool>(j) && vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < 200) {
+            if(vo2.mask.at<bool>(j) && vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < kMax3DDist) {
                 cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale * 20 + drawXY.cols / 2,
                                                    vo2.points_3d[j].y * vo2.scale * 20 + drawXY.rows / 2);
 

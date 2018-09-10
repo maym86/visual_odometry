@@ -53,7 +53,7 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &f
     return points4dToVec(points_4d);
 }
 
-float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int max_points) {
+float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int max_points, float max_3d_dist) {
 
     if (frame0.points_3d.empty() || frame1.points_3d.empty()) {
         LOG(INFO) << "O point size";
@@ -71,8 +71,8 @@ float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int
             int vo_index = frame0.tracked_index[index];
 
             if (frame1.mask.at<bool>(index) && frame0.mask.at<bool>(vo_index) &&
-                frame1.points_3d[index].z  > 0  && cv::norm(frame1.points_3d[index] - cv::Point3d(0,0,0)) < 200 &&
-                frame0.points_3d[vo_index].z  > 0  && cv::norm(frame0.points_3d[vo_index] - cv::Point3d(0,0,0)) < 200 &&
+                frame1.points_3d[index].z  > 0  && cv::norm(frame1.points_3d[index] - cv::Point3d(0,0,0)) < max_3d_dist &&
+                frame0.points_3d[vo_index].z  > 0  && cv::norm(frame0.points_3d[vo_index] - cv::Point3d(0,0,0)) < max_3d_dist &&
                 index != last) {
 
                 last = index;
@@ -115,9 +115,8 @@ float getScale(const VOFrame &frame0, const VOFrame &frame1, int min_points, int
         return 1;
     }
 
-    if (scale > 10) { //TODO this is wrong - fix in a different way
-        LOG(INFO) << "Scale is large: " << scale;
-        return 10; //TODO Arbitrary
+    if (scale > 5) {
+        LOG(WARNING) << "Scale is large: " << scale;
     }
 
     return scale;

@@ -59,7 +59,9 @@ int main(int argc, char *argv[]) {
 
         vo.addImage(image, &pose, &pose_kalman);
 
-        result_poses.emplace_back(kittiResultMat(pose));
+        auto kitti_res = kittiResultMat(pose);
+        kitti_res.val[2][3] *= -1;
+        result_poses.emplace_back(kitti_res); //TODO cleaner coversionn to kitti coordinates
 
         cv::Point2d draw_pos = cv::Point2d(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
                                            kDrawScale * pose.at<double>(2, 3) + map.rows / 1.5);

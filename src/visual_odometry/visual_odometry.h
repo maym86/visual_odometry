@@ -37,7 +37,8 @@ public:
 private:
     const size_t kFrameBufferCapacity = 3;
     const size_t kMinPosePoints = 8;
-
+    const float kMax3DDist = 200;
+    
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
 
