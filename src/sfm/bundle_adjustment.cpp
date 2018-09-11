@@ -5,6 +5,10 @@
 
 #include "triangulation.h"
 
+
+#include "src/utils/draw.h"
+
+
 BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
 
 }
@@ -54,22 +58,14 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     (*matcher_)(features_, pairwise_matches_);
 
-    setPBAData();
-    if(!pba_3d_points_.empty() && !pba_image_points_.empty()) {
+    setPBAPoints();
 
-        pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
-        pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
-
-        //set the projections
-        pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
-        pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
-    }
 }
 
 // TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
 // Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
 // https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
-void BundleAdjustment::setPBAData() {
+void BundleAdjustment::setPBAPoints() {
 
     pba_3d_points_.clear();
     pba_image_points_.clear();
@@ -80,16 +76,22 @@ void BundleAdjustment::setPBAData() {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 &&
-            idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0) { //TODO experiment with confidence thresh
 
+            LOG(INFO) << "CAMS " << idx_cam0 << " " << idx_cam1;
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
 
-            for (const auto &match : pwm.matches) {
-                points0.push_back(features_[idx_cam0].keypoints[match.queryIdx].pt);
-                points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
+            for (int i = 0; i < pwm.matches.size(); i++) {
+                const auto &match = pwm.matches[i];
+                if (pwm.inliers_mask[i]) {
+                    points0.push_back(features_[idx_cam0].keypoints[match.queryIdx].pt);
+                    points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
+                }
             }
+
+            cv::Mat matches = cv::Mat::zeros( 512, 1382, CV_8UC3);
+            drawMatches(matches, cv::Mat() , points0, points1);
 
             cv::Mat R0 = cv::Mat::eye(3, 3, CV_64FC1);
             cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
@@ -113,7 +115,7 @@ void BundleAdjustment::setPBAData() {
             P1.colRange(cv::Range(0, 3)) *= R0.t();
 
             std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, P0, P1);
-
+            std::vector<cv::Point3d> inliers;
             //TODO clean 3D points here - remove far points and backward points.
             for (int j = 0; j < points3d.size(); j++) {
 
@@ -124,9 +126,10 @@ void BundleAdjustment::setPBAData() {
 
                     p = (R0 * p.t()) + t0;
 
+                    inliers.emplace_back(cv::Point3d(p.at<double>(0, 0),p.at<double>(0, 1),p.at<double>(0, 2)));
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
-                                                     static_cast<float>(p.at<double>(0, 1)),
-                                                     static_cast<float>(p.at<double>(0, 2))});
+                                                        static_cast<float>(p.at<double>(0, 1)),
+                                                        static_cast<float>(p.at<double>(0, 2))});
 
                     //First 2dpoint that relates to 3d point
                     pba_image_points_.emplace_back(Point2D{points0[j].x - pp_.x, points0[j].y - pp_.y});
@@ -145,17 +148,20 @@ void BundleAdjustment::setPBAData() {
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
 }
 
-void BundleAdjustment::draw(){
+void BundleAdjustment::draw(float scale){
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
+    cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
+    cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
+
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] + ba_map.cols / 2, p.xyz[2] + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &cam : pba_cameras_){
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] + ba_map.cols / 2, cam.t[2] + ba_map.rows / 1.5);
-        cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 0, 255), 1);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
     }
 
     cv::imshow("BA_Map", ba_map);
@@ -164,6 +170,18 @@ void BundleAdjustment::draw(){
 
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
+
+    if(pba_3d_points_.empty() || pba_image_points_.empty()) {
+        LOG(INFO) << "Bundle adjustment points are empty";
+        return 1;
+    }
+
+    pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
+    pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
+
+    //set the projections
+    pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
+    pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
 
     if (!pba_.RunBundleAdjustment()) {
         LOG(INFO) << "Camera parameters adjusting failed.";

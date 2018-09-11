@@ -10,7 +10,7 @@
 std::random_device rd;
 std::mt19937 rng(rd());
 
-std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d) {
+std::vector<cv::Point3d> points4DToVec(const cv::Mat &points4d) {
     std::vector<cv::Point3d> results;
 
     for (int i = 0; i < points4d.cols; i++) {
@@ -21,7 +21,7 @@ std::vector<cv::Point3d> points4dToVec(const cv::Mat &points4d) {
     return results;
 }
 
-std::vector<cv::Point3d> points3dToVec(const cv::Mat &points3d) {
+std::vector<cv::Point3d> points3DToVec(const cv::Mat &points3d) {
     std::vector<cv::Point3d> results;
     for (int i = 0; i < points3d.cols; i++) {
         results.emplace_back(cv::Point3d(points3d.at<double>(0, i),
@@ -50,7 +50,7 @@ std::vector<cv::Point3d> triangulate(const cv::Point2f &pp, const cv::Point2f &f
 
     cv::Mat points_4d;
     cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_4d);
-    return points4dToVec(points_4d);
+    return points4DToVec(points_4d);
 }
 
 float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, size_t max_points, float max_3d_dist) {

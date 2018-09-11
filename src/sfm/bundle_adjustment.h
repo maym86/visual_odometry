@@ -33,11 +33,11 @@ public:
 
     int slove(cv::Mat *R, cv::Mat *t);
 
-    void draw();
+    void draw(float scale=1.0);
 private:
     const float kMax3DDist = 200;
 
-    void setPBAData();
+    void setPBAPoints();
 
     FeatureDetector feature_detector_;
 
