@@ -29,6 +29,47 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
     focal_ = focal;
 }
 
+
+void BundleAdjustment::matcher() {
+    cv::BFMatcher matcher;
+    pairwise_matches_.clear();
+    for(int i =  0; i < features_.size(); i++) {
+        for(int j=i+1; j < features_.size(); j++) {
+
+            if(abs(i -j) > 2){
+                continue;
+            }
+
+            std::vector<std::vector<cv::DMatch>> matches;
+            matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
+
+            cv::detail::MatchesInfo good_matches;
+            for (int k = 0; k < matches.size(); ++k) {
+                const float ratio = 0.8; // As in Lowe's paper; can be tuned
+                if (matches[k][0].distance < ratio * matches[k][1].distance && matches[k][0].distance > 200) {
+
+
+                    auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
+                    auto p1 = features_[j].keypoints[matches[k][0].trainIdx];
+
+                    if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 50) {
+                        good_matches.matches.push_back(matches[k][0]);
+                        good_matches.inliers_mask.push_back(1);
+                    }
+                }
+            }
+
+            good_matches.src_img_idx = i;
+            good_matches.dst_img_idx = j;
+
+            if(good_matches.matches.size() > 10) {
+                pairwise_matches_.push_back(good_matches);
+            }
+        }
+    }
+
+}
+
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
@@ -56,7 +97,8 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     pba_cameras_[0].SetConstantCamera();
 
-    (*matcher_)(features_, pairwise_matches_);
+    matcher();
+    //(*matcher_)(features_, pairwise_matches_);
 
     setPBAPoints();
 
@@ -90,20 +132,20 @@ void BundleAdjustment::setPBAPoints() {
                 }
             }
 
-            cv::Mat matches = cv::Mat::zeros( 512, 1382, CV_8UC3);
+            cv::Mat matches = cv::Mat::zeros(376, 1241, CV_8UC3);
             drawMatches(matches, cv::Mat() , points0, points1);
 
             cv::Mat R0 = cv::Mat::eye(3, 3, CV_64FC1);
             cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
 
             pba_cameras_[idx_cam0].GetTranslation(reinterpret_cast<double *>(t0.data));
-            pba_cameras_[idx_cam0].GetTranslation(reinterpret_cast<double *>(R0.data));
+            pba_cameras_[idx_cam0].GetMatrixRotation(reinterpret_cast<double *>(R0.data));
 
             cv::Mat R1 = cv::Mat::eye(3, 3, CV_64FC1);
             cv::Mat t1 = cv::Mat::zeros(3, 1, CV_64FC1);
 
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
-            pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(R1.data));
+            pba_cameras_[idx_cam1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
 
             cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
             cv::Mat P1;
@@ -126,7 +168,7 @@ void BundleAdjustment::setPBAPoints() {
 
                     p = (R0 * p.t()) + t0;
 
-                    inliers.emplace_back(cv::Point3d(p.at<double>(0, 0),p.at<double>(0, 1),p.at<double>(0, 2)));
+                    LOG(INFO) << p;
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                         static_cast<float>(p.at<double>(0, 1)),
                                                         static_cast<float>(p.at<double>(0, 2))});
@@ -142,10 +184,6 @@ void BundleAdjustment::setPBAPoints() {
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
                 }
             }
-
-            draw3D("ba", inliers, 50);
-
-            cv::waitKey(0);
         }
     }
 
@@ -159,12 +197,12 @@ void BundleAdjustment::draw(float scale){
     cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, -p.xyz[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &cam : pba_cameras_){
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, -cam.t[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
     }
 

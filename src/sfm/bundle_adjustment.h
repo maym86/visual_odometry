@@ -37,6 +37,8 @@ public:
 private:
     const float kMax3DDist = 200;
 
+    void matcher();
+
     void setPBAPoints();
 
     FeatureDetector feature_detector_;

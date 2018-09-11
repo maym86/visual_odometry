@@ -55,6 +55,9 @@ TEST(BundleAdjustmentTest, Passes) {
     ba.addKeyFrame(vo0);
     ba.addKeyFrame(vo1);
 
+    ba.draw(10);
+
+    cv::waitKey(0);
     cv::Mat R, t;
     ba.slove(&R, &t);
 
