@@ -34,7 +34,7 @@ void BundleAdjustment::matcher() {
     cv::BFMatcher matcher;
     pairwise_matches_.clear();
     for(int i =  0; i < features_.size(); i++) {
-        for(int j=i+1; j < features_.size(); j++) {
+        for(int j=0; j < features_.size(); j++) {
 
             if(abs(i -j) > 2){
                 continue;
@@ -97,8 +97,8 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     pba_cameras_[0].SetConstantCamera();
 
-    matcher();
-    //(*matcher_)(features_, pairwise_matches_);
+    //matcher();
+    (*matcher_)(features_, pairwise_matches_);
 
     setPBAPoints();
 
@@ -118,9 +118,8 @@ void BundleAdjustment::setPBAPoints() {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1) { //TODO experiment with confidence thresh
 
-            LOG(INFO) << "CAMS " << idx_cam0 << " " << idx_cam1;
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
 
@@ -135,40 +134,36 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat matches = cv::Mat::zeros(376, 1241, CV_8UC3);
             drawMatches(matches, cv::Mat() , points0, points1);
 
-            cv::Mat R0 = cv::Mat::eye(3, 3, CV_64FC1);
             cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
+            cv::Mat R0 = cv::Mat::eye(3, 3, CV_64FC1);
 
             pba_cameras_[idx_cam0].GetTranslation(reinterpret_cast<double *>(t0.data));
             pba_cameras_[idx_cam0].GetMatrixRotation(reinterpret_cast<double *>(R0.data));
 
-            cv::Mat R1 = cv::Mat::eye(3, 3, CV_64FC1);
             cv::Mat t1 = cv::Mat::zeros(3, 1, CV_64FC1);
+            cv::Mat R1 = cv::Mat::eye(3, 3, CV_64FC1);
 
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
             pba_cameras_[idx_cam1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
 
             cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
+            hconcat(R0, t0, P0);
             cv::Mat P1;
-
             hconcat(R1, t1, P1);
 
             //Remove P0 offset
-            P1.col(3) -= t0;
-            P1.colRange(cv::Range(0, 3)) *= R0.t();
+            //P1.col(3) -= t0;
+            //P1.colRange(cv::Range(0, 3)) *= R0.t();
 
             std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, P0, P1);
-            std::vector<cv::Point3d> inliers;
-            //TODO clean 3D points here - remove far points and backward points.
+
             for (int j = 0; j < points3d.size(); j++) {
 
-                cv::Mat p = cv::Mat(points3d[j]).t();
-                double dist = cv::norm(p - cv::Mat::zeros(1, 3, CV_64F));
+                cv::Mat p = cv::Mat(points3d[j]);
+                double dist = cv::norm(p - t0);
 
-                if (dist < kMax3DDist && p.at<double>(0, 2)  > 0) {
-
-                    p = (R0 * p.t()) + t0;
-
-                    LOG(INFO) << p;
+                if (dist < kMax3DDist) {//&& points3d[j].z > 0) {
+                    //p = (R0 * p.t()) + t0;
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                         static_cast<float>(p.at<double>(0, 1)),
                                                         static_cast<float>(p.at<double>(0, 2))});
@@ -197,13 +192,19 @@ void BundleAdjustment::draw(float scale){
     cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, -p.xyz[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &cam : pba_cameras_){
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, -cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
+    }
+
+    if(!pba_cameras_.empty()) {
+        const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
     }
 
     cv::imshow("BA_Map", ba_map);
