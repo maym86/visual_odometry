@@ -46,7 +46,7 @@ void BundleAdjustment::matcher() {
             cv::detail::MatchesInfo good_matches;
             for (int k = 0; k < matches.size(); ++k) {
                 const float ratio = 0.8; // As in Lowe's paper; can be tuned
-                if (matches[k][0].distance < ratio * matches[k][1].distance && matches[k][0].distance > 200) {
+                if (matches[k][0].distance < ratio * matches[k][1].distance && matches[k][0].distance < 250) {
 
 
                     auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
@@ -118,7 +118,7 @@ void BundleAdjustment::setPBAPoints() {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
 
             std::vector<cv::Point2f> points0;
             std::vector<cv::Point2f> points1;
@@ -146,7 +146,7 @@ void BundleAdjustment::setPBAPoints() {
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
             pba_cameras_[idx_cam1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
 
-            cv::Mat P0; //= cv::Mat::eye(3, 4, CV_64FC1);
+            cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
             hconcat(R0, t0, P0);
             cv::Mat P1;
             hconcat(R1, t1, P1);
@@ -160,10 +160,10 @@ void BundleAdjustment::setPBAPoints() {
             for (int j = 0; j < points3d.size(); j++) {
 
                 cv::Mat p = cv::Mat(points3d[j]);
-                double dist = cv::norm(p - t0);
+                double dist = cv::norm(p);
 
-                if (dist < kMax3DDist) {//&& points3d[j].z > 0) {
-                    //p = (R0 * p.t()) + t0;
+                if (dist < kMax3DDist) { //&& points3d[j].z > 0) {
+                    //p = (R0 * p) + t0;
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                         static_cast<float>(p.at<double>(0, 1)),
                                                         static_cast<float>(p.at<double>(0, 2))});
