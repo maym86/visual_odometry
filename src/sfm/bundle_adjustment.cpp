@@ -76,7 +76,7 @@ void BundleAdjustment::setPBAPoints() {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1) { //TODO experiment with confidence thresh
 
             LOG(INFO) << "CAMS " << idx_cam0 << " " << idx_cam1;
             std::vector<cv::Point2f> points0;
@@ -105,7 +105,7 @@ void BundleAdjustment::setPBAPoints() {
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(R1.data));
 
-            cv::Mat P0 = cv::Mat::eye(3, 4, CV_64F);
+            cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
             cv::Mat P1;
 
             hconcat(R1, t1, P1);
@@ -142,6 +142,10 @@ void BundleAdjustment::setPBAPoints() {
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
                 }
             }
+
+            draw3D("ba", inliers, 10);
+
+            cv::waitKey(0);
         }
     }
 
