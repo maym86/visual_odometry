@@ -76,7 +76,7 @@ void BundleAdjustment::setPBAPoints() {
         int idx_cam0 = pwm.src_img_idx;
         int idx_cam1 = pwm.dst_img_idx;
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1) { //TODO experiment with confidence thresh
+        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
 
             LOG(INFO) << "CAMS " << idx_cam0 << " " << idx_cam1;
             std::vector<cv::Point2f> points0;
@@ -122,7 +122,7 @@ void BundleAdjustment::setPBAPoints() {
                 cv::Mat p = cv::Mat(points3d[j]).t();
                 double dist = cv::norm(p - cv::Mat::zeros(1, 3, CV_64F));
 
-                if (dist < kMax3DDist && p.at<double>(0, 2) < 0) {
+                if (dist < kMax3DDist && p.at<double>(0, 2)  > 0) {
 
                     p = (R0 * p.t()) + t0;
 
@@ -143,7 +143,7 @@ void BundleAdjustment::setPBAPoints() {
                 }
             }
 
-            draw3D("ba", inliers, 10);
+            draw3D("ba", inliers, 50);
 
             cv::waitKey(0);
         }
