@@ -146,7 +146,7 @@ void BundleAdjustment::setPBAPoints() {
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
             pba_cameras_[idx_cam1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
 
-            cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
+            cv::Mat P0; //= cv::Mat::eye(3, 4, CV_64FC1);
             hconcat(R0, t0, P0);
             cv::Mat P1;
             hconcat(R1, t1, P1);

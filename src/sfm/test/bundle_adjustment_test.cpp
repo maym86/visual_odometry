@@ -54,8 +54,7 @@ TEST(BundleAdjustmentTest, Passes) {
 
     ba.addKeyFrame(vo0);
     ba.addKeyFrame(vo1);
-
-    ba.draw(10);
+    ba.draw();
 
     cv::waitKey(0);
     cv::Mat R, t;
@@ -66,9 +65,9 @@ TEST(BundleAdjustmentTest, Passes) {
 
     double dist = cv::norm(vo1.pose_t - t);
     LOG(INFO) << dist;
-    EXPECT_NEAR(dist, 0.03, 0.02); //TODO very large allowed error
+    EXPECT_NEAR(dist, 0, 0.01);
 
-    ba.draw(10);
+    ba.draw();
     cv::waitKey(0);
 }
 
