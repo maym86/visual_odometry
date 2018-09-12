@@ -15,11 +15,10 @@ BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE)
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
-    char *argv[] = {(char*)"-lmi<100>", (char*)"-v", (char*)"1", NULL};
+    char *argv[] = {(char*)"-lmi<100>", (char*)"-v", (char*)"1", nullptr};
     int argc = sizeof(argv) / sizeof(char *);
 
     pba_.ParseParam(argc, argv);
-
     pba_.SetFixedIntrinsics(true);
 
     matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
@@ -27,6 +26,13 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
 
     pp_ = pp;
     focal_ = focal;
+
+    K_ = cv::Mat::eye(3,3,CV_64F);
+
+    K_.at<double>(0,0) = focal.x;
+    K_.at<double>(1,1) = focal.y;
+    K_.at<double>(0,2) = pp.x;
+    K_.at<double>(1,2) = pp.y;
 }
 
 
@@ -67,7 +73,6 @@ void BundleAdjustment::matcher() {
             }
         }
     }
-
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
@@ -130,7 +135,8 @@ void BundleAdjustment::setPBAPoints() {
                 }
             }
 
-            cv::Mat matches = cv::Mat::zeros(376, 1241, CV_8UC3);
+            cv::Mat matches = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
+
             drawMatches(matches, cv::Mat() , points0, points1);
 
             cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
@@ -188,21 +194,21 @@ void BundleAdjustment::draw(float scale){
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
     cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
-    cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
+    cv::line(ba_map, cv::Point(0, ba_map.rows / 4), cv::Point(ba_map.cols, ba_map.rows / 4), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &cam : pba_cameras_){
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
     }
 
     if(!pba_cameras_.empty()) {
         const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
     }
 
@@ -212,7 +218,6 @@ void BundleAdjustment::draw(float scale){
 
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
-
 
     if(pba_3d_points_.empty() || pba_image_points_.empty()) {
         LOG(INFO) << "Bundle adjustment points are empty";
