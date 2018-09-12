@@ -49,7 +49,7 @@ TEST(BundleAdjustmentTest, Passes) {
     recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
 
     vo1.pose_R = vo1.local_R.clone();
-    vo1.pose_t = vo1.local_t.clone();
+    vo1.pose_t = -vo1.local_t.clone();
 
     hconcat(vo1.pose_R, vo1.pose_t, vo1.pose);
 
@@ -60,7 +60,7 @@ TEST(BundleAdjustmentTest, Passes) {
     recoverPose(vo2.E, vo0.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
 
     vo2.pose_R = vo2.local_R.clone();
-    vo2.pose_t = vo2.local_t.clone();
+    vo2.pose_t = -vo2.local_t.clone();
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
     ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 3);
@@ -123,7 +123,7 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
 
     vo1.pose_R = vo1.local_R.clone();
-    vo1.pose_t = vo1.local_t.clone();
+    vo1.pose_t = -vo1.local_t.clone();
     vo1.pose_t.at<double>(0,0) += 10;
     vo1.pose_t.at<double>(1,0) += 10;
     vo1.pose_t.at<double>(2,0) += 10;
@@ -137,7 +137,7 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     recoverPose(vo2.E, vo0.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
 
     vo2.pose_R = vo2.local_R.clone();
-    vo2.pose_t = vo2.local_t.clone();
+    vo2.pose_t = -vo2.local_t.clone();
     vo2.pose_t.at<double>(0,0) += 10;
     vo2.pose_t.at<double>(1,0) += 10;
     vo2.pose_t.at<double>(2,0) += 10;

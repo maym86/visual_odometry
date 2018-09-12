@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     //Load ground truth
     std::vector<Matrix> result_poses;
 
-    cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
+
     cv::Mat_<double> pose = cv::Mat::eye(4, 3, CV_64FC1);
     cv::Mat_<double> pose_kalman = cv::Mat::eye(4, 3, CV_64FC1);
 
@@ -52,6 +52,8 @@ int main(int argc, char *argv[]) {
     VisualOdometry vo(focal, pp, FLAGS_min_tracked_features);
     bool resize = true;
 
+    std::vector<cv::Point2d> positions;
+
     for (const auto &file_name : file_names) {
 
         cv::Mat image = cv::imread(file_name);
@@ -59,37 +61,36 @@ int main(int argc, char *argv[]) {
 
         vo.addImage(image, &pose, &pose_kalman);
 
-        auto kitti_res = kittiResultMat(pose);
-        kitti_res.val[2][3] *= -1;
-        result_poses.push_back(std::move(kitti_res)); //TODO cleaner coversionn to kitti coordinates
+        result_poses.emplace_back(kittiResultMat(pose)); //TODO coversion to kitti coordinates
 
-        cv::Point2d draw_pos = cv::Point2d(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
-                                           kDrawScale * pose.at<double>(2, 3) + map.rows / 4);
-        cv::circle(map, draw_pos, 1, cv::Scalar(0, 255, 0), 2);
+        //Draw results
+        cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
+        cv::Point2d last_pos(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
+                    kDrawScale * pose.at<double>(2, 3) + map.rows / 4);
 
-        cv::Point2d draw_pos_kalman = cv::Point2d(kDrawScale * pose_kalman.at<double>(0, 3) + map.cols / 2,
-                                                  kDrawScale * pose_kalman.at<double>(2, 3) + map.rows / 4);
+        positions.push_back(last_pos);
+
+        for (const auto &pos : positions) {
+            cv::circle(map, pos, 1, cv::Scalar(0, 255, 0), 2);
+        }
+
 
         double data[3] = {0,0,1};
         cv::Mat dir(3,1,CV_64FC1, data);
 
         cv::Mat R = pose.colRange(cv::Range(0, 3));
 
-        dir = (R * dir) * 100;
+        dir = (R * dir) * 50;
 
-        cv::line(map, cv::Point(map.cols / 2,map.cols / 2), cv::Point(dir.at<double>(0,0) + map.cols / 2 ,
-                dir.at<double>(0,2) + map.cols / 2), cv::Scalar(0,255,255), 2 );
+        cv::line(map, last_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + last_pos, cv::Scalar(0,255,255), 2 );
 
-        //cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 
-        cv::Mat map_out;
+
         if(resize){
-            cv::resize(map, map_out, cv::Size(), 0.5, 0.5);
-        } else {
-            map_out =  map;
+            cv::resize(map, map, cv::Size(), 0.5, 0.5);
         }
 
-        cv::imshow("Map", map_out);
+        cv::imshow("Map", map);
         cv::imshow("Features", vo.drawMatches(image));
         cv::imshow("3D", vo.draw3D());
 

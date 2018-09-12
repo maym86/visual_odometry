@@ -15,12 +15,12 @@ void draw3D(const std::string &name, std::vector<cv::Point3d> &points_3d, float 
 
     for (int j = 0; j < points_3d.size(); j++) {
         cv::Point2d draw_pos = cv::Point2d(points_3d[j].x * scale + drawXY.cols / 2,
-                               -points_3d[j].y * scale + drawXY.rows / 2);
+                               points_3d[j].y * scale + drawXY.rows / 2);
 
         cv::circle(drawXY, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
 
         draw_pos = cv::Point2d(points_3d[j].x * scale + drawXZ.cols / 2,
-                               -points_3d[j].z * scale + drawXZ.rows / 2);
+                               points_3d[j].z * scale + drawXZ.rows / 2);
 
         cv::circle(drawXZ, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
