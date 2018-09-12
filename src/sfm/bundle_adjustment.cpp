@@ -146,18 +146,23 @@ void BundleAdjustment::setPBAPoints() {
             pba_cameras_[idx_cam1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
 
             cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
-            hconcat(R0, t0, P0);
+            //hconcat(R0, t0, P0);
             cv::Mat P1;
             hconcat(R1, t1, P1);
+
+            //Remove P0 offset
+            P1.col(3) -= t0;
+            P1.colRange(cv::Range(0, 3)) *= R0.t();
 
             std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, P0, P1);
 
             for (int j = 0; j < points3d.size(); j++) {
 
                 cv::Mat p = cv::Mat(points3d[j]);
-                double dist = cv::norm(p - t0);
-                //TODO make sure z is pos
-                if (dist < kMax3DDist) {
+                double dist = cv::norm(p);
+
+                if (dist < kMax3DDist) {//&& points3d[j].z > 0) {
+                    p = (R0 * p) + t0;
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                         static_cast<float>(p.at<double>(0, 1)),
                                                         static_cast<float>(p.at<double>(0, 2))});
