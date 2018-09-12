@@ -53,6 +53,29 @@ std::vector<cv::Point3d> triangulate(const std::vector<cv::Point2f> &points0, co
     return points4DToVec(points_4d);
 }
 
+
+std::vector<cv::Point3d> triangulate2(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1,
+                                     const cv::Mat &P0, const cv::Mat &P1) {
+
+    if (points0.size() == 0 || points1.size() == 0) {
+        return std::vector<cv::Point3d>();
+    }
+
+    cv::Mat p_mat0(2, static_cast<int>(points0.size()), CV_64F);
+    cv::Mat p_mat1(2, static_cast<int>(points1.size()), CV_64F);
+
+    for (int i = 0; i < p_mat0.cols; i++) {
+        p_mat0.at<double>(0, i) = points0[i].x;
+        p_mat0.at<double>(1, i) = points0[i].y;
+        p_mat1.at<double>(0, i) = points1[i].x;
+        p_mat1.at<double>(1, i) = points1[i].y;
+    }
+
+    cv::Mat points_4d;
+    cv::triangulatePoints(P0, P1, p_mat0, p_mat1, points_4d);
+    return points3DToVec(points_4d);
+}
+
 float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, size_t max_points, float max_3d_dist) {
 
     if (frame0.points_3d.empty() || frame1.points_3d.empty()) {
