@@ -25,7 +25,7 @@
 class BundleAdjustment {
 
 public:
-    BundleAdjustment();
+    //BundleAdjustment();
 
     void init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames);
 

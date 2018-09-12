@@ -9,9 +9,6 @@
 #include "src/utils/draw.h"
 
 
-BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
-
-}
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
@@ -20,7 +17,6 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
 
     pba_.ParseParam(argc, argv);
     pba_.SetFixedIntrinsics(true);
-
     matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
     max_frames_ = max_frames;
 
@@ -101,8 +97,8 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     pba_cameras_[0].SetConstantCamera();
 
-    //matcher();
-    (*matcher_)(features_, pairwise_matches_);
+    matcher();
+    //(*matcher_)(features_, pairwise_matches_);
 
     setPBAPoints();
 }
@@ -154,7 +150,7 @@ void BundleAdjustment::setPBAPoints() {
             hconcat(R0, t0, P0);
             hconcat(R1, t1, P1);
 
-            std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * P0, K_ * P1);
+            std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * P0, K_ * P1); //TODO 3D point must be in 3 or more frames
 
             for (int j = 0; j < points3d.size(); j++) {
 
