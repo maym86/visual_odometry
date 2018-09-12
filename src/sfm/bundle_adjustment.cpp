@@ -150,6 +150,7 @@ void BundleAdjustment::setPBAPoints() {
             hconcat(R0, t0, P0);
             hconcat(R1, t1, P1);
 
+            //TODO use sfm triangulate for more than two views
             std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * P0, K_ * P1); //TODO 3D point must be in 3 or more frames
 
             for (int j = 0; j < points3d.size(); j++) {
