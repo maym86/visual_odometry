@@ -63,26 +63,26 @@ TEST(BundleAdjustmentTest, Passes) {
     vo2.pose_t = vo2.local_t.clone();
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 2);
+    ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 3);
 
     ba.addKeyFrame(vo0);
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw();
+    ba.draw(15);
 
     cv::waitKey(0);
     cv::Mat R, t;
     ba.slove(&R, &t);
 
-    LOG(INFO) << vo1.pose_t;
+    LOG(INFO) << vo2.pose_t;
     LOG(INFO) << t;
 
-    double dist = cv::norm(vo1.pose_t - t);
+    double dist = cv::norm(vo2.pose_t - t);
     LOG(INFO) << dist;
-    EXPECT_NEAR(dist, 0, 0.01);
+    EXPECT_NEAR(dist, 0, 0.1);
 
-    ba.draw();
+    ba.draw(15);
     cv::waitKey(0);
 }
 

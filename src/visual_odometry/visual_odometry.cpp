@@ -13,14 +13,7 @@ VisualOdometry::VisualOdometry(const cv::Point2f &focal, const cv::Point2f &pp, 
     min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(focal, pp, 5);
-
-#if __has_include("opencv2/viz.hpp")
-    window_ = cv::viz::Viz3d("Window");
-    window_.setWindowSize(cv::Size(800,800));
-    window_.setWindowPosition(cv::Point(150,150));
-    window_.setBackgroundColor(); // black by default
-#endif
+    bundle_adjustment_.init(focal, pp, 3);
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {
@@ -137,14 +130,6 @@ cv::Mat VisualOdometry::draw3D() {
                 cv::circle(drawXY, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
             }
         }
-
-#if __has_include("opencv2/viz.hpp")
-        if(!vo2.points_3d.empty()) {
-            cv::viz::WCloud cloud_widget(inliers, cv::viz::Color::green());
-            window_.showWidget("point_cloud", cloud_widget);
-            window_.spinOnce();
-        }
-#endif
 
     }
     return drawXY;

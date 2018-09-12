@@ -17,10 +17,6 @@
 #include "src/kalman_filter/kalman_filter.h"
 #include "src/sfm/bundle_adjustment.h"
 
-#if __has_include("opencv2/viz.hpp")
-#include <opencv2/viz.hpp>
-#endif
-
 #include "vo_frame.h"
 
 class VisualOdometry {
@@ -57,10 +53,6 @@ private:
     KalmanFilter kf_;
 
     BundleAdjustment bundle_adjustment_;
-#if __has_include("opencv2/viz.hpp")
-    cv::viz::Viz3d window_;
-#endif
-
 };
 
 
