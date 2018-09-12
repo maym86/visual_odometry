@@ -4,7 +4,7 @@
 
 FeatureDetector::FeatureDetector(){
     gpu_detector_ = cv::cuda::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
-    descriptor_ = cv::cuda::ORB::create();
+    descriptor_ = cv::cuda::ORB::create(2000);
 }
 
 void FeatureDetector::detectFAST(VOFrame *frame) {
