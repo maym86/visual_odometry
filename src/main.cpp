@@ -64,11 +64,21 @@ int main(int argc, char *argv[]) {
         result_poses.push_back(std::move(kitti_res)); //TODO cleaner coversionn to kitti coordinates
 
         cv::Point2d draw_pos = cv::Point2d(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
-                                           kDrawScale * pose.at<double>(2, 3) + map.rows / 1.5);
+                                           kDrawScale * pose.at<double>(2, 3) + map.rows / 4);
         cv::circle(map, draw_pos, 1, cv::Scalar(0, 255, 0), 2);
 
         cv::Point2d draw_pos_kalman = cv::Point2d(kDrawScale * pose_kalman.at<double>(0, 3) + map.cols / 2,
-                                                  kDrawScale * pose_kalman.at<double>(2, 3) + map.rows / 1.5);
+                                                  kDrawScale * pose_kalman.at<double>(2, 3) + map.rows / 4);
+
+        double data[3] = {0,0,1};
+        cv::Mat dir(3,1,CV_64FC1, data);
+
+        cv::Mat R = pose.colRange(cv::Range(0, 3));
+
+        dir = (R * dir) * 100;
+
+        cv::line(map, cv::Point(map.cols / 2,map.cols / 2), cv::Point(dir.at<double>(0,0) + map.cols / 2 ,
+                dir.at<double>(0,2) + map.cols / 2), cv::Scalar(0,255,255), 2 );
 
         //cv::circle(map, draw_pos_kalman, 1, cv::Scalar(0, 0, 255), 1);
 

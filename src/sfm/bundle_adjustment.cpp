@@ -168,8 +168,6 @@ void BundleAdjustment::setPBAPoints() {
                                                         static_cast<float>(points3d[j].y),
                                                         static_cast<float>(points3d[j].z)});
 
-                    LOG(INFO) << points0[j].x - pp_.x << " " << points0[j].y - pp_.y;
-
                     //First 2dpoint that relates to 3d point
                     pba_image_points_.emplace_back(Point2D{points0[j].x - pp_.x, points0[j].y - pp_.y});
                     pba_cam_idx_.push_back(idx_cam0);
@@ -191,21 +189,21 @@ void BundleAdjustment::draw(float scale){
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
     cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
-    cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
+    cv::line(ba_map, cv::Point(0, ba_map.rows / 4), cv::Point(ba_map.cols, ba_map.rows / 4), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &cam : pba_cameras_){
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
     }
 
     if(!pba_cameras_.empty()) {
         const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
     }
 
