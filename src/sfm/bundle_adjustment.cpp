@@ -102,7 +102,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     pba_cameras_[0].SetConstantCamera();
 
-    //matcher();
+    //\matcher();
     (*matcher_)(features_, pairwise_matches_);
 
     setPBAPoints();
@@ -167,19 +167,19 @@ void BundleAdjustment::setPBAPoints() {
                 cv::Mat p = cv::Mat(points3d[j]);
                 double dist = cv::norm(p);
 
-                if (dist < kMax3DDist) { // && points3d[j].z > 0) {
+                if (dist < kMax3DDist && points3d[j].z > 0) {
                     p = (R0 * p) + t0;
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                         static_cast<float>(p.at<double>(0, 1)) ,
                                                         static_cast<float>(p.at<double>(0, 2))});
 
                     //First 2dpoint that relates to 3d point
-                    pba_image_points_.emplace_back(Point2D{points0[j].x - pp_.x, points0[j].y - pp_.y});
+                    pba_image_points_.emplace_back(Point2D{points0[j].x  , points0[j].y  });
                     pba_cam_idx_.push_back(idx_cam0);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
 
                     //Second 2dpoint that relates to 3D point
-                    pba_image_points_.emplace_back(Point2D{points1[j].x - pp_.x, points1[j].y - pp_.y});
+                    pba_image_points_.emplace_back(Point2D{points1[j].x  , points1[j].y  });
                     pba_cam_idx_.push_back(idx_cam1);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
                 }
