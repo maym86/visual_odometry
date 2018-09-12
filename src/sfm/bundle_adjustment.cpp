@@ -15,7 +15,7 @@ BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE)
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
-    char *argv[] = {(char*)"-lmi<100>", (char*)"-v", (char*)"1", NULL};
+    char *argv[] = {(char*)"-lmi<100>", (char*)"-v", (char*)"1", nullptr};
     int argc = sizeof(argv) / sizeof(char *);
 
     pba_.ParseParam(argc, argv);
@@ -26,6 +26,13 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
 
     pp_ = pp;
     focal_ = focal;
+
+    K_ = cv::Mat::eye(3,3,CV_64F);
+
+    K_.at<double>(0,0) = focal.x;
+    K_.at<double>(1,1) = focal.y;
+    K_.at<double>(0,2) = pp.x;
+    K_.at<double>(1,2) = pp.y;
 }
 
 
@@ -128,7 +135,8 @@ void BundleAdjustment::setPBAPoints() {
                 }
             }
 
-            cv::Mat matches = cv::Mat::zeros(376, 1241, CV_8UC3);
+            cv::Mat matches = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
+
             drawMatches(matches, cv::Mat() , points0, points1);
 
             cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
@@ -143,23 +151,24 @@ void BundleAdjustment::setPBAPoints() {
             pba_cameras_[idx_cam1].GetTranslation(reinterpret_cast<double *>(t1.data));
             pba_cameras_[idx_cam1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
 
-            cv::Mat P0 = cv::Mat::eye(3, 4, CV_64FC1);
+            cv::Mat P0, P1;
             hconcat(R0, t0, P0);
-            cv::Mat P1;
             hconcat(R1, t1, P1);
 
-            std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, P0, P1);
+            std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * P0, K_ * P1);
 
             for (int j = 0; j < points3d.size(); j++) {
 
                 cv::Mat p = cv::Mat(points3d[j]);
-                double dist = 0;//cv::norm(p - t0);
+                double dist = cv::norm(p - t0);
 
                 //TODO make sure z is pos
                 if (dist < kMax3DDist) {
-                    pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
-                                                        static_cast<float>(p.at<double>(0, 1)),
-                                                        static_cast<float>(p.at<double>(0, 2))});
+                    pba_3d_points_.emplace_back(Point3D{static_cast<float>(points3d[j].x),
+                                                        static_cast<float>(points3d[j].y),
+                                                        static_cast<float>(points3d[j].z)});
+
+                    LOG(INFO) << points0[j].x - pp_.x << " " << points0[j].y - pp_.y;
 
                     //First 2dpoint that relates to 3d point
                     pba_image_points_.emplace_back(Point2D{points0[j].x - pp_.x, points0[j].y - pp_.y});
@@ -185,7 +194,7 @@ void BundleAdjustment::draw(float scale){
     cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, -p.xyz[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
@@ -206,7 +215,6 @@ void BundleAdjustment::draw(float scale){
 
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
-
 
     if(pba_3d_points_.empty() || pba_image_points_.empty()) {
         LOG(INFO) << "Bundle adjustment points are empty";

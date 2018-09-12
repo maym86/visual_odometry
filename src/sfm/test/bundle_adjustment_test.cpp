@@ -69,7 +69,7 @@ TEST(BundleAdjustmentTest, Passes) {
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(15);
+    ba.draw(5);
 
     cv::waitKey(0);
     cv::Mat R, t;
@@ -82,7 +82,7 @@ TEST(BundleAdjustmentTest, Passes) {
     LOG(INFO) << dist;
     EXPECT_NEAR(dist, 0, 0.1);
 
-    ba.draw(15);
+    ba.draw(5);
     cv::waitKey(0);
 }
 
@@ -142,7 +142,6 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     vo2.pose_t.at<double>(1,0) += 10;
     vo2.pose_t.at<double>(2,0) += 10;
 
-
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
     ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 3);
@@ -151,7 +150,7 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(15);
+    ba.draw(5);
 
     cv::waitKey(0);
     cv::Mat R, t;
@@ -164,6 +163,6 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     LOG(INFO) << dist;
     EXPECT_NEAR(dist, 0, 0.1);
 
-    ba.draw(15);
+    ba.draw(5);
     cv::waitKey(0);
 }
