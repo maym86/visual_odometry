@@ -78,7 +78,7 @@ void BundleAdjustment::matcher() {
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
-    cam.f = focal_.x;
+    cam.f = 1;
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
     cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
@@ -168,12 +168,27 @@ void BundleAdjustment::setPBAPoints() {
                                                         static_cast<float>(points3d[j].z)});
 
                     //First 2dpoint that relates to 3d point
-                    pba_image_points_.emplace_back(Point2D{points0[j].x - pp_.x, points0[j].y - pp_.y});
+                    cv::Mat p_h = cv::Mat::ones(4,1,CV_64FC1);
+
+                    p_h.at<double>(0) = p.at<double>(0, 0);
+                    p_h.at<double>(1) = p.at<double>(0, 1);
+                    p_h.at<double>(2) = p.at<double>(0, 2);
+
+                    cv::Mat repo = P1 * p_h;
+
+                    repo.at<double>(0) /= repo.at<double>(2);
+                    repo.at<double>(1) /= repo.at<double>(2);
+                    repo.at<double>(2) /= repo.at<double>(2);
+
+
+                    LOG(INFO) << repo.t()  << (points1[j].x - pp_.x) /focal_.x <<","<< (points1[j].y - pp_.y) / focal_.y;
+
+                    pba_image_points_.emplace_back(Point2D{(points0[j].x - pp_.x) / focal_.x, (points0[j].y - pp_.y) /focal_.y});
                     pba_cam_idx_.push_back(idx_cam0);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
 
                     //Second 2dpoint that relates to 3D point
-                    pba_image_points_.emplace_back(Point2D{points1[j].x - pp_.x, points1[j].y - pp_.y});
+                    pba_image_points_.emplace_back(Point2D{(points1[j].x - pp_.x) / focal_.x, (points1[j].y - pp_.y) / focal_.y});
                     pba_cam_idx_.push_back(idx_cam1);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
                 }
