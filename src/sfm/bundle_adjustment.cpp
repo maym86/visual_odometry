@@ -15,7 +15,7 @@ BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE)
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
-    char *argv[] = {"-lmi<100>", "-v", "1"};
+    char *argv[] = {(char*)"-lmi<100>", (char*)"-v", (char*)"1", NULL};
     int argc = sizeof(argv) / sizeof(char *);
 
     pba_.ParseParam(argc, argv);
@@ -100,7 +100,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     //matcher();
     (*matcher_)(features_, pairwise_matches_);
 
-
+    setPBAPoints();
 }
 
 // TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
@@ -161,7 +161,7 @@ void BundleAdjustment::setPBAPoints() {
                 cv::Mat p = cv::Mat(points3d[j]);
                 double dist = cv::norm(p);
 
-                if (dist < kMax3DDist) {//&& points3d[j].z > 0) {
+                if (dist < kMax3DDist && points3d[j].z > 0) {
                     p = (R0 * p) + t0;
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                         static_cast<float>(p.at<double>(0, 1)),
@@ -191,7 +191,7 @@ void BundleAdjustment::draw(float scale){
     cv::line(ba_map, cv::Point(0, ba_map.rows / 1.5), cv::Point(ba_map.cols, ba_map.rows / 1.5), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, -p.xyz[2] * scale + ba_map.rows / 1.5);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 1.5);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
@@ -213,7 +213,6 @@ void BundleAdjustment::draw(float scale){
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    setPBAPoints();
 
     if(pba_3d_points_.empty() || pba_image_points_.empty()) {
         LOG(INFO) << "Bundle adjustment points are empty";
