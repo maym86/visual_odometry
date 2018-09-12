@@ -26,8 +26,8 @@ TEST(BundleAdjustmentTest, Passes) {
     VOFrame vo1;
     VOFrame vo2;
 
-    vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
-    vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+    vo0.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+    vo1.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
     vo2.image = cv::imread("../src/sfm/test/test_data/000003.png");
 
     EXPECT_GT(vo0.image.rows, 0);
@@ -49,18 +49,18 @@ TEST(BundleAdjustmentTest, Passes) {
     recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
 
     vo1.pose_R = vo1.local_R.clone();
-    vo1.pose_t = -vo1.local_t.clone();
+    vo1.pose_t = vo1.local_t.clone();
 
     hconcat(vo1.pose_R, vo1.pose_t, vo1.pose);
 
-    feature_detector.detectFAST(&vo0);
-    feature_tracker.trackPoints(&vo0, &vo2);
+    feature_detector.detectFAST(&vo1);
+    feature_tracker.trackPoints(&vo1, &vo2);
 
-    vo2.E = cv::findEssentialMat(vo0.points, vo2.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    recoverPose(vo2.E, vo0.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
+    vo2.E = cv::findEssentialMat(vo1.points, vo2.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo2.mask);
+    recoverPose(vo2.E, vo1.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
 
     vo2.pose_R = vo2.local_R.clone();
-    vo2.pose_t = -vo2.local_t.clone();
+    vo2.pose_t = vo2.local_t.clone();
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
     ba.init(cv::Point2f(718.856,718.856), cv::Point2f(607.193, 185.216) , 3);
@@ -97,8 +97,8 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     VOFrame vo1;
     VOFrame vo2;
 
-    vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
-    vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+    vo0.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+    vo1.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
     vo2.image = cv::imread("../src/sfm/test/test_data/000003.png");
 
     EXPECT_GT(vo0.image.rows, 0);
@@ -123,21 +123,21 @@ TEST(BundleAdjustmentTestOffset, Passes) {
     recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
 
     vo1.pose_R = vo1.local_R.clone();
-    vo1.pose_t = -vo1.local_t.clone();
+    vo1.pose_t = vo1.local_t.clone();
     vo1.pose_t.at<double>(0,0) += 10;
     vo1.pose_t.at<double>(1,0) += 10;
     vo1.pose_t.at<double>(2,0) += 10;
 
     hconcat(vo1.pose_R, vo1.pose_t, vo1.pose);
 
-    feature_detector.detectFAST(&vo0);
-    feature_tracker.trackPoints(&vo0, &vo2);
+    feature_detector.detectFAST(&vo1);
+    feature_tracker.trackPoints(&vo1, &vo2);
 
-    vo2.E = cv::findEssentialMat(vo0.points, vo2.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    recoverPose(vo2.E, vo0.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
+    vo2.E = cv::findEssentialMat(vo1.points, vo2.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo2.mask);
+    recoverPose(vo2.E, vo1.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
 
     vo2.pose_R = vo2.local_R.clone();
-    vo2.pose_t = -vo2.local_t.clone();
+    vo2.pose_t = vo2.local_t.clone();
     vo2.pose_t.at<double>(0,0) += 10;
     vo2.pose_t.at<double>(1,0) += 10;
     vo2.pose_t.at<double>(2,0) += 10;

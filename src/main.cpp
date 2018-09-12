@@ -65,6 +65,10 @@ int main(int argc, char *argv[]) {
 
         //Draw results
         cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
+
+        cv::line(map, cv::Point(map.cols / 2, 0), cv::Point(map.cols / 2, map.rows), cv::Scalar(0, 0, 255));
+        cv::line(map, cv::Point(0, map.rows / 4), cv::Point(map.cols, map.rows / 4), cv::Scalar(0, 0, 255));
+
         cv::Point2d last_pos(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
                     kDrawScale * pose.at<double>(2, 3) + map.rows / 4);
 

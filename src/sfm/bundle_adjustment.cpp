@@ -79,7 +79,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
     cam.f = focal_.x;
-
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
     cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
@@ -160,10 +159,10 @@ void BundleAdjustment::setPBAPoints() {
             for (int j = 0; j < points3d.size(); j++) {
 
                 cv::Mat p = cv::Mat(points3d[j]);
-                double dist = cv::norm(p - t0);
+                double dist = 0;// cv::norm(p - t0);
 
                 //TODO make sure z is pos
-                if (dist < kMax3DDist) {
+                if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
                     pba_3d_points_.emplace_back(Point3D{static_cast<float>(points3d[j].x),
                                                         static_cast<float>(points3d[j].y),
                                                         static_cast<float>(points3d[j].z)});
@@ -183,31 +182,6 @@ void BundleAdjustment::setPBAPoints() {
     }
 
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
-}
-
-void BundleAdjustment::draw(float scale){
-    cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
-
-    cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
-    cv::line(ba_map, cv::Point(0, ba_map.rows / 4), cv::Point(ba_map.cols, ba_map.rows / 4), cv::Scalar(0, 0, 255));
-
-    for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 4);
-        cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
-    }
-
-    for (const auto &cam : pba_cameras_){
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
-        cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
-    }
-
-    if(!pba_cameras_.empty()) {
-        const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
-        cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
-    }
-
-    cv::imshow("BA_Map", ba_map);
 }
 
 
@@ -241,3 +215,43 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     return 0;
 }
+
+
+
+void BundleAdjustment::draw(float scale){
+    cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
+
+    cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
+    cv::line(ba_map, cv::Point(0, ba_map.rows / 4), cv::Point(ba_map.cols, ba_map.rows / 4), cv::Scalar(0, 0, 255));
+
+    for (const auto &p : pba_3d_points_) {
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * 0.2 + ba_map.cols / 2, p.xyz[2] * 0.2 + ba_map.rows / 4);
+        cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+    }
+
+    for (const auto &cam : pba_cameras_){
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
+        cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
+
+        cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
+        cam.GetMatrixRotation(reinterpret_cast<double *>(R.data));
+
+        double data[3] = {0,0,1};
+        cv::Mat dir(3,1,CV_64FC1, data);
+
+        dir = (R * dir) * 10 * scale;
+
+        cv::line(ba_map, draw_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + draw_pos, cv::Scalar(0,255,255), 2 );
+
+    }
+
+    if(!pba_cameras_.empty()) {
+        const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
+        cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
+    }
+
+    cv::imshow("BA_Map", ba_map);
+}
+
+
