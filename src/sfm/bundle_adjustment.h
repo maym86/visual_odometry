@@ -58,6 +58,7 @@ private:
     cv::Point2f pp_;
     cv::Point2f focal_;
 
+    cv::Mat K_;
     size_t max_frames_;
     int count_ = 0;
 };

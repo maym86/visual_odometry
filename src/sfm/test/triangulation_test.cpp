@@ -19,7 +19,16 @@ cv::Point2d focal(718.856, 718.856);
 
 const float kMax3DDist = 200;
 
+
+
 void run(VOFrame &vo0, VOFrame &vo1) {
+
+    cv::Mat K = cv::Mat::eye(3,3,CV_64F);
+
+    K.at<double>(0,0) = focal.x;
+    K.at<double>(1,1) = focal.y;
+    K.at<double>(0,2) = pp.x;
+    K.at<double>(1,2) = pp.y;
 
     FeatureDetector feature_detector;
     FeatureTracker feature_tracker;
@@ -38,11 +47,11 @@ void run(VOFrame &vo0, VOFrame &vo1) {
             p1.push_back(vo1.points[i]);
         }
     }
-    hconcat(vo1.local_R, vo1.local_t, vo1.local_P);
+    hconcat(vo1.local_R, vo1.local_t, vo1.local_pose);
 
-    LOG(INFO) << vo1.local_P;
+    LOG(INFO) << vo1.local_pose;
 
-    vo1.points_3d =  triangulate(pp, focal, p0, p1, cv::Mat::eye(3, 4, CV_64FC1), vo1.local_P);
+    vo1.points_3d =  triangulate(p0, p1, K * cv::Mat::eye(3, 4, CV_64FC1), K * vo1.local_pose);
 
     //filter
     for (int i = vo1.points_3d.size() - 1; i >= 0; --i) {
