@@ -36,6 +36,8 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
 
 
 void BundleAdjustment::matcher() {
+    const float ratio = 0.8; // As in Lowe's paper; can be tuned
+
     cv::BFMatcher matcher;
     pairwise_matches_.clear();
     for(int i = 0; i < features_.size() -1; i++) {
@@ -46,7 +48,7 @@ void BundleAdjustment::matcher() {
 
         cv::detail::MatchesInfo good_matches;
         for (int k = 0; k < matches.size(); k++) {
-            const float ratio = 0.8; // As in Lowe's paper; can be tuned
+
             if (matches[k][0].distance < ratio * matches[k][1].distance) {
 
                 auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
@@ -156,6 +158,19 @@ void BundleAdjustment::setPBAPoints() {
     pba_cam_idx_.clear();
     pba_2d3d_idx_.clear();
 
+    std::vector<cv::Mat> poses;
+    for(auto c : pba_cameras_){
+        cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
+        cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
+
+        c.GetTranslation(reinterpret_cast<double *>(t.data));
+        c.GetMatrixRotation(reinterpret_cast<double *>(R.data));
+
+        cv::Mat P;
+        hconcat(R, t, P);
+        poses.push_back(std::move(P));
+    }
+
     for(int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++ ){
 
         for(const auto &track : tracks_[cam_idx]) {
@@ -169,28 +184,13 @@ void BundleAdjustment::setPBAPoints() {
                 continue;
             }
 
-            cv::Mat t0 = cv::Mat::zeros(3, 1, CV_64FC1);
-            cv::Mat R0 = cv::Mat::eye(3, 3, CV_64FC1);
-
-            pba_cameras_[cam_idx].GetTranslation(reinterpret_cast<double *>(t0.data));
-            pba_cameras_[cam_idx].GetMatrixRotation(reinterpret_cast<double *>(R0.data));
-
-            cv::Mat t1 = cv::Mat::zeros(3, 1, CV_64FC1);
-            cv::Mat R1 = cv::Mat::eye(3, 3, CV_64FC1);
-
-            pba_cameras_[cam_idx + 1].GetTranslation(reinterpret_cast<double *>(t1.data));
-            pba_cameras_[cam_idx + 1].GetMatrixRotation(reinterpret_cast<double *>(R1.data));
-
-            cv::Mat P0, P1;
-            hconcat(R0, t0, P0);
-            hconcat(R1, t1, P1);
-
             std::vector<cv::Point2f> points0 = {points[0]};
             std::vector<cv::Point2f> points1 = {points[1]};
-            std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * P0, K_ * P1); //TODO 3D point must be in 3 or more frames
+            std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * poses[cam_idx],
+                    K_ * poses[cam_idx + 1]); //TODO 3D point must be in 3 or more frames
 
             cv::Mat p = cv::Mat(points3d[0]);
-            double dist = cv::norm(p - t0);
+            double dist = cv::norm(p - poses[cam_idx].col(3));
 
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
