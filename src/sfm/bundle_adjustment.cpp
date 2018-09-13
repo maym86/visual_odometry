@@ -8,7 +8,9 @@
 
 #include "src/utils/draw.h"
 
+BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
 
+}
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
@@ -35,46 +37,39 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
 void BundleAdjustment::matcher() {
     cv::BFMatcher matcher;
     pairwise_matches_.clear();
-    for(int i =  0; i < features_.size(); i++) {
-        for(int j=0; j < features_.size(); j++) {
+    for(int i = 0; i < features_.size() -1; i++) {
+        int j=i+1;
 
-            if(abs(i -j) > 2){
-                continue;
-            }
+        std::vector<std::vector<cv::DMatch>> matches;
+        matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
 
-            std::vector<std::vector<cv::DMatch>> matches;
-            matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
-
-            cv::detail::MatchesInfo good_matches;
-            for (int k = 0; k < matches.size(); ++k) {
-                const float ratio = 0.8; // As in Lowe's paper; can be tuned
-                if (matches[k][0].distance < ratio * matches[k][1].distance && matches[k][0].distance < 250) {
+        cv::detail::MatchesInfo good_matches;
+        for (int k = 0; k < matches.size(); ++k) {
+            const float ratio = 0.8; // As in Lowe's paper; can be tuned
+            if (matches[k][0].distance < ratio * matches[k][1].distance && matches[k][0].distance < 250) {
 
 
-                    auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
-                    auto p1 = features_[j].keypoints[matches[k][0].trainIdx];
+                auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
+                auto p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                    if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 50) {
-                        good_matches.matches.push_back(matches[k][0]);
-                        good_matches.inliers_mask.push_back(1);
-                    }
+                if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 50) {
+                    good_matches.matches.push_back(matches[k][0]);
+                    good_matches.inliers_mask.push_back(1);
                 }
             }
-
-            good_matches.src_img_idx = i;
-            good_matches.dst_img_idx = j;
-
-            if(good_matches.matches.size() > 10) {
-                pairwise_matches_.push_back(good_matches);
-            }
         }
+
+        good_matches.src_img_idx = i;
+        good_matches.dst_img_idx = j;
+
+        pairwise_matches_.push_back(good_matches);
     }
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
-    cam.f = 1;
+    cam.f = (focal_.x + focal_.y) / 2;
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
     cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
@@ -98,6 +93,22 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     pba_cameras_[0].SetConstantCamera();
 
     matcher();
+
+    /*for(const auto &p : pairwise_matches_){
+        LOG(INFO) << p.src_img_idx << " " << p.dst_img_idx;
+
+        for (int i = 0; i < pwm.matches.size(); i++) {
+            const auto &match = pwm.matches[i];
+            if (pwm.inliers_mask[i]) {
+                points0.push_back(features_[idx_cam0].keypoints[match.queryIdx].pt);
+                points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
+
+                if()
+                points2.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
+            }
+        }
+
+    }*/
     //(*matcher_)(features_, pairwise_matches_);
 
     setPBAPoints();
@@ -164,28 +175,17 @@ void BundleAdjustment::setPBAPoints() {
                                                         static_cast<float>(points3d[j].y),
                                                         static_cast<float>(points3d[j].z)});
 
-                    //First 2dpoint that relates to 3d point
-                    cv::Mat p_h = cv::Mat::ones(4,1,CV_64FC1);
 
-                    p_h.at<double>(0) = p.at<double>(0, 0);
-                    p_h.at<double>(1) = p.at<double>(0, 1);
-                    p_h.at<double>(2) = p.at<double>(0, 2);
-
-                    cv::Mat repo = P1 * p_h;
-
-                    repo.at<double>(0) /= repo.at<double>(2);
-                    repo.at<double>(1) /= repo.at<double>(2);
-                    repo.at<double>(2) /= repo.at<double>(2);
+                    //reprojectionInfo(points0[j], points3d[j], P0); //TODO For info - remove later
+                    //reprojectionInfo(points1[j], points3d[j], P1); //TODO For info - remove later
 
 
-                    LOG(INFO) << repo.t()  << (points1[j].x - pp_.x) /focal_.x <<","<< (points1[j].y - pp_.y) / focal_.y;
-
-                    pba_image_points_.emplace_back(Point2D{(points0[j].x - pp_.x) / focal_.x, (points0[j].y - pp_.y) /focal_.y});
+                    pba_image_points_.emplace_back(Point2D{(points0[j].x - pp_.x) , (points0[j].y - pp_.y) });
                     pba_cam_idx_.push_back(idx_cam0);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
 
                     //Second 2dpoint that relates to 3D point
-                    pba_image_points_.emplace_back(Point2D{(points1[j].x - pp_.x) / focal_.x, (points1[j].y - pp_.y) / focal_.y});
+                    pba_image_points_.emplace_back(Point2D{(points1[j].x - pp_.x) , (points1[j].y - pp_.y) });
                     pba_cam_idx_.push_back(idx_cam1);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
                 }
@@ -194,6 +194,23 @@ void BundleAdjustment::setPBAPoints() {
     }
 
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
+}
+
+void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat) const {
+    cv::Mat p_h = cv::Mat::ones(4, 1, CV_64FC1);
+
+    p_h.at<double>(0) = point3d.x;
+    p_h.at<double>(1) = point3d.y;
+    p_h.at<double>(2) = point3d.z;
+
+    cv::Mat repo = proj_mat * p_h;
+
+    repo.at<double>(0) /= repo.at<double>(2);
+    repo.at<double>(1) /= repo.at<double>(2);
+    repo.at<double>(2) /= repo.at<double>(2);
+
+
+    LOG(INFO) << repo.t() << (point.x - pp_.x) / focal_.x << "," << (point.y - pp_.y) / focal_.y;
 }
 
 
@@ -227,8 +244,6 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     return 0;
 }
-
-
 
 void BundleAdjustment::draw(float scale){
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));

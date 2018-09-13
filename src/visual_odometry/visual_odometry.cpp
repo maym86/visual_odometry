@@ -67,7 +67,6 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
         vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200, kMax3DDist);
 
-        //TODO is this correct -- why is r opposite dir to t
         vo2.pose_t = vo1.pose_t - vo2.scale * (vo1.pose_R * vo2.local_t);
         vo2.pose_R = vo2.local_R * vo1.pose_R;
     } else {
@@ -78,7 +77,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 1) {
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
         bundle_adjustment_.addKeyFrame(vo2);
 
         res =  bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
