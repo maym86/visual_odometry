@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 
 #include "triangulation.h"
-
+#include <opencv2/sfm/triangulation.hpp>
 #include <iostream>
 
 #include "src/utils/draw.h"
@@ -75,7 +75,6 @@ void BundleAdjustment::matcher() {
             if(!mask.at<bool>(i)) {
                 good_matches.inliers_mask[i] = 0;
             }
-            LOG(INFO) << mask.at<bool>(i) << " " << (bool)good_matches.inliers_mask[i];
         }
 
         good_matches.src_img_idx = i;
@@ -212,8 +211,20 @@ void BundleAdjustment::setPBAPoints() {
 
             std::vector<cv::Point2f> points0 = {points[0]};
             std::vector<cv::Point2f> points1 = {points[1]};
-            std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * poses[cam_idx],
-                    K_ * poses[cam_idx + 1]); //TODO 3D point must be in 3 or more frames
+
+            std::vector<cv::Mat> sfm_points_2d;
+            std::vector<cv::Mat> projection_matrices;
+            for (int i = 0; i < points.size(); i++) {
+                cv::Mat mat_point = (cv::Mat_<double>(2,1) << points[i].x, points[i].y);
+                sfm_points_2d.push_back(mat_point);
+                projection_matrices.push_back(K_ * poses[cam_idx+i]);
+            }
+
+            cv::Mat point_3d_mat;
+            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
+            std::vector<cv::Point3d> points3d = points3DToVec(point_3d_mat);
+            /*std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * poses[cam_idx],
+                    K_ * poses[cam_idx + 1]); //TODO 3D point must be in 3 or more frames*/
 
             cv::Mat p = cv::Mat(points3d[0]);
             double dist = cv::norm(p - poses[cam_idx].col(3));
@@ -227,8 +238,8 @@ void BundleAdjustment::setPBAPoints() {
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    //LOG(INFO) << cam_idx + i << " " << i;
-                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
+                    LOG(INFO) << cam_idx + i << " " << i;
+                    reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);

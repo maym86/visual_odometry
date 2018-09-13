@@ -24,3 +24,18 @@ void FeatureDetector::detectComputeORB(const VOFrame &frame, std::vector<cv::Key
     descriptor_->detectAndCompute(frame.gpu_image, cv::noArray(), *keypoints, descriptors_gpu);
     descriptors_gpu.download(*descriptors);
 }
+
+
+void FeatureDetector::computeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors){
+    cv::cuda::GpuMat descriptors_gpu;
+
+    keypoints->clear();
+    for (const auto &p: frame.points){
+        cv::KeyPoint kp;
+        kp.pt = p;
+        keypoints->push_back(kp);
+    }
+
+    descriptor_->compute(frame.gpu_image, *keypoints, descriptors_gpu);
+    descriptors_gpu.download(*descriptors);
+}
