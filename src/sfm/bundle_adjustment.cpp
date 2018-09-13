@@ -47,18 +47,35 @@ void BundleAdjustment::matcher() {
         matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
 
         cv::detail::MatchesInfo good_matches;
+
+
+        std::vector<cv::Point2f> points0;
+        std::vector<cv::Point2f> points1;
         for (int k = 0; k < matches.size(); k++) {
 
             if (matches[k][0].distance < ratio * matches[k][1].distance) {
 
-                auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
-                auto p1 = features_[j].keypoints[matches[k][0].trainIdx];
+                const auto &p0 = features_[i].keypoints[matches[k][0].queryIdx];
+                const auto &p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100) {
+                if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 200) {
                     good_matches.matches.push_back(matches[k][0]);
                     good_matches.inliers_mask.push_back(1);
+
+                    points0.push_back(p0.pt);
+                    points1.push_back(p1.pt);
                 }
+
             }
+        }
+        cv::Mat mask, R, t;
+        cv::Mat E = cv::findEssentialMat(points0, points1, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, mask);
+
+        for(int j = 0; j< good_matches.inliers_mask.size(); j++){
+            if(!mask.at<bool>(i)) {
+                good_matches.inliers_mask[i] = 0;
+            }
+            LOG(INFO) << mask.at<bool>(i) << " " << (bool)good_matches.inliers_mask[i];
         }
 
         good_matches.src_img_idx = i;
@@ -78,7 +95,9 @@ void BundleAdjustment::createTracks() {
         int idx_cam0 = pwm.src_img_idx;
         for (int i = 0; i < pwm.matches.size(); i++) {
             auto &match = pwm.matches[i];
-            if (pwm.inliers_mask[i]) {
+
+            //LOG(INFO) << (int)pwm.inliers_mask[i];
+            if (static_cast<bool>(pwm.inliers_mask[i])) {
                 pairs[idx_cam0][match.queryIdx] = match.trainIdx;
             }
         }
@@ -103,6 +122,10 @@ void BundleAdjustment::createTracks() {
             if(cam < pairs.size()) {
                 while (pairs[cam].find(key) != pairs[cam].end()) {
                     key = pairs[cam][key];
+                    if (key == -1){
+                        break;
+                    }
+
                     pairs[cam][key] = -1; //seen
                     track.push_back(key);
                     cam++;
@@ -171,6 +194,9 @@ void BundleAdjustment::setPBAPoints() {
         poses.push_back(std::move(P));
     }
 
+
+    cv::Mat tracks = cv::Mat::zeros(pp_.y *2, pp_.x*2, CV_8UC3);
+
     for(int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++ ){
 
         for(const auto &track : tracks_[cam_idx]) {
@@ -198,20 +224,27 @@ void BundleAdjustment::setPBAPoints() {
                                                     static_cast<float>(points3d[0].y),
                                                     static_cast<float>(points3d[0].z)});
 
-                //reprojectionInfo(points[1], points3d[j], P1); //TODO For info - remove later
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    LOG(INFO) << i;
-                    reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
+                    //LOG(INFO) << cam_idx + i << " " << i;
+                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
+
+
+                    if(i < points.size() - 1) {
+                        cv::line(tracks, points[i], points[i + 1], cv::Scalar(0, 255, 0), 1);
+                        cv::circle(tracks, points[i], 2, cv::Scalar(255, 0, 0), 2);
+                    }
                 }
             }
         }
     }
+
+    imshow("tracks", tracks);
 
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
 }
