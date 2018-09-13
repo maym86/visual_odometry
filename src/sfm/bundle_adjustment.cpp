@@ -5,6 +5,7 @@
 
 #include "triangulation.h"
 
+#include <iostream>
 
 #include "src/utils/draw.h"
 
@@ -64,6 +65,60 @@ void BundleAdjustment::matcher() {
 
         pairwise_matches_.push_back(good_matches);
     }
+
+    createTracks();
+}
+
+void BundleAdjustment::createTracks(){
+
+    tracks_.clear();
+    std::vector<std::unordered_map<int,int>> pairs(pba_cameras_.size()-1);
+    for (const auto &pwm : pairwise_matches_) {
+        int idx_cam0 = pwm.src_img_idx;
+
+        for (int i = 0; i < pwm.matches.size(); i++) {
+            const auto &match = pwm.matches[i];
+            if (pwm.inliers_mask[i]) {
+                pairs[idx_cam0][match.queryIdx] = match.trainIdx;
+            }
+        }
+    }
+
+    tracks_.resize(pba_cameras_.size()-1);
+    for (int cam_idx =0; cam_idx < pairs.size(); cam_idx++) {
+
+        for (std::pair<int, int> element : pairs[cam_idx]) {
+            std::vector<int> track;
+            track.push_back(element.first);
+            track.push_back(element.second);
+            int key = element.second;
+            int cam = cam_idx+1;
+
+            if(cam < pairs.size()) {
+                while (pairs[cam].find(key) != pairs[cam].end()) {
+                    key = pairs[cam][key];
+                    track.push_back(key);
+                    cam++;
+
+                    if(cam == pairs.size()){
+                        break;
+                    }
+                }
+            }
+
+            tracks_[cam_idx] = track;
+
+            if(track.size() > 2){
+                int cam = cam_idx;
+                for(int i = 0; i < track.size(); i++ ) {
+                    std::cout << track[i] << " " ;
+                    std::cout << features_[cam].keypoints[track[i]].pt;
+                    cam++;
+                }
+                std::cout << std::endl;
+            }
+        }
+    }
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
@@ -94,21 +149,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     matcher();
 
-    /*for(const auto &p : pairwise_matches_){
-        LOG(INFO) << p.src_img_idx << " " << p.dst_img_idx;
-
-        for (int i = 0; i < pwm.matches.size(); i++) {
-            const auto &match = pwm.matches[i];
-            if (pwm.inliers_mask[i]) {
-                points0.push_back(features_[idx_cam0].keypoints[match.queryIdx].pt);
-                points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
-
-                if()
-                points2.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
-            }
-        }
-
-    }*/
     //(*matcher_)(features_, pairwise_matches_);
 
     setPBAPoints();
@@ -175,10 +215,8 @@ void BundleAdjustment::setPBAPoints() {
                                                         static_cast<float>(points3d[j].y),
                                                         static_cast<float>(points3d[j].z)});
 
-
                     //reprojectionInfo(points0[j], points3d[j], P0); //TODO For info - remove later
                     //reprojectionInfo(points1[j], points3d[j], P1); //TODO For info - remove later
-
 
                     pba_image_points_.emplace_back(Point2D{(points0[j].x - pp_.x) , (points0[j].y - pp_.y) });
                     pba_cam_idx_.push_back(idx_cam0);
@@ -196,7 +234,7 @@ void BundleAdjustment::setPBAPoints() {
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
 }
 
-void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat) const {
+void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat) {
     cv::Mat p_h = cv::Mat::ones(4, 1, CV_64FC1);
 
     p_h.at<double>(0) = point3d.x;

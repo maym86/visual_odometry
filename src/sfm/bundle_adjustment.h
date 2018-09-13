@@ -4,6 +4,8 @@
 #define VO_SFM_BUNDLE_ADJUSTMENT_H
 
 #include <vector>
+#include <unordered_map>
+
 #include <opencv2/features2d.hpp>
 
 #include <opencv2/stitching/detail/motion_estimators.hpp>
@@ -55,6 +57,8 @@ private:
     std::vector<Point2D> pba_image_points_;   //measurment/projection vector
     std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
+
+    std::vector<std::vector<int>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;
     cv::Point2f focal_;
 
@@ -62,7 +66,10 @@ private:
     size_t max_frames_;
     int count_ = 0;
 
-    void reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat)  const;
+    void reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat);
+
+    void createTracks();
+
 };
 
 
