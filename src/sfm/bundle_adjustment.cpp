@@ -238,8 +238,8 @@ void BundleAdjustment::setPBAPoints() {
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    LOG(INFO) << cam_idx + i << " " << i;
-                    reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
+                    //LOG(INFO) << cam_idx + i << " " << i;
+                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);
