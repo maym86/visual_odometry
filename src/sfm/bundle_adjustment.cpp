@@ -45,15 +45,14 @@ void BundleAdjustment::matcher() {
         matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
 
         cv::detail::MatchesInfo good_matches;
-        for (int k = 0; k < matches.size(); ++k) {
+        for (int k = 0; k < matches.size(); k++) {
             const float ratio = 0.8; // As in Lowe's paper; can be tuned
-            if (matches[k][0].distance < ratio * matches[k][1].distance && matches[k][0].distance < 250) {
-
+            if (matches[k][0].distance < ratio * matches[k][1].distance) {
 
                 auto p0 = features_[i].keypoints[matches[k][0].queryIdx];
                 auto p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 50) {
+                if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100) {
                     good_matches.matches.push_back(matches[k][0]);
                     good_matches.inliers_mask.push_back(1);
                 }
@@ -69,15 +68,14 @@ void BundleAdjustment::matcher() {
     createTracks();
 }
 
-void BundleAdjustment::createTracks(){
+void BundleAdjustment::createTracks() {
 
     tracks_.clear();
     std::vector<std::unordered_map<int,int>> pairs(pba_cameras_.size()-1);
-    for (const auto &pwm : pairwise_matches_) {
+    for (auto &pwm : pairwise_matches_) {
         int idx_cam0 = pwm.src_img_idx;
-
         for (int i = 0; i < pwm.matches.size(); i++) {
-            const auto &match = pwm.matches[i];
+            auto &match = pwm.matches[i];
             if (pwm.inliers_mask[i]) {
                 pairs[idx_cam0][match.queryIdx] = match.trainIdx;
             }
@@ -85,18 +83,25 @@ void BundleAdjustment::createTracks(){
     }
 
     tracks_.resize(pba_cameras_.size()-1);
-    for (int cam_idx =0; cam_idx < pairs.size(); cam_idx++) {
+
+    for (int cam_idx = 0; cam_idx < pairs.size(); cam_idx++) {
 
         for (std::pair<int, int> element : pairs[cam_idx]) {
+
+            if(element.second == -1){
+                continue;
+            }
+
             std::vector<int> track;
             track.push_back(element.first);
             track.push_back(element.second);
             int key = element.second;
-            int cam = cam_idx+1;
+            int cam = cam_idx + 1;
 
             if(cam < pairs.size()) {
                 while (pairs[cam].find(key) != pairs[cam].end()) {
                     key = pairs[cam][key];
+                    pairs[cam][key] = -1; //seen
                     track.push_back(key);
                     cam++;
 
@@ -105,7 +110,6 @@ void BundleAdjustment::createTracks(){
                     }
                 }
             }
-
             tracks_[cam_idx].push_back(track);
         }
     }
@@ -123,7 +127,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
 
-    feature_detector_.detectComputeORB(frame, &image_feature.keypoints, &descriptors);
+    feature_detector_.computeORB(frame, &image_feature.keypoints, &descriptors);
     image_feature.descriptors = descriptors.getUMat(cv::USAGE_DEFAULT);
     image_feature.img_idx = count_++;
     image_feature.img_size = frame.image.size();
@@ -139,8 +143,6 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     matcher();
 
-    //(*matcher_)(features_, pairwise_matches_);
-
     setPBAPoints();
 }
 
@@ -154,7 +156,7 @@ void BundleAdjustment::setPBAPoints() {
     pba_cam_idx_.clear();
     pba_2d3d_idx_.clear();
 
-    for(int cam_idx = 0;  cam_idx < tracks_.size(); cam_idx++ ){
+    for(int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++ ){
 
         for(const auto &track : tracks_[cam_idx]) {
 

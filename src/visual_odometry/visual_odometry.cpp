@@ -77,7 +77,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     }
     hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
 
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2) {
         bundle_adjustment_.addKeyFrame(vo2);
 
         res =  bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
