@@ -180,7 +180,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
@@ -198,10 +198,13 @@ void BundleAdjustment::setPBAPoints() {
                                                     static_cast<float>(points3d[0].y),
                                                     static_cast<float>(points3d[0].z)});
 
-                //reprojectionInfo(points[0], points3d[j], P0); //TODO For info - remove later
                 //reprojectionInfo(points[1], points3d[j], P1); //TODO For info - remove later
 
                 for (int i = 0; i < points.size(); i++) {
+
+                    LOG(INFO) << i;
+                    reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
+
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
@@ -226,8 +229,11 @@ void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Poin
     repo.at<double>(1) /= repo.at<double>(2);
     repo.at<double>(2) /= repo.at<double>(2);
 
+    cv::Mat p_2d = cv::Mat::ones(3, 1, CV_64FC1);
+    p_2d.at<double>(0) = (point.x - pp_.x) / focal_.x;
+    p_2d.at<double>(1) = (point.y - pp_.y) / focal_.y;
 
-    LOG(INFO) << repo.t() << (point.x - pp_.x) / focal_.x << "," << (point.y - pp_.y) / focal_.y;
+    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t() << (point.x - pp_.x) / focal_.x << "," << (point.y - pp_.y) / focal_.y;
 }
 
 
