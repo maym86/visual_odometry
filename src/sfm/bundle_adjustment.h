@@ -58,7 +58,7 @@ private:
     std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
 
-    std::vector<std::vector<int>> tracks_; //Vector with tracks starting at image index for vector
+    std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;
     cv::Point2f focal_;
 
