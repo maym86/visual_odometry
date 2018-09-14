@@ -95,7 +95,6 @@ void BundleAdjustment::createTracks() {
         for (int i = 0; i < pwm.matches.size(); i++) {
             auto &match = pwm.matches[i];
 
-            //LOG(INFO) << (int)pwm.inliers_mask[i];
             if (static_cast<bool>(pwm.inliers_mask[i])) {
                 pairs[idx_cam0][match.queryIdx] = match.trainIdx;
             }
@@ -223,8 +222,6 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat point_3d_mat;
             cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
             std::vector<cv::Point3d> points3d = points3DToVec(point_3d_mat);
-            /*std::vector<cv::Point3d> points3d = triangulate(points0, points1, K_ * poses[cam_idx],
-                    K_ * poses[cam_idx + 1]); //TODO 3D point must be in 3 or more frames*/
 
             cv::Mat p = cv::Mat(points3d[0]);
             double dist = cv::norm(p - poses[cam_idx].col(3));
