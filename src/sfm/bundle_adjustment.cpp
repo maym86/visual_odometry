@@ -242,6 +242,11 @@ void BundleAdjustment::setPBAPoints() {
 
             cv::Mat p = cv::Mat(points3d[0]);
             double dist =  0;//cv::norm(p);
+
+            p.at<double>(0, 0) *= -1;
+            p.at<double>(0, 1) *= -1;
+            p.at<double>(0, 2) *= -1;
+
             p = (R * p) + t;
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
@@ -252,7 +257,7 @@ void BundleAdjustment::setPBAPoints() {
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    LOG(INFO) << cam_idx + i << " " << i;
+                    //LOG(INFO) << cam_idx + i << " " << i;
                     reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
