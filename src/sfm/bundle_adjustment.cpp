@@ -193,7 +193,7 @@ void BundleAdjustment::setPBAPoints() {
     }
 
 
-    cv::Mat tracks = cv::Mat::zeros(pp_.y *2, pp_.x*2, CV_8UC3);
+    cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
 
     for(int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++ ){
 
