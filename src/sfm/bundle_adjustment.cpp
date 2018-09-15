@@ -224,7 +224,7 @@ void BundleAdjustment::setPBAPoints() {
             std::vector<cv::Point3d> points3d = points3DToVec(point_3d_mat);
 
             cv::Mat p = cv::Mat(points3d[0]);
-            double dist = cv::norm(p - poses[cam_idx].col(3));
+            double dist = 0;//cv::norm(p - poses[cam_idx].col(3));
 
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
