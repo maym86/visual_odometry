@@ -162,7 +162,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
         pba_cameras_.erase(pba_cameras_.begin());
     }
 
-    pba_cameras_[0].SetConstantCamera();
+    //pba_cameras_[0].SetConstantCamera();
 
     matcher();
 
