@@ -224,6 +224,10 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat p = cv::Mat(points3d[0]);
             double dist = 0;// cv::norm(p - poses[cam_idx].col(3));
 
+
+            //TODO read this http://ccwu.me/vsfm/doc.html#nvm
+
+
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
                 pba_3d_points_.emplace_back(Point3D{static_cast<float>(points3d[0].x),

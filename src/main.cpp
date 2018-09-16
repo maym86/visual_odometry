@@ -88,8 +88,6 @@ int main(int argc, char *argv[]) {
 
         cv::line(map, last_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + last_pos, cv::Scalar(0,255,255), 2 );
 
-
-
         if(resize){
             cv::resize(map, map, cv::Size(), 0.5, 0.5);
         }
