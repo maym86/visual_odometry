@@ -95,7 +95,7 @@ void BundleAdjustment::createTracks() {
         for (int i = 0; i < pwm.matches.size(); i++) {
             auto &match = pwm.matches[i];
 
-            if (static_cast<bool>(pwm.inliers_mask[i])) {
+            if (!pwm.inliers_mask[i] == 0) {
                 pairs[idx_cam0][match.queryIdx] = match.trainIdx;
             }
         }
@@ -214,8 +214,7 @@ void BundleAdjustment::setPBAPoints() {
             std::vector<cv::Mat> sfm_points_2d;
             std::vector<cv::Mat> projection_matrices;
             for (int i = 0; i < points.size(); i++) {
-                cv::Mat mat_point = (cv::Mat_<double>(2,1) << points[i].x, points[i].y);
-                sfm_points_2d.push_back(mat_point);
+                sfm_points_2d.emplace_back((cv::Mat_<double>(2,1) << points[i].x, points[i].y));
                 projection_matrices.push_back(K_ * poses[cam_idx+i]);
             }
 
@@ -224,7 +223,7 @@ void BundleAdjustment::setPBAPoints() {
             std::vector<cv::Point3d> points3d = points3DToVec(point_3d_mat);
 
             cv::Mat p = cv::Mat(points3d[0]);
-            double dist = 0;//cv::norm(p - poses[cam_idx].col(3));
+            double dist = 0;// cv::norm(p - poses[cam_idx].col(3));
 
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
@@ -235,8 +234,8 @@ void BundleAdjustment::setPBAPoints() {
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    //LOG(INFO) << cam_idx + i << " " << i;
-                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
+                    LOG(INFO) << cam_idx + i << " " << i;
+                    reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);
@@ -253,7 +252,6 @@ void BundleAdjustment::setPBAPoints() {
     }
 
     imshow("tracks", tracks);
-
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
 }
 
