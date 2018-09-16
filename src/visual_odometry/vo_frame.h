@@ -26,7 +26,7 @@ public:
     cv::Mat pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat pose = cv::Mat::eye(4, 4, CV_64FC1); //global
 
-    float scale;
+    float scale = 1.0;
 
     cv::Mat image;
     cv::cuda::GpuMat gpu_image;
@@ -42,6 +42,14 @@ public:
             cv::cvtColor(image, image_grey, CV_BGR2GRAY);
             gpu_image.upload(image_grey);
         }
+    };
+
+    void updatePose(const VOFrame &last_frame){
+
+        //THIS is weird
+        pose_t = last_frame.pose_t - scale * (last_frame.pose_R * local_t);
+        pose_R = local_R * last_frame.pose_R;
+        hconcat(pose_R, pose_t, pose);
     };
 };
 

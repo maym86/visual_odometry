@@ -48,7 +48,6 @@ void BundleAdjustment::matcher() {
 
         cv::detail::MatchesInfo good_matches;
 
-
         std::vector<cv::Point2f> points0;
         std::vector<cv::Point2f> points1;
         for (int k = 0; k < matches.size(); k++) {
@@ -71,9 +70,9 @@ void BundleAdjustment::matcher() {
         cv::Mat mask, R, t;
         cv::Mat E = cv::findEssentialMat(points0, points1, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, mask);
 
-        for(int j = 0; j< good_matches.inliers_mask.size(); j++){
-            if(!mask.at<bool>(i)) {
-                good_matches.inliers_mask[i] = 0;
+        for(int k = 0; k< good_matches.inliers_mask.size(); k++){
+            if(!mask.at<bool>(k)) {
+                good_matches.inliers_mask[k] = 0;
             }
         }
 
@@ -95,7 +94,7 @@ void BundleAdjustment::createTracks() {
         for (int i = 0; i < pwm.matches.size(); i++) {
             auto &match = pwm.matches[i];
 
-            if (static_cast<bool>(pwm.inliers_mask[i])) {
+            if (!pwm.inliers_mask[i] == 0) {
                 pairs[idx_cam0][match.queryIdx] = match.trainIdx;
             }
         }
@@ -162,7 +161,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
         pba_cameras_.erase(pba_cameras_.begin());
     }
 
-    //pba_cameras_[0].SetConstantCamera();
+    pba_cameras_[0].SetConstantCamera();
 
     matcher();
 
@@ -193,7 +192,7 @@ void BundleAdjustment::setPBAPoints() {
     }
 
 
-    cv::Mat tracks = cv::Mat::zeros(pp_.y *2, pp_.x*2, CV_8UC3);
+    cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
 
     for(int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++ ){
 
