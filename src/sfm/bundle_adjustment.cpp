@@ -48,7 +48,6 @@ void BundleAdjustment::matcher() {
 
         cv::detail::MatchesInfo good_matches;
 
-
         std::vector<cv::Point2f> points0;
         std::vector<cv::Point2f> points1;
         for (int k = 0; k < matches.size(); k++) {
@@ -71,9 +70,9 @@ void BundleAdjustment::matcher() {
         cv::Mat mask, R, t;
         cv::Mat E = cv::findEssentialMat(points0, points1, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, mask);
 
-        for(int j = 0; j< good_matches.inliers_mask.size(); j++){
-            if(!mask.at<bool>(i)) {
-                good_matches.inliers_mask[i] = 0;
+        for(int k = 0; k< good_matches.inliers_mask.size(); k++){
+            if(!mask.at<bool>(k)) {
+                good_matches.inliers_mask[k] = 0;
             }
         }
 

@@ -36,6 +36,7 @@ void run(float offset){
 
     vo0.pose_R = cv::Mat::eye(3, 3, CV_64FC1);
     vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
+
     vo0.pose_t.at<double>(0,0) += offset;
     vo0.pose_t.at<double>(1,0) += offset;
     vo0.pose_t.at<double>(2,0) += offset;
@@ -49,6 +50,7 @@ void run(float offset){
     feature_tracker.trackPoints(&vo0, &vo1);
 
     vo1.E = cv::findEssentialMat(vo0.points, vo1.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo1.mask);
+
     recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
 
     vo1.updatePose(vo0);
