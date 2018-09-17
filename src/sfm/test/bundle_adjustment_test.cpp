@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include "src/sfm/bundle_adjustment.h"
+#include "src/sfm/triangulation.h"
 
 #include <glog/logging.h>
 
@@ -20,12 +21,22 @@ void run(float offset){
     cv::Point2d pp(607.1928, 185.2157);
     cv::Point2d focal(718.856, 718.856);
 
+    cv::Mat K = cv::Mat::eye(3,3,CV_64F);
+
+    K.at<double>(0,0) = focal.x;
+    K.at<double>(1,1) = focal.y;
+    K.at<double>(0,2) = pp.x;
+    K.at<double>(1,2) = pp.y;
+
+
     BundleAdjustment ba;
 
     VOFrame vo0;
     VOFrame vo1;
     VOFrame vo2;
 
+
+    //TODO do triangulation with these three images without BA involved - are all the points behind and weird.
     vo0.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
     vo1.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
     vo2.image = cv::imread("../src/sfm/test/test_data/000003.png");
@@ -55,6 +66,36 @@ void run(float offset){
 
     vo1.updatePose(vo0);
 
+    LOG(INFO) << vo1.pose << vo1.local_pose; //TODO these should be the same
+    std::vector<cv::Point2f> p0, p1;
+    for (int i = 0; i < vo0.points.size(); i ++){
+        if(vo1.mask.at<bool>(i)){
+            p0.push_back(vo0.points[i]);
+            p1.push_back(vo1.points[i]);
+        }
+    }
+    hconcat(vo1.local_R, vo1.local_t, vo1.local_pose);
+
+    LOG(INFO) << vo1.local_pose;
+
+    vo1.points_3d =  triangulate(p0, p1, K * cv::Mat::eye(3, 4, CV_64FC1), K * vo1.pose);
+
+    //filter
+    for (int i = vo1.points_3d.size() - 1; i >= 0; --i) {
+        if (vo1.mask.at<bool>(i) && vo1.points_3d[i].z > 0 &&
+            cv::norm(vo1.points_3d[i] - cv::Point3d(0, 0, 0)) < 200) {
+            continue;
+        }
+
+        vo1.points_3d.erase(vo1.points_3d.begin() + i);
+    }
+
+    draw3D("method1", vo1.points_3d, 10);
+
+    cv::waitKey(1);
+
+
+
     feature_detector.detectFAST(&vo1);
     feature_tracker.trackPoints(&vo1, &vo2);
 
@@ -69,7 +110,7 @@ void run(float offset){
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(5);
+    ba.draw(10);
 
     cv::waitKey(0);
     cv::Mat R, t;
@@ -82,7 +123,7 @@ void run(float offset){
     LOG(INFO) << dist;
     EXPECT_NEAR(dist, 0, 0.1);
 
-    ba.draw(5);
+    ba.draw(10);
     cv::waitKey(0);
 }
 

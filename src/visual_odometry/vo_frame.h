@@ -47,7 +47,7 @@ public:
     void updatePose(const VOFrame &last_frame){
 
         //THIS is weird
-        pose_t = last_frame.pose_t - scale * (last_frame.pose_R * local_t);
+        pose_t = last_frame.pose_t + scale * (last_frame.pose_R * local_t);
         pose_R = local_R * last_frame.pose_R;
         hconcat(pose_R, pose_t, pose);
     };
