@@ -147,19 +147,12 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     CameraT cam;
     cam.f = (focal_.x + focal_.y) / 2;
 
-    cv::Mat t = frame.pose_t.clone();
-    t.at<double>(1) *=-1;
-    t.at<double>(2) *=-1;
-
 
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
 
     //cv::Mat R  = -frame.pose_R.t(); //http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.3-manual.html TODO figure out coordinate stytem that the R and t from recover Pose are in
 
-    cv::Mat R  = frame.pose_R.clone();
-    R.row(1) *= -1;
-    R.row(2) *= -1;
-    cam.SetMatrixRotation(reinterpret_cast<double *>(R.data));
+    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
     pba_cameras_.push_back(cam);
 
@@ -219,7 +212,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
@@ -323,7 +316,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     //set the projections
     pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
-    pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
+    //pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
 
     if (!pba_.RunBundleAdjustment()) {
         LOG(INFO) << "Camera parameters adjusting failed.";
