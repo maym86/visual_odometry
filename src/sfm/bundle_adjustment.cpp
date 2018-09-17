@@ -146,20 +146,12 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
     cam.f = (focal_.x + focal_.y) / 2;
-
-    cv::Mat t = frame.pose_t.clone();
-    t.at<double>(1) *=-1;
-    t.at<double>(2) *=-1;
-
-
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
 
-    //cv::Mat R  = -frame.pose_R.t(); //http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.3-manual.html TODO figure out coordinate stytem that the R and t from recover Pose are in
+    // http://www.land-of-kain.de/docs/coords/
+    //http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.3-manual.html
 
-    cv::Mat R  = frame.pose_R.clone();
-    R.row(1) *= -1;
-    R.row(2) *= -1;
-    cam.SetMatrixRotation(reinterpret_cast<double *>(R.data));
+    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
 
     pba_cameras_.push_back(cam);
 
@@ -338,6 +330,12 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     last_cam.GetTranslation(reinterpret_cast<double *>(t->data));
     last_cam.GetMatrixRotation(reinterpret_cast<double *>(R->data));
 
+    t->at<double>(1) *=-1;
+    t->at<double>(2) *=-1;
+    R->col(1) *=-1;
+    R->col(2) *=-1;
+
+
     return 0;
 }
 
@@ -345,21 +343,21 @@ void BundleAdjustment::draw(float scale) {
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
     cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
-    cv::line(ba_map, cv::Point(0, ba_map.rows / 4), cv::Point(ba_map.cols, ba_map.rows / 4), cv::Scalar(0, 0, 255));
+    cv::line(ba_map, cv::Point(0, ba_map.rows / 2), cv::Point(ba_map.cols, ba_map.rows / 2), cv::Scalar(0, 0, 255));
 
     for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 4);
+        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto &cam : pba_cameras_) {
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
 
         cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
         cam.GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
-        double data[3] = {0, 0, -1};
+        double data[3] = {0, 0, 1};
         cv::Mat dir(3, 1, CV_64FC1, data);
 
         dir = (R * dir) * 10 * scale;
@@ -371,7 +369,7 @@ void BundleAdjustment::draw(float scale) {
 
     if (!pba_cameras_.empty()) {
         const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
+        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
     }
 
