@@ -6,6 +6,11 @@
 #include "src/visual_odometry/visual_odometry.h"
 #include "src/kitti/kitti.h"
 
+#include <opencv2/viz/types.hpp>
+#include <opencv2/viz/widgets.hpp>
+#include <opencv2/viz/viz3d.hpp>
+#include <opencv2/viz/vizcore.hpp>
+
 using namespace boost::filesystem;
 
 int main(int argc, char *argv[]) {
@@ -44,16 +49,20 @@ int main(int argc, char *argv[]) {
     //Load ground truth
     std::vector<Matrix> result_poses;
 
-    cv::Mat_<double> pose = cv::Mat::eye(4, 3, CV_64FC1);
-    cv::Mat_<double> pose_kalman = cv::Mat::eye(4, 3, CV_64FC1);
+    cv::Mat_<double> pose = cv::Mat::eye(3, 4, CV_64FC1);
+    cv::Mat_<double> pose_kalman = cv::Mat::eye(3, 4, CV_64FC1);
 
     bool done = false;
 
     VisualOdometry vo(K, FLAGS_min_tracked_features);
     bool resize = true;
 
-    std::vector<cv::Point2d> positions;
+    std::vector<cv::Point3d> positions;
 
+
+    cv::viz::Viz3d map_window("Map");
+
+    map_window.showWidget("Map", cv::viz::WCoordinateSystem());
     for (const auto &file_name : file_names) {
 
         cv::Mat image = cv::imread(file_name);
@@ -69,30 +78,20 @@ int main(int argc, char *argv[]) {
         cv::line(map, cv::Point(map.cols / 2, 0), cv::Point(map.cols / 2, map.rows), cv::Scalar(0, 0, 255));
         cv::line(map, cv::Point(0, map.rows / 4), cv::Point(map.cols, map.rows / 4), cv::Scalar(0, 0, 255));
 
-        cv::Point2d last_pos(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
-                    kDrawScale * pose.at<double>(2, 3) + map.rows / 4);
+        positions.push_back(cv::Point3d(pose.col(3)));
 
-        positions.push_back(last_pos);
+        cv::viz::WCameraPosition cam(cv::Matx33d(K), 3, cv::viz::Color::white());
+        map_window.showWidget("cam", cam);
 
-        for (const auto &pos : positions) {
-            cv::circle(map, pos, 1, cv::Scalar(0, 255, 0), 2);
-        }
+        cv::Affine3d cam_pose(pose.colRange(cv::Range(0,3)), pose.col(3));
+        map_window.setWidgetPose("cam", cam_pose);
 
+        cv::viz::WCloud cloud_widget1(positions, cv::viz::Color::green());
 
-        double data[3] = {0,0,1};
-        cv::Mat dir(3,1,CV_64FC1, data);
+        map_window.showWidget("cloud 2", cloud_widget1);
 
-        cv::Mat R = pose.colRange(cv::Range(0, 3));
+        map_window.spinOnce();
 
-        dir = (R * dir) * 50;
-
-        cv::line(map, last_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + last_pos, cv::Scalar(0,255,255), 2 );
-
-        if(resize){
-            cv::resize(map, map, cv::Size(), 0.5, 0.5);
-        }
-
-        cv::imshow("Map", map);
         cv::imshow("Features", vo.drawMatches(image));
         cv::imshow("3D", vo.draw3D());
 

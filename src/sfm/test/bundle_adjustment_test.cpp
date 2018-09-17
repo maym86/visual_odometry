@@ -1,6 +1,7 @@
 
 #include <gtest/gtest.h>
 #include <glog/logging.h>
+#include <src/utils/utils.h>
 
 #include "src/sfm/bundle_adjustment.h"
 #include "src/visual_odometry/vo_pose.h"
@@ -23,7 +24,7 @@ void run(float offset){
     K.at<double>(0,2) = 607.1928;
     K.at<double>(1,2) = 185.2157;
 
-    BundleAdjustment ba(true);
+    BundleAdjustment ba;
 
     VOFrame vo0;
     VOFrame vo1;
@@ -37,7 +38,11 @@ void run(float offset){
     EXPECT_GT(vo1.image.rows, 0);
     EXPECT_GT(vo2.image.rows, 0);
 
-    vo0.pose_R = cv::Mat::eye(3, 3, CV_64FC1);
+    double data[3] = {0,45,0};
+    cv::Mat r45 = cv::Mat(3,1, CV_64F, data);
+    vo0.pose_R = eulerAnglesToRotationMatrix(r45);
+
+    LOG(INFO) << vo0.pose_R;
     vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
     vo0.pose_t.at<double>(0,0) += offset;

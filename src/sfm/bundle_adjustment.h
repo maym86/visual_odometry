@@ -27,7 +27,7 @@
 class BundleAdjustment {
 
 public:
-    explicit  BundleAdjustment(bool global_pose=true);
+    BundleAdjustment();
 
     void init(const cv::Mat &K, size_t max_frames);
 

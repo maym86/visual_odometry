@@ -68,7 +68,7 @@ cv::Mat rotationMatrixToEulerAngles(cv::Mat &R) {
         z = 0;
     }
 
-    float data[3] = { x, y, z };
+    double data[3] = { x, y, z };
     return cv::Mat(3, 1, CV_64F, data);
 
 }

@@ -43,7 +43,6 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
         new_frame->pose_t = last_frame->pose_t.clone();
         new_frame->pose = last_frame->pose.clone();
     }
-
 }
 
 #endif //VO_VO_POSE_H
