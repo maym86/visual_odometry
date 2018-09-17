@@ -4,6 +4,7 @@
 #include "src/sfm/bundle_adjustment.h"
 
 #include <glog/logging.h>
+#include <src/visual_odometry/vo_pose.h>
 
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
@@ -15,10 +16,16 @@
 
 #include "src/utils/draw.h"
 
-
 void run(float offset){
     cv::Point2d pp(607.1928, 185.2157);
     cv::Point2d focal(718.856, 718.856);
+
+    cv::Mat K = cv::Mat::eye(3,3,CV_64F);
+
+    K.at<double>(0,0) = focal.x;
+    K.at<double>(1,1) = focal.y;
+    K.at<double>(0,2) = pp.x;
+    K.at<double>(1,2) = pp.y;
 
     BundleAdjustment ba;
 
@@ -49,11 +56,7 @@ void run(float offset){
     feature_detector.detectFAST(&vo0);
     feature_tracker.trackPoints(&vo0, &vo1);
 
-    vo1.E = cv::findEssentialMat(vo0.points, vo1.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo1.mask);
-
-    recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
-
-    vo1.updatePose(vo0);
+    updatePose(K, &vo0, &vo1);
 
     feature_detector.detectFAST(&vo1);
     feature_tracker.trackPoints(&vo1, &vo2);
@@ -61,7 +64,7 @@ void run(float offset){
     vo2.E = cv::findEssentialMat(vo1.points, vo2.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo2.mask);
     recoverPose(vo2.E, vo1.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
 
-    vo2.updatePose(vo1);
+    updatePose(K, &vo1, &vo2);
 
     ba.init(focal, pp , 3);
 

@@ -1,5 +1,4 @@
 
-
 #ifndef VO_VO_FRAME_H
 #define VO_VO_FRAME_H
 
@@ -42,14 +41,6 @@ public:
             cv::cvtColor(image, image_grey, CV_BGR2GRAY);
             gpu_image.upload(image_grey);
         }
-    };
-
-    void updatePose(const VOFrame &last_frame){
-
-        //THIS is weird
-        pose_t = last_frame.pose_t - scale * (last_frame.pose_R * local_t);
-        pose_R = local_R * last_frame.pose_R;
-        hconcat(pose_R, pose_t, pose);
     };
 };
 

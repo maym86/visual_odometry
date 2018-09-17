@@ -9,8 +9,8 @@
 
 #include "src/utils/draw.h"
 
-BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
-
+BundleAdjustment::BundleAdjustment(bool global_pose) : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
+    global_pose_ = global_pose;
 }
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
@@ -94,7 +94,7 @@ void BundleAdjustment::createTracks() {
         for (int i = 0; i < pwm.matches.size(); i++) {
             auto &match = pwm.matches[i];
 
-            if (!pwm.inliers_mask[i] == 0) {
+            if (pwm.inliers_mask[i] != 0) {
                 pairs[idx_cam0][match.queryIdx] = match.trainIdx;
             }
         }
@@ -212,41 +212,56 @@ void BundleAdjustment::setPBAPoints() {
 
             std::vector<cv::Mat> sfm_points_2d;
             std::vector<cv::Mat> projection_matrices;
+            double dist = 0;
+            cv::Mat p;
+            std::vector<cv::Point3d> points3d;
 
-            cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
-            cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
+            if(!global_pose_) { //reset the points to 0,0 before calc
+                cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
+                cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
 
-            pba_cameras_[cam_idx].GetTranslation(reinterpret_cast<double *>(t.data));
-            pba_cameras_[cam_idx].GetMatrixRotation(reinterpret_cast<double *>(R.data));
+                pba_cameras_[cam_idx].GetTranslation(reinterpret_cast<double *>(t.data));
+                pba_cameras_[cam_idx].GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
-            for (int i = 0; i < points.size(); i++) {
-                cv::Mat mat_point = (cv::Mat_<double>(2,1) << points[i].x, points[i].y);
-                sfm_points_2d.push_back(mat_point);
+                for (int i = 0; i < points.size(); i++) {
+                    cv::Mat mat_point = (cv::Mat_<double>(2, 1) << points[i].x, points[i].y);
+                    sfm_points_2d.push_back(mat_point);
 
-                cv::Mat pose =  poses[cam_idx+i].clone();
+                    cv::Mat pose = poses[cam_idx + i].clone();
 
-                //LOG(INFO) << pose;
+                    //LOG(INFO) << pose;
 
-                pose.col(3) -= t;
-                pose.colRange(cv::Range(0, 3)) *= R.t();
+                    pose.col(3) -= t;
+                    pose.colRange(cv::Range(0, 3)) *= R.t();
 
-                //LOG(INFO) << R << t;
-                //LOG(INFO) << pose;
-                projection_matrices.push_back(K_ * pose);
+                    //LOG(INFO) << R << t;
+                    //LOG(INFO) << pose;
+                    projection_matrices.push_back(K_ * pose);
+                }
+
+                cv::Mat point_3d_mat;
+                cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
+                points3d = points3DToVec(point_3d_mat);
+
+                p = cv::Mat(points3d[0]);
+                dist = cv::norm(p);
+                p = (R * p) + t;
+
+            } else {
+
+                for (int i = 0; i < points.size(); i++) {
+                    sfm_points_2d.emplace_back((cv::Mat_<double>(2,1) << points[i].x, points[i].y));
+                    projection_matrices.push_back(K_ * poses[cam_idx+i]);
+                }
+
+                cv::Mat point_3d_mat;
+                cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
+                points3d = points3DToVec(point_3d_mat);
+
+                p = cv::Mat(points3d[0]);
+                dist = 0;// cv::norm(p - poses[cam_idx].col(3));
             }
 
-            cv::Mat point_3d_mat;
-            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
-            std::vector<cv::Point3d> points3d = points3DToVec(point_3d_mat);
-
-            cv::Mat p = cv::Mat(points3d[0]);
-            double dist =  0;//cv::norm(p);
-
-            p.at<double>(0, 0) *= -1;
-            p.at<double>(0, 1) *= -1;
-            p.at<double>(0, 2) *= -1;
-
-            p = (R * p) + t;
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
                 pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
@@ -256,7 +271,7 @@ void BundleAdjustment::setPBAPoints() {
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    //LOG(INFO) << cam_idx + i << " " << i;
+                    LOG(INFO) << cam_idx + i << " " << i;
                     reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
@@ -274,7 +289,6 @@ void BundleAdjustment::setPBAPoints() {
     }
 
     imshow("tracks", tracks);
-
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
 }
 

@@ -43,7 +43,6 @@ int main(int argc, char *argv[]) {
     //Load ground truth
     std::vector<Matrix> result_poses;
 
-
     cv::Mat_<double> pose = cv::Mat::eye(4, 3, CV_64FC1);
     cv::Mat_<double> pose_kalman = cv::Mat::eye(4, 3, CV_64FC1);
 
@@ -87,8 +86,6 @@ int main(int argc, char *argv[]) {
         dir = (R * dir) * 50;
 
         cv::line(map, last_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + last_pos, cv::Scalar(0,255,255), 2 );
-
-
 
         if(resize){
             cv::resize(map, map, cv::Size(), 0.5, 0.5);

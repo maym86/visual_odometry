@@ -29,12 +29,10 @@ public:
 
     cv::Mat draw3D();
 
-
 private:
+
     const size_t kFrameBufferCapacity = 3;
-    const size_t kMinPosePoints = 8;
-    const float kMax3DDist = 200;
-    
+
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
 
@@ -44,9 +42,6 @@ private:
     boost::circular_buffer<VOFrame> frame_buffer_;
 
     cv::Scalar color_;
-
-    cv::Point2f focal_;
-    cv::Point2f pp_;
     cv::Mat K_;
 
     cv::Mat last_keyframe_t_;

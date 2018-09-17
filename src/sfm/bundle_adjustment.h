@@ -27,7 +27,7 @@
 class BundleAdjustment {
 
 public:
-    BundleAdjustment();
+    explicit  BundleAdjustment(bool global_pose=true);
 
     void init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames);
 
@@ -65,6 +65,9 @@ private:
     cv::Mat K_;
     size_t max_frames_;
     int count_ = 0;
+
+
+    bool global_pose_;
 
     void reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat);
 

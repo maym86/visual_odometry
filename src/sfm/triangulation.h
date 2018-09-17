@@ -1,5 +1,4 @@
 
-
 #ifndef VO_SFM_TRIANGULATION_H
 #define VO_SFM_TRIANGULATION_H
 
