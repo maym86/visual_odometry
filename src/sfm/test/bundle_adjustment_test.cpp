@@ -27,7 +27,7 @@ void run(float offset){
     K.at<double>(0,2) = pp.x;
     K.at<double>(1,2) = pp.y;
 
-    BundleAdjustment ba;
+    BundleAdjustment ba(false);
 
     VOFrame vo0;
     VOFrame vo1;

@@ -15,7 +15,7 @@ BundleAdjustment::BundleAdjustment(bool global_pose) : pba_(ParallelBA::DeviceT:
 
 void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
-    char *argv[] = {(char*)"-lmi<100>", (char*)"-v", (char*)"1", nullptr};
+    char *argv[] = {(char *) "-lmi<100>", (char *) "-v", (char *) "1", nullptr};
     int argc = sizeof(argv) / sizeof(char *);
 
     pba_.ParseParam(argc, argv);
@@ -26,12 +26,12 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
     pp_ = pp;
     focal_ = focal;
 
-    K_ = cv::Mat::eye(3,3,CV_64F);
+    K_ = cv::Mat::eye(3, 3, CV_64F);
 
-    K_.at<double>(0,0) = focal.x;
-    K_.at<double>(1,1) = focal.y;
-    K_.at<double>(0,2) = pp.x;
-    K_.at<double>(1,2) = pp.y;
+    K_.at<double>(0, 0) = focal.x;
+    K_.at<double>(1, 1) = focal.y;
+    K_.at<double>(0, 2) = pp.x;
+    K_.at<double>(1, 2) = pp.y;
 }
 
 
@@ -40,8 +40,8 @@ void BundleAdjustment::matcher() {
 
     cv::BFMatcher matcher;
     pairwise_matches_.clear();
-    for(int i = 0; i < features_.size() -1; i++) {
-        int j=i+1;
+    for (int i = 0; i < features_.size() - 1; i++) {
+        int j = i + 1;
 
         std::vector<std::vector<cv::DMatch>> matches;
         matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
@@ -57,7 +57,7 @@ void BundleAdjustment::matcher() {
                 const auto &p0 = features_[i].keypoints[matches[k][0].queryIdx];
                 const auto &p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                if(cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100) {
+                if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100) {
                     good_matches.matches.push_back(matches[k][0]);
                     good_matches.inliers_mask.push_back(1);
 
@@ -70,8 +70,8 @@ void BundleAdjustment::matcher() {
         cv::Mat mask, R, t;
         cv::Mat E = cv::findEssentialMat(points0, points1, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, mask);
 
-        for(int k = 0; k< good_matches.inliers_mask.size(); k++){
-            if(!mask.at<bool>(k)) {
+        for (int k = 0; k < good_matches.inliers_mask.size(); k++) {
+            if (!mask.at<bool>(k)) {
                 good_matches.inliers_mask[k] = 0;
             }
         }
@@ -88,7 +88,7 @@ void BundleAdjustment::matcher() {
 void BundleAdjustment::createTracks() {
 
     tracks_.clear();
-    std::vector<std::unordered_map<int,int>> pairs(pba_cameras_.size()-1);
+    std::vector<std::unordered_map<int, int>> pairs(pba_cameras_.size() - 1);
     for (auto &pwm : pairwise_matches_) {
         int idx_cam0 = pwm.src_img_idx;
         for (int i = 0; i < pwm.matches.size(); i++) {
@@ -100,13 +100,13 @@ void BundleAdjustment::createTracks() {
         }
     }
 
-    tracks_.resize(pba_cameras_.size()-1);
+    tracks_.resize(pba_cameras_.size() - 1);
 
     for (int cam_idx = 0; cam_idx < pairs.size(); cam_idx++) {
 
         for (std::pair<int, int> element : pairs[cam_idx]) {
 
-            if(element.second == -1){
+            if (element.second == -1) {
                 continue;
             }
 
@@ -116,10 +116,10 @@ void BundleAdjustment::createTracks() {
             int key = element.second;
             int cam = cam_idx + 1;
 
-            if(cam < pairs.size()) {
+            if (cam < pairs.size()) {
                 while (pairs[cam].find(key) != pairs[cam].end()) {
                     key = pairs[cam][key];
-                    if (key == -1){
+                    if (key == -1) {
                         break;
                     }
 
@@ -127,7 +127,7 @@ void BundleAdjustment::createTracks() {
                     track.push_back(key);
                     cam++;
 
-                    if(cam == pairs.size()){
+                    if (cam == pairs.size()) {
                         break;
                     }
                 }
@@ -179,7 +179,7 @@ void BundleAdjustment::setPBAPoints() {
     pba_2d3d_idx_.clear();
 
     std::vector<cv::Mat> poses;
-    for(auto c : pba_cameras_){
+    for (auto c : pba_cameras_) {
         cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
         cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
 
@@ -194,9 +194,9 @@ void BundleAdjustment::setPBAPoints() {
 
     cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
 
-    for(int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++ ){
+    for (int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++) {
 
-        for(const auto &track : tracks_[cam_idx]) {
+        for (const auto &track : tracks_[cam_idx]) {
 
             std::vector<cv::Point2f> points;
             for (int i = 0; i < track.size(); i++) {
@@ -216,7 +216,7 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat p;
             std::vector<cv::Point3d> points3d;
 
-            if(!global_pose_) { //reset the points to 0,0 before calc
+            if (!global_pose_) { //reset the points to 0,0 before calc
                 cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
                 cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
 
@@ -250,8 +250,8 @@ void BundleAdjustment::setPBAPoints() {
             } else {
 
                 for (int i = 0; i < points.size(); i++) {
-                    sfm_points_2d.emplace_back((cv::Mat_<double>(2,1) << points[i].x, points[i].y));
-                    projection_matrices.push_back(K_ * poses[cam_idx+i]);
+                    sfm_points_2d.emplace_back((cv::Mat_<double>(2, 1) << points[i].x, points[i].y));
+                    projection_matrices.push_back(K_ * poses[cam_idx + i]);
                 }
 
                 cv::Mat point_3d_mat;
@@ -265,7 +265,7 @@ void BundleAdjustment::setPBAPoints() {
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
                 pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
-                                                    static_cast<float>(p.at<double>(0, 1)) ,
+                                                    static_cast<float>(p.at<double>(0, 1)),
                                                     static_cast<float>(p.at<double>(0, 2))});
 
 
@@ -279,7 +279,7 @@ void BundleAdjustment::setPBAPoints() {
                     pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
 
 
-                    if(i < points.size() - 1) {
+                    if (i < points.size() - 1) {
                         cv::line(tracks, points[i], points[i + 1], cv::Scalar(0, 255, 0), 1);
                         cv::circle(tracks, points[i], 2, cv::Scalar(255, 0, 0), 2);
                     }
@@ -309,14 +309,15 @@ void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Poin
     p_2d.at<double>(0) = (point.x - pp_.x) / focal_.x;
     p_2d.at<double>(1) = (point.y - pp_.y) / focal_.y;
 
-    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t() << (point.x - pp_.x) / focal_.x << "," << (point.y - pp_.y) / focal_.y;
+    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t() << (point.x - pp_.x) / focal_.x << ","
+              << (point.y - pp_.y) / focal_.y;
 }
 
 
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    if(pba_3d_points_.empty() || pba_image_points_.empty()) {
+    if (pba_3d_points_.empty() || pba_image_points_.empty()) {
         LOG(INFO) << "Bundle adjustment points are empty";
         return 1;
     }
@@ -344,7 +345,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     return 0;
 }
 
-void BundleAdjustment::draw(float scale){
+void BundleAdjustment::draw(float scale) {
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
     cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
@@ -355,23 +356,24 @@ void BundleAdjustment::draw(float scale){
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
-    for (const auto &cam : pba_cameras_){
+    for (const auto &cam : pba_cameras_) {
         cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
 
         cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
         cam.GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
-        double data[3] = {0,0,1};
-        cv::Mat dir(3,1,CV_64FC1, data);
+        double data[3] = {0, 0, 1};
+        cv::Mat dir(3, 1, CV_64FC1, data);
 
         dir = (R * dir) * 10 * scale;
 
-        cv::line(ba_map, draw_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + draw_pos, cv::Scalar(0,255,255), 2 );
+        cv::line(ba_map, draw_pos, cv::Point2d(dir.at<double>(0, 0), dir.at<double>(0, 2)) + draw_pos,
+                 cv::Scalar(0, 255, 255), 2);
 
     }
 
-    if(!pba_cameras_.empty()) {
+    if (!pba_cameras_.empty()) {
         const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
         cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 4);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
