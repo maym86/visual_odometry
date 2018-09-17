@@ -240,7 +240,7 @@ void BundleAdjustment::setPBAPoints() {
                     //LOG(INFO) << cam_idx + i << " " << i;
                     //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
-                    points_img[cam_idx + i] = points[i];
+                    points_img[cam_idx + i] = points[i] - pp_;
                     visibility[cam_idx + i] = 1;
 
                     if (i < points.size() - 1) {
