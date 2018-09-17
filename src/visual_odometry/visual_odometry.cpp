@@ -13,8 +13,7 @@ VisualOdometry::VisualOdometry(const cv::Mat &K, size_t min_tracked_points) {
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
     bundle_adjustment_.init(K, 10);
-
-    K_ = K;
+    K_ = K.clone();
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {
@@ -23,6 +22,14 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     frame.setImage(image);
     frame_buffer_.push_back(std::move(frame));
     if (!frame_buffer_.full()) {
+
+        frame_buffer_[frame_buffer_.size() -1 ].pose_R.at<double>(0,0) = -1;
+        frame_buffer_[frame_buffer_.size() -1 ].pose_R.at<double>(1,1) = -1;
+        frame_buffer_[frame_buffer_.size() -1 ].pose_R.at<double>(2,2) = -1;
+
+        hconcat(frame_buffer_[frame_buffer_.size() -1 ].pose_R,
+                frame_buffer_[frame_buffer_.size() -1 ].pose_t,
+                frame_buffer_[frame_buffer_.size() -1 ].pose);
         return;
     }
 
@@ -55,7 +62,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 0.1) {
         bundle_adjustment_.addKeyFrame(vo2);
 
-        int res = 1;// bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
         bundle_adjustment_.draw(1);
 
         if (res == 0) {

@@ -33,7 +33,7 @@ void run(VOFrame &vo0, VOFrame &vo1) {
     feature_tracker.trackPoints(&vo0, &vo1);
 
     vo1.E = cv::findEssentialMat(vo0.points, vo1.points, K, cv::RANSAC, 0.999, 1.0, vo1.mask);
-    recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, K, vo1.mask);
+    recoverPose(vo1.E, vo0.points, vo1.points, K, vo1.local_R, vo1.local_t, vo1.mask);
 
     std::vector<cv::Point2f> p0, p1;
     for (int i = 0; i < vo0.points.size(); i ++){

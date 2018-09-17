@@ -23,7 +23,7 @@ public:
     //Global pose
     cv::Mat pose_R = cv::Mat::eye(3, 3, CV_64FC1);
     cv::Mat pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
-    cv::Mat pose = cv::Mat::eye(4, 4, CV_64FC1); //global
+    cv::Mat pose = cv::Mat::eye(3, 4, CV_64FC1); //global
 
     float scale = 1.0;
 

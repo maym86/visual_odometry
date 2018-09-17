@@ -36,6 +36,7 @@ public:
     int slove(cv::Mat *R, cv::Mat *t);
 
     void draw(float scale=1.0);
+    void drawViz();
 private:
     const float kMax3DDist = 200;
 
@@ -57,6 +58,7 @@ private:
     std::vector<Point2D> pba_image_points_;   //measurment/projection vector
     std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
+    std::vector<cv::Point3d> points_3d_;
 
     std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;

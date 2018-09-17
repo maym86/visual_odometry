@@ -17,7 +17,7 @@
 #include "src/utils/draw.h"
 
 void run(float offset){
-    cv::Mat K = cv::Mat::eye(3,3,CV_64F);
+    cv::Mat K = cv::Mat::eye(3,3,CV_64FC1);
 
     K.at<double>(0,0) = 718.856;
     K.at<double>(1,1) = 718.856;
@@ -66,9 +66,11 @@ void run(float offset){
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(5);
+    ba.draw(1);
 
+    ba.drawViz();
     cv::waitKey(0);
+
     cv::Mat R, t;
     ba.slove(&R, &t);
 
@@ -79,13 +81,13 @@ void run(float offset){
     LOG(INFO) << dist;
     EXPECT_NEAR(dist, 0, 0.1);
 
-    ba.draw(5);
+    ba.drawViz();
+    ba.draw(1);
     cv::waitKey(0);
 }
 
 TEST(BundleAdjustmentTest, Passes) {
     run(0);
     run(50);
-
 }
 

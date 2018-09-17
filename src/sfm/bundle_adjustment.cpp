@@ -9,6 +9,12 @@
 
 #include "src/utils/draw.h"
 
+#include <opencv2/viz/types.hpp>
+#include <opencv2/viz/widgets.hpp>
+#include <opencv2/viz/viz3d.hpp>
+#include <opencv2/viz/vizcore.hpp>
+
+
 BundleAdjustment::BundleAdjustment(bool global_pose) : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
     global_pose_ = global_pose;
 }
@@ -23,7 +29,7 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
     matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
     max_frames_ = max_frames;
 
-    K_ = K;
+    K_ = K.clone();
 
     focal_ = cv::Point2d(K.at<double>(0,0), K.at<double>(1,1));
     pp_ = cv::Point2d(K.at<double>(0,2), K.at<double>(1,2));
@@ -186,7 +192,6 @@ void BundleAdjustment::setPBAPoints() {
         poses.push_back(std::move(P));
     }
 
-
     cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
 
     for (int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++) {
@@ -224,13 +229,9 @@ void BundleAdjustment::setPBAPoints() {
 
                     cv::Mat pose = poses[cam_idx + i].clone();
 
-                    //LOG(INFO) << pose;
-
                     pose.col(3) -= t;
                     pose.colRange(cv::Range(0, 3)) *= R.t();
 
-                    //LOG(INFO) << R << t;
-                    //LOG(INFO) << pose;
                     projection_matrices.push_back(K_ * pose);
                 }
 
@@ -259,15 +260,19 @@ void BundleAdjustment::setPBAPoints() {
 
             //TODO make sure z is pos
             if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
+
+                points_3d_.push_back(cv::Point3d(static_cast<float>(p.at<double>(0, 0)),
+                        static_cast<float>(p.at<double>(0, 1)),
+                                                         static_cast<float>(p.at<double>(0, 2))));
+
                 pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
                                                     static_cast<float>(p.at<double>(0, 1)),
                                                     static_cast<float>(p.at<double>(0, 2))});
 
-
                 for (int i = 0; i < points.size(); i++) {
 
-                    LOG(INFO) << cam_idx + i << " " << i;
-                    reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
+                    //LOG(INFO) << cam_idx + i << " " << i;
+                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);
@@ -304,8 +309,9 @@ void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Poin
     p_2d.at<double>(0) = (point.x - pp_.x) / focal_.x;
     p_2d.at<double>(1) = (point.y - pp_.y) / focal_.y;
 
-    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t() << (point.x - pp_.x) / focal_.x << ","
-              << (point.y - pp_.y) / focal_.y;
+    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t()
+                << (point.x - pp_.x) / focal_.x << ","
+                << (point.y - pp_.y) / focal_.y;
 }
 
 
@@ -378,3 +384,30 @@ void BundleAdjustment::draw(float scale) {
 }
 
 
+
+void BundleAdjustment::drawViz(){
+
+    cv::viz::Viz3d myWindow("Coordinate Frame");
+    myWindow.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
+
+    int count = 0;
+    for (auto c : pba_cameras_) {
+        cv::viz::WCameraPosition cam(cv::Matx33d(K_), 30, cv::viz::Color::white());
+        myWindow.showWidget("c" + std::to_string(count), cam);
+
+        cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
+        cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
+
+        c.GetTranslation(reinterpret_cast<double *>(t.data));
+        c.GetMatrixRotation(reinterpret_cast<double *>(R.data));
+
+        cv::Affine3d pose(R, t);
+        myWindow.setWidgetPose("c" + std::to_string(count), pose);
+        count++;
+    }
+    cv::viz::WCloud cloud_widget1(points_3d_, cv::viz::Color::green());
+
+    myWindow.showWidget("cloud 2", cloud_widget1);
+
+    myWindow.spin();
+}
