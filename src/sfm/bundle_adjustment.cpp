@@ -25,6 +25,8 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 
     focal_ = cv::Point2d(K.at<double>(0,0), K.at<double>(1,1));
     pp_ = cv::Point2d(K.at<double>(0,2), K.at<double>(1,2));
+
+    //sba_.
 }
 
 
@@ -230,8 +232,8 @@ void BundleAdjustment::setPBAPoints() {
 
                 points_3d_.push_back( points3d[0]);
 
-                std::vector< cv::Point2d > points_img(camera_matrix_.size());
-                std::vector< int > visibility(camera_matrix_.size());
+                std::vector< cv::Point2d > points_img(camera_matrix_.size(), cv::Point2d(0,0));
+                std::vector< int > visibility(camera_matrix_.size(), 0);
 
                 for (int i = 0; i < points.size(); i++) {
 
@@ -262,29 +264,6 @@ void BundleAdjustment::setPBAPoints() {
     LOG(INFO) << points_3d_.size() << " " << points_img_.size();
 }
 
-void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat) {
-    cv::Mat p_h = cv::Mat::ones(4, 1, CV_64FC1);
-
-    p_h.at<double>(0) = point3d.x;
-    p_h.at<double>(1) = point3d.y;
-    p_h.at<double>(2) = point3d.z;
-
-    cv::Mat repo = proj_mat * p_h;
-
-    repo.at<double>(0) /= repo.at<double>(2);
-    repo.at<double>(1) /= repo.at<double>(2);
-    repo.at<double>(2) /= repo.at<double>(2);
-
-    cv::Mat p_2d = cv::Mat::ones(3, 1, CV_64FC1);
-    p_2d.at<double>(0) = (point.x - pp_.x) / focal_.x;
-    p_2d.at<double>(1) = (point.y - pp_.y) / focal_.y;
-
-    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t()
-                << (point.x - pp_.x) / focal_.x << ","
-                << (point.y - pp_.y) / focal_.y;
-}
-
-
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
@@ -292,8 +271,6 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         LOG(INFO) << "Bundle adjustment points are empty";
         return 1;
     }
-
-
 
 
     sba_.run(points_3d_, points_img_, visibility_, camera_matrix_, R_, T_, dist_coeffs_);
