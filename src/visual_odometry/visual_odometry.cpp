@@ -6,20 +6,15 @@
 
 #include "vo_pose.h"
 
-VisualOdometry::VisualOdometry(const cv::Point2f &focal, const cv::Point2f &pp, size_t min_tracked_points) {
+VisualOdometry::VisualOdometry(const cv::Mat &K, size_t min_tracked_points) {
     tracking_ = false;
 
     min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(focal, pp, 10);
+    bundle_adjustment_.init(K, 10);
 
-    K_ = cv::Mat::eye(3,3,CV_64F);
-
-    K_.at<double>(0,0) = focal.x;
-    K_.at<double>(1,1) = focal.y;
-    K_.at<double>(0,2) = pp.x;
-    K_.at<double>(1,2) = pp.y;
+    K_ = K;
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {

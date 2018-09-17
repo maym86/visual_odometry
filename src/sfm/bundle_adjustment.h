@@ -29,7 +29,7 @@ class BundleAdjustment {
 public:
     explicit  BundleAdjustment(bool global_pose=true);
 
-    void init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames);
+    void init(const cv::Mat &K, size_t max_frames);
 
     void addKeyFrame(const VOFrame &frame);
 

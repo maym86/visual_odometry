@@ -17,7 +17,7 @@ public:
     cv::Mat E; // Essential matrix
     cv::Mat local_R; // Rotation
     cv::Mat local_t; // Translation
-    cv::Mat local_pose; // Projection matrix K[R|t]
+    cv::Mat local_pose; // Pose [R|t]
     cv::Mat mask;
 
     //Global pose

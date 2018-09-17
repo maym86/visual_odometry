@@ -13,7 +13,7 @@ BundleAdjustment::BundleAdjustment(bool global_pose) : pba_(ParallelBA::DeviceT:
     global_pose_ = global_pose;
 }
 
-void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
+void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 
     char *argv[] = {(char *) "-lmi<100>", (char *) "-v", (char *) "1", nullptr};
     int argc = sizeof(argv) / sizeof(char *);
@@ -23,15 +23,10 @@ void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, siz
     matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
     max_frames_ = max_frames;
 
-    pp_ = pp;
-    focal_ = focal;
+    K_ = K;
 
-    K_ = cv::Mat::eye(3, 3, CV_64F);
-
-    K_.at<double>(0, 0) = focal.x;
-    K_.at<double>(1, 1) = focal.y;
-    K_.at<double>(0, 2) = pp.x;
-    K_.at<double>(1, 2) = pp.y;
+    focal_ = cv::Point2d(K.at<double>(0,0), K.at<double>(1,1));
+    pp_ = cv::Point2d(K.at<double>(0,2), K.at<double>(1,2));
 }
 
 
@@ -68,7 +63,7 @@ void BundleAdjustment::matcher() {
             }
         }
         cv::Mat mask, R, t;
-        cv::Mat E = cv::findEssentialMat(points0, points1, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, mask);
+        cv::Mat E = cv::findEssentialMat(points0, points1, K_, cv::RANSAC, 0.999, 1.0, mask);
 
         for (int k = 0; k < good_matches.inliers_mask.size(); k++) {
             if (!mask.at<bool>(k)) {

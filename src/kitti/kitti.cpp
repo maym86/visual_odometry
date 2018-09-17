@@ -34,7 +34,7 @@ cv::Mat loadKittiCalibration(std::string calib_file, int line_number) {
         data[i] = std::stod(elements[i]);
     }
 
-    return cv::Mat(3, 4, CV_64F, &data).clone();
+    return cv::Mat(3, 4, CV_64F, &data).colRange(cv::Range(0,3)).clone();
 }
 
 

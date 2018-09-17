@@ -32,13 +32,14 @@ int main(int argc, char *argv[]) {
 
     cv::Mat output;
 
-    cv::Mat intrinsics = loadKittiCalibration(data_dir + FLAGS_calib_file, FLAGS_calib_line_number);
-    LOG(INFO) << "Camera matrix: " << intrinsics;
+    cv::Mat K = loadKittiCalibration(data_dir + FLAGS_calib_file, FLAGS_calib_line_number);
 
-    cv::Point2f focal(intrinsics.at<double>(0, 0) * FLAGS_image_scale, intrinsics.at<double>(1, 1) * FLAGS_image_scale);
-    cv::Point2d pp(intrinsics.at<double>(0, 2) * FLAGS_image_scale, intrinsics.at<double>(1, 2) * FLAGS_image_scale);
+    K.at<double>(0, 0) *= FLAGS_image_scale;
+    K.at<double>(1, 1) *= FLAGS_image_scale;
+    K.at<double>(0, 2) *= FLAGS_image_scale;
+    K.at<double>(1, 2) *= FLAGS_image_scale;
 
-    LOG(INFO) << "Focal length " << focal << ", principal point: " << pp;
+    LOG(INFO) << "Camera matrix: " << K;
 
     //Load ground truth
     std::vector<Matrix> result_poses;
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
 
     bool done = false;
 
-    VisualOdometry vo(focal, pp, FLAGS_min_tracked_features);
+    VisualOdometry vo(K, FLAGS_min_tracked_features);
     bool resize = true;
 
     std::vector<cv::Point2d> positions;
