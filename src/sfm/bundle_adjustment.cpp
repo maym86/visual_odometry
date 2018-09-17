@@ -68,18 +68,21 @@ void BundleAdjustment::matcher() {
             }
         }
         cv::Mat mask, R, t;
-        cv::Mat E = cv::findEssentialMat(points0, points1, K_, cv::RANSAC, 0.999, 1.0, mask);
 
-        for (int k = 0; k < good_matches.inliers_mask.size(); k++) {
-            if (!mask.at<bool>(k)) {
-                good_matches.inliers_mask[k] = 0;
+        if(points0.size()>= 5){
+            cv::Mat E = cv::findEssentialMat(points0, points1, K_, cv::RANSAC, 0.999, 1.0, mask);
+
+            for (int k = 0; k < good_matches.inliers_mask.size(); k++) {
+                if (!mask.at<bool>(k)) {
+                    good_matches.inliers_mask[k] = 0;
+                }
             }
+
+            good_matches.src_img_idx = i;
+            good_matches.dst_img_idx = j;
+
+            pairwise_matches_.push_back(good_matches);
         }
-
-        good_matches.src_img_idx = i;
-        good_matches.dst_img_idx = j;
-
-        pairwise_matches_.push_back(good_matches);
     }
 
     createTracks();
@@ -137,14 +140,26 @@ void BundleAdjustment::createTracks() {
     }
 }
 
+
+//// THIS IS THE PROBLEM http://www.land-of-kain.de/docs/coords/
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     CameraT cam;
     cam.f = (focal_.x + focal_.y) / 2;
+
+    cv::Mat t = frame.pose_t.clone();
+    t.at<double>(1) *=-1;
+    t.at<double>(2) *=-1;
+
+
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
 
     //cv::Mat R  = -frame.pose_R.t(); //http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.3-manual.html TODO figure out coordinate stytem that the R and t from recover Pose are in
-    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
+
+    cv::Mat R  = frame.pose_R.clone();
+    R.row(1) *= -1;
+    R.row(2) *= -1;
+    cam.SetMatrixRotation(reinterpret_cast<double *>(R.data));
 
     pba_cameras_.push_back(cam);
 
@@ -323,8 +338,6 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     last_cam.GetTranslation(reinterpret_cast<double *>(t->data));
     last_cam.GetMatrixRotation(reinterpret_cast<double *>(R->data));
 
-    *R  = -R->t();
-
     return 0;
 }
 
@@ -346,7 +359,7 @@ void BundleAdjustment::draw(float scale) {
         cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
         cam.GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
-        double data[3] = {0, 0, 1};
+        double data[3] = {0, 0, -1};
         cv::Mat dir(3, 1, CV_64FC1, data);
 
         dir = (R * dir) * 10 * scale;

@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
     cv::viz::Viz3d map_window("Map");
 
     map_window.showWidget("Map", cv::viz::WCoordinateSystem());
+
     for (const auto &file_name : file_names) {
 
         cv::Mat image = cv::imread(file_name);
@@ -72,23 +73,17 @@ int main(int argc, char *argv[]) {
 
         result_poses.emplace_back(kittiResultMat(pose)); //TODO coversion to kitti coordinates
 
-        //Draw results
-        cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
-
-        cv::line(map, cv::Point(map.cols / 2, 0), cv::Point(map.cols / 2, map.rows), cv::Scalar(0, 0, 255));
-        cv::line(map, cv::Point(0, map.rows / 4), cv::Point(map.cols, map.rows / 4), cv::Scalar(0, 0, 255));
-
         positions.push_back(cv::Point3d(pose.col(3)));
 
-        cv::viz::WCameraPosition cam(cv::Matx33d(K), 3, cv::viz::Color::white());
+        cv::viz::WCameraPosition cam(cv::Matx33d(K), image, 3, cv::viz::Color::white());
         map_window.showWidget("cam", cam);
 
         cv::Affine3d cam_pose(pose.colRange(cv::Range(0,3)), pose.col(3));
         map_window.setWidgetPose("cam", cam_pose);
 
-        cv::viz::WCloud cloud_widget1(positions, cv::viz::Color::green());
+        cv::viz::WCloud track_widget(positions, cv::viz::Color::green());
 
-        map_window.showWidget("cloud 2", cloud_widget1);
+        map_window.showWidget("track", track_widget);
 
         map_window.spinOnce();
 
