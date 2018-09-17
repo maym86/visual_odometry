@@ -14,21 +14,16 @@
 
 #include <glog/logging.h>
 
-cv::Point2d pp(607.1928, 185.2157);
-cv::Point2d focal(718.856, 718.856);
-
 const float kMax3DDist = 200;
-
-
 
 void run(VOFrame &vo0, VOFrame &vo1) {
 
     cv::Mat K = cv::Mat::eye(3,3,CV_64F);
 
-    K.at<double>(0,0) = focal.x;
-    K.at<double>(1,1) = focal.y;
-    K.at<double>(0,2) = pp.x;
-    K.at<double>(1,2) = pp.y;
+    K.at<double>(0,0) = 718.856;
+    K.at<double>(1,1) = 718.856;
+    K.at<double>(0,2) = 607.1928;
+    K.at<double>(1,2) = 185.2157;
 
     FeatureDetector feature_detector;
     FeatureTracker feature_tracker;
@@ -37,8 +32,8 @@ void run(VOFrame &vo0, VOFrame &vo1) {
 
     feature_tracker.trackPoints(&vo0, &vo1);
 
-    vo1.E = cv::findEssentialMat(vo0.points, vo1.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo1.mask);
-    recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, focal.x, pp, vo1.mask);
+    vo1.E = cv::findEssentialMat(vo0.points, vo1.points, K, cv::RANSAC, 0.999, 1.0, vo1.mask);
+    recoverPose(vo1.E, vo0.points, vo1.points, vo1.local_R, vo1.local_t, K, vo1.mask);
 
     std::vector<cv::Point2f> p0, p1;
     for (int i = 0; i < vo0.points.size(); i ++){

@@ -17,15 +17,12 @@
 #include "src/utils/draw.h"
 
 void run(float offset){
-    cv::Point2d pp(607.1928, 185.2157);
-    cv::Point2d focal(718.856, 718.856);
-
     cv::Mat K = cv::Mat::eye(3,3,CV_64F);
 
-    K.at<double>(0,0) = focal.x;
-    K.at<double>(1,1) = focal.y;
-    K.at<double>(0,2) = pp.x;
-    K.at<double>(1,2) = pp.y;
+    K.at<double>(0,0) = 718.856;
+    K.at<double>(1,1) = 718.856;
+    K.at<double>(0,2) = 607.1928;
+    K.at<double>(1,2) = 185.2157;
 
     BundleAdjustment ba(false);
 
@@ -61,12 +58,9 @@ void run(float offset){
     feature_detector.detectFAST(&vo1);
     feature_tracker.trackPoints(&vo1, &vo2);
 
-    vo2.E = cv::findEssentialMat(vo1.points, vo2.points, focal.x, pp, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    recoverPose(vo2.E, vo1.points, vo2.points, vo2.local_R, vo2.local_t, focal.x, pp, vo2.mask);
-
     updatePose(K, &vo1, &vo2);
 
-    ba.init(focal, pp , 3);
+    ba.init(K , 3);
 
     ba.addKeyFrame(vo0);
     ba.addKeyFrame(vo1);
