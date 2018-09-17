@@ -316,7 +316,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     //set the projections
     pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
-    //pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
+    pba_.SetNextBundleMode(ParallelBA::BUNDLE_FULL); //Solving for motion only
 
     if (!pba_.RunBundleAdjustment()) {
         LOG(INFO) << "Camera parameters adjusting failed.";
@@ -352,7 +352,7 @@ void BundleAdjustment::draw(float scale) {
         cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
         cam.GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
-        double data[3] = {0, 0, -1};
+        double data[3] = {0, 0, 1};
         cv::Mat dir(3, 1, CV_64FC1, data);
 
         dir = (R * dir) * 10 * scale;
