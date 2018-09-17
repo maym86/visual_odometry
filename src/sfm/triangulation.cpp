@@ -71,8 +71,8 @@ float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, 
             int vo_index = frame0.tracked_index[index];
 
             if (frame1.mask.at<bool>(index) && frame0.mask.at<bool>(vo_index) &&
-                frame1.points_3d[index].z  > 0  && cv::norm(frame1.points_3d[index] - cv::Point3d(0,0,0)) < max_3d_dist &&
-                frame0.points_3d[vo_index].z  > 0  && cv::norm(frame0.points_3d[vo_index] - cv::Point3d(0,0,0)) < max_3d_dist &&
+                frame1.points_3d[index].z  < 0  && cv::norm(frame1.points_3d[index] - cv::Point3d(0,0,0)) < max_3d_dist &&
+                frame0.points_3d[vo_index].z  < 0  && cv::norm(frame0.points_3d[vo_index] - cv::Point3d(0,0,0)) < max_3d_dist &&
                 index != last) {
 
                 last = index;

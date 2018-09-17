@@ -143,7 +143,9 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     CameraT cam;
     cam.f = (focal_.x + focal_.y) / 2;
     cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
-    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
+
+    //cv::Mat R  = -frame.pose_R.t(); //http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.3-manual.html TODO figure out coordinate stytem that the R and t from recover Pose are in
+    cam.SetMatrixRotation(reinterpret_cast<double *>( frame.pose_R.data));
 
     pba_cameras_.push_back(cam);
 
@@ -203,7 +205,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 3) {
+            if (points.size() < 2) {
                 continue;
             }
 
@@ -213,7 +215,7 @@ void BundleAdjustment::setPBAPoints() {
             std::vector<cv::Mat> sfm_points_2d;
             std::vector<cv::Mat> projection_matrices;
             double dist = 0;
-            cv::Mat p;
+            cv::Mat p, p_up;
             std::vector<cv::Point3d> points3d;
 
             if (!global_pose_) { //reset the points to 0,0 before calc
@@ -255,19 +257,27 @@ void BundleAdjustment::setPBAPoints() {
                 points3d = points3DToVec(point_3d_mat);
 
                 p = cv::Mat(points3d[0]);
-                dist = 0;// cv::norm(p - poses[cam_idx].col(3));
+                dist = cv::norm(p - poses[cam_idx].col(3));
+
+                cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
+                cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
+
+                pba_cameras_[cam_idx].GetTranslation(reinterpret_cast<double *>(t.data));
+                pba_cameras_[cam_idx].GetMatrixRotation(reinterpret_cast<double *>(R.data));
+                p_up = (R.t() * p) - t;
+
             }
 
             //TODO make sure z is pos
-            if (dist < kMax3DDist) { //TODO why are points wrong when I draw them
+            if (dist < kMax3DDist ){ //&& p_up.at<double>(0,2) < 0) { //TODO why are points wrong when I draw them
 
                 points_3d_.push_back(cv::Point3d(static_cast<float>(p.at<double>(0, 0)),
                         static_cast<float>(p.at<double>(0, 1)),
                                                          static_cast<float>(p.at<double>(0, 2))));
 
-                pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
-                                                    static_cast<float>(p.at<double>(0, 1)),
-                                                    static_cast<float>(p.at<double>(0, 2))});
+                pba_3d_points_.emplace_back(Point3D{static_cast<float>(-p.at<double>(0, 0)),
+                                                    static_cast<float>(-p.at<double>(0, 1)),
+                                                    static_cast<float>(-p.at<double>(0, 2))});
 
                 for (int i = 0; i < points.size(); i++) {
 
@@ -343,6 +353,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     last_cam.GetTranslation(reinterpret_cast<double *>(t->data));
     last_cam.GetMatrixRotation(reinterpret_cast<double *>(R->data));
 
+
     return 0;
 }
 
@@ -392,7 +403,15 @@ void BundleAdjustment::drawViz(){
 
     int count = 0;
     for (auto c : pba_cameras_) {
-        cv::viz::WCameraPosition cam(cv::Matx33d(K_), 30, cv::viz::Color::white());
+
+        auto col = cv::viz::Color::red();
+        if(count % 3 == 1) {
+            col = cv::viz::Color::green();
+        } else if(count % 3 == 2) {
+            col = cv::viz::Color::blue();
+        }
+
+        cv::viz::WCameraPosition cam(cv::Matx33d(K_), 3, col);
         myWindow.showWidget("c" + std::to_string(count), cam);
 
         cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
@@ -407,7 +426,7 @@ void BundleAdjustment::drawViz(){
     }
     cv::viz::WCloud cloud_widget1(points_3d_, cv::viz::Color::green());
 
-    myWindow.showWidget("cloud 2", cloud_widget1);
+    //myWindow.showWidget("cloud 2", cloud_widget1);
 
     myWindow.spin();
 }

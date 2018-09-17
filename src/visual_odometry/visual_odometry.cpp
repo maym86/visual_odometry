@@ -22,14 +22,6 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     frame.setImage(image);
     frame_buffer_.push_back(std::move(frame));
     if (!frame_buffer_.full()) {
-
-        frame_buffer_[frame_buffer_.size() -1 ].pose_R.at<double>(0,0) = -1;
-        frame_buffer_[frame_buffer_.size() -1 ].pose_R.at<double>(1,1) = -1;
-        frame_buffer_[frame_buffer_.size() -1 ].pose_R.at<double>(2,2) = -1;
-
-        hconcat(frame_buffer_[frame_buffer_.size() -1 ].pose_R,
-                frame_buffer_[frame_buffer_.size() -1 ].pose_t,
-                frame_buffer_[frame_buffer_.size() -1 ].pose);
         return;
     }
 
@@ -62,7 +54,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 0.1) {
         bundle_adjustment_.addKeyFrame(vo2);
 
-        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        int res =  1;//bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
         bundle_adjustment_.draw(1);
 
         if (res == 0) {
@@ -112,7 +104,7 @@ cv::Mat VisualOdometry::draw3D() {
         std::vector<cv::Point3d> inliers;
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
-            if(vo2.mask.at<bool>(j) && vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < kMax3DDist) {
+            if(vo2.mask.at<bool>(j) && vo2.points_3d[j].z < 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < kMax3DDist) {
                 cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale * 20 + drawXY.cols / 2,
                                                    vo2.points_3d[j].y * vo2.scale * 20 + drawXY.rows / 2);
 
