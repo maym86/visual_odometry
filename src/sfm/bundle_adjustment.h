@@ -22,12 +22,11 @@
 #endif
 
 
-#include "pba/src/pba/pba.h"
+#include <cvsba/cvsba.h>
 
 class BundleAdjustment {
 
 public:
-    BundleAdjustment();
 
     void init(const cv::Mat &K, size_t max_frames);
 
@@ -46,19 +45,23 @@ private:
 
     FeatureDetector feature_detector_;
 
-    cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 
-    std::vector<CameraT> pba_cameras_;    //camera (input/ouput)
+
+    std::vector< cv::Point3d > points_3d_;
+
+    std::vector< std::vector< cv::Point2d > > points_img_;
+    std::vector< std::vector< int > > visibility_;
+    std::vector< cv::Mat > camera_matrix_;
+    std::vector< cv::Mat > dist_coeffs_;
+    std::vector< cv::Mat > R_;
+    std::vector< cv::Mat > T_;
+
+
     std::vector<cv::detail::ImageFeatures> features_;
 
-    ParallelBA pba_;
-
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
-    std::vector<Point3D> pba_3d_points_;     //3D point(iput/output)
-    std::vector<Point2D> pba_image_points_;   //measurment/projection vector
-    std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
-    std::vector<cv::Point3d> points_3d_;
+    cvsba::Sba sba_;
 
     std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;

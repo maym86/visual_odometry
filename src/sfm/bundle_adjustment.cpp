@@ -15,17 +15,10 @@
 #include <opencv2/viz/vizcore.hpp>
 
 
-BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
-}
+
 
 void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 
-    char *argv[] = {(char *) "-lmi<100>", (char *) "-v", (char *) "1", nullptr};
-    int argc = sizeof(argv) / sizeof(char *);
-
-    pba_.ParseParam(argc, argv);
-    pba_.SetFixedIntrinsics(true);
-    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
     max_frames_ = max_frames;
 
     K_ = K.clone();
@@ -91,7 +84,7 @@ void BundleAdjustment::matcher() {
 void BundleAdjustment::createTracks() {
 
     tracks_.clear();
-    std::vector<std::unordered_map<int, int>> pairs(pba_cameras_.size() - 1);
+    std::vector<std::unordered_map<int, int>> pairs(camera_matrix_.size() - 1);
     for (auto &pwm : pairwise_matches_) {
         int idx_cam0 = pwm.src_img_idx;
         for (int i = 0; i < pwm.matches.size(); i++) {
@@ -103,7 +96,7 @@ void BundleAdjustment::createTracks() {
         }
     }
 
-    tracks_.resize(pba_cameras_.size() - 1);
+    tracks_.resize(camera_matrix_.size() - 1);
 
     for (int cam_idx = 0; cam_idx < pairs.size(); cam_idx++) {
 
@@ -144,16 +137,11 @@ void BundleAdjustment::createTracks() {
 //// THIS IS THE PROBLEM http://www.land-of-kain.de/docs/coords/
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
-    CameraT cam;
-    cam.f = (focal_.x + focal_.y) / 2;
-    cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
 
-    // http://www.land-of-kain.de/docs/coords/
-    //http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.3-manual.html
-
-    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
-
-    pba_cameras_.push_back(cam);
+    camera_matrix_.push_back(K_.clone());
+    R_.push_back(frame.pose_R.clone());
+    T_.push_back(frame.pose_t.clone());
+    dist_coeffs_.push_back(cv::Mat::zeros(5,1,CV_64F));
 
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
@@ -167,10 +155,11 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     if (features_.size() > max_frames_) {
         features_.erase(features_.begin());
-        pba_cameras_.erase(pba_cameras_.begin());
+        camera_matrix_.erase(camera_matrix_.begin());
+        R_.erase(R_.begin());
+        T_.erase(T_.begin());
+        dist_coeffs_.erase(dist_coeffs_.begin());
     }
-
-    pba_cameras_[0].SetConstantCamera();
 
     matcher();
 
@@ -182,21 +171,17 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 // https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
 void BundleAdjustment::setPBAPoints() {
 
-    pba_3d_points_.clear();
-    pba_image_points_.clear();
-    pba_cam_idx_.clear();
-    pba_2d3d_idx_.clear();
+    points_3d_.clear();
+    points_img_.clear();
+    visibility_.clear();
+
+    visibility_.resize(camera_matrix_.size());
+    points_img_.resize(camera_matrix_.size());
 
     std::vector<cv::Mat> poses;
-    for (auto c : pba_cameras_) {
-        cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
-        cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
-
-        c.GetTranslation(reinterpret_cast<double *>(t.data));
-        c.GetMatrixRotation(reinterpret_cast<double *>(R.data));
-
+    for (int i  =0; i < R_.size(); i++) {
         cv::Mat P;
-        hconcat(R, t, P);
+        hconcat(R_[i], T_[i], P);
         poses.push_back(std::move(P));
     }
 
@@ -236,47 +221,45 @@ void BundleAdjustment::setPBAPoints() {
 
             p = cv::Mat(points3d[0]);
 
-            cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
-            cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
-
-            pba_cameras_[cam_idx].GetTranslation(reinterpret_cast<double *>(t.data));
-            pba_cameras_[cam_idx].GetMatrixRotation(reinterpret_cast<double *>(R.data));
-            p_up = (R.t() * p) - t;
+            p_up = (R_[cam_idx].t() * p) - T_[cam_idx];
             dist = 0;//cv::norm(p_up);
 
 
             //TODO make sure z is pos
             if (dist < kMax3DDist) {// && p_up.at<double>(0,2) < 0) { //TODO why are points wrong when I draw them
 
-                points_3d_.push_back(cv::Point3d(static_cast<float>(p.at<double>(0, 0)),
-                        static_cast<float>(p.at<double>(0, 1)),
-                                                         static_cast<float>(p.at<double>(0, 2))));
+                points_3d_.push_back( points3d[0]);
 
-                pba_3d_points_.emplace_back(Point3D{static_cast<float>(p.at<double>(0, 0)),
-                                                    static_cast<float>(p.at<double>(0, 1)),
-                                                    static_cast<float>(p.at<double>(0, 2))});
+                std::vector< cv::Point2d > points_img(camera_matrix_.size());
+                std::vector< int > visibility(camera_matrix_.size());
 
                 for (int i = 0; i < points.size(); i++) {
 
                     //LOG(INFO) << cam_idx + i << " " << i;
                     //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
-                    pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
-                    pba_cam_idx_.push_back(cam_idx + i);
-                    pba_2d3d_idx_.push_back(static_cast<int>(pba_3d_points_.size() - 1));
-
+                    points_img[cam_idx + i] = points[i];
+                    visibility[cam_idx + i] = 1;
 
                     if (i < points.size() - 1) {
                         cv::line(tracks, points[i], points[i + 1], cv::Scalar(0, 255, 0), 1);
                         cv::circle(tracks, points[i], 2, cv::Scalar(255, 0, 0), 2);
                     }
                 }
+
+
+
+                for(int i=0; i< camera_matrix_.size(); i++) {
+                    visibility_[i].push_back(visibility[i]);
+                    points_img_[i].push_back(points_img[i]);
+
+                }
             }
         }
     }
 
     imshow("tracks", tracks);
-    LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
+    LOG(INFO) << points_3d_.size() << " " << points_img_.size();
 }
 
 void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat) {
@@ -305,35 +288,22 @@ void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Poin
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    if (pba_3d_points_.empty() || pba_image_points_.empty()) {
+    if (points_3d_.empty()) {
         LOG(INFO) << "Bundle adjustment points are empty";
         return 1;
     }
 
-    pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
-    pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
 
-    //set the projections
-    pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
-    pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
 
-    if (!pba_.RunBundleAdjustment()) {
-        LOG(INFO) << "Camera parameters adjusting failed.";
-        return 1;
-    }
 
-    const auto &last_cam = pba_cameras_[pba_cameras_.size() - 1];
+    sba_.run(points_3d_, points_img_, visibility_, camera_matrix_, R_, T_, dist_coeffs_);
 
-    *R = cv::Mat::eye(3, 3, CV_64FC1);
-    *t = cv::Mat::zeros(3, 1, CV_64FC1);
+    LOG(INFO) <<"Initial error="<<sba_.getInitialReprjError()<<". "<<
+             "Final error="<<sba_.getFinalReprjError();
 
-    last_cam.GetTranslation(reinterpret_cast<double *>(t->data));
-    last_cam.GetMatrixRotation(reinterpret_cast<double *>(R->data));
+    *R = R_[R_.size()-1];
 
-    t->at<double>(1) *=-1;
-    t->at<double>(2) *=-1;
-    R->col(1) *=-1;
-    R->col(2) *=-1;
+    *t = T_[T_.size()-1];
 
 
     return 0;
@@ -345,18 +315,18 @@ void BundleAdjustment::draw(float scale) {
     cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
     cv::line(ba_map, cv::Point(0, ba_map.rows / 2), cv::Point(ba_map.cols, ba_map.rows / 2), cv::Scalar(0, 0, 255));
 
-    for (const auto &p : pba_3d_points_) {
-        cv::Point2d draw_pos = cv::Point2d(p.xyz[0] * scale + ba_map.cols / 2, p.xyz[2] * scale + ba_map.rows / 2);
+    for (const auto &p : points_3d_) {
+        cv::Point2d draw_pos = cv::Point2d(p.x * scale + ba_map.cols / 2, p.z * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
-    for (const auto &cam : pba_cameras_) {
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 2);
+    for (int i  =0; i < T_.size(); i++) {
+
+        const cv::Mat & t = T_[i];
+        cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
 
-        cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
-        cam.GetMatrixRotation(reinterpret_cast<double *>(R.data));
-
+        const cv::Mat &R = R_[i];
         double data[3] = {0, 0, 1};
         cv::Mat dir(3, 1, CV_64FC1, data);
 
@@ -367,9 +337,9 @@ void BundleAdjustment::draw(float scale) {
 
     }
 
-    if (!pba_cameras_.empty()) {
-        const auto &cam = pba_cameras_[pba_cameras_.size() - 1];
-        cv::Point2d draw_pos = cv::Point2d(cam.t[0] * scale + ba_map.cols / 2, cam.t[2] * scale + ba_map.rows / 2);
+    if (!T_.empty()) {
+        const auto &t = T_[T_.size() - 1];
+        cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
     }
 
@@ -384,7 +354,10 @@ void BundleAdjustment::drawViz(){
     myWindow.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
 
     int count = 0;
-    for (auto c : pba_cameras_) {
+    for (int i  =0; i < T_.size(); i++) {
+
+        const cv::Mat & t = T_[i];
+        const cv::Mat & R = R_[i];
 
         auto col = cv::viz::Color::red();
         if(count % 3 == 1) {
@@ -395,12 +368,6 @@ void BundleAdjustment::drawViz(){
 
         cv::viz::WCameraPosition cam(cv::Matx33d(K_), 3, col);
         myWindow.showWidget("c" + std::to_string(count), cam);
-
-        cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
-        cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
-
-        c.GetTranslation(reinterpret_cast<double *>(t.data));
-        c.GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
         cv::Affine3d pose(R, t);
         myWindow.setWidgetPose("c" + std::to_string(count), pose);
