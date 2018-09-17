@@ -1,10 +1,9 @@
-/*
+
 #include <gtest/gtest.h>
+#include <glog/logging.h>
 
 #include "src/sfm/bundle_adjustment.h"
-
-#include <glog/logging.h>
-#include <src/visual_odometry/vo_pose.h>
+#include "src/visual_odometry/vo_pose.h"
 
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
@@ -90,4 +89,4 @@ TEST(BundleAdjustmentTest, Passes) {
     run(0);
     run(50);
 }
-*/
+

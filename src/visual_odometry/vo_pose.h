@@ -8,7 +8,7 @@
 const size_t kMinPosePoints = 8;
 const float kMax3DDist = 200;
 
-void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame) {
+inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame) {
 
     new_frame->E = cv::findEssentialMat(last_frame->points, new_frame->points, K, cv::RANSAC, 0.999, 1.0,
                                         new_frame->mask);

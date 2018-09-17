@@ -1,5 +1,7 @@
 
 #include <gtest/gtest.h>
+#include <glog/logging.h>
+
 #include "src/visual_odometry/vo_pose.h"
 
 #include "src/utils/draw.h"
@@ -12,7 +14,6 @@
 #include "src/features/feature_tracker.h"
 #endif
 
-#include <glog/logging.h>
 
 void run(VOFrame &vo0, VOFrame &vo1) {
 
@@ -35,7 +36,7 @@ void run(VOFrame &vo0, VOFrame &vo1) {
     //filter
     for (int i = vo1.points_3d.size() - 1; i >= 0; --i) {
         if (vo1.mask.at<bool>(i) && vo1.points_3d[i].z < 0 &&
-            cv::norm(vo1.points_3d[i] - cv::Point3d(0, 0, 0)) < kMax3DDist) {
+            cv::norm(vo1.points_3d[i] - cv::Point3d(0, 0, 0)) < 200) {
             continue;
         }
 
