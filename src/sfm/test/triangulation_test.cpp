@@ -16,7 +16,7 @@ cv::Point2d pp(607.1928, 185.2157);
 cv::Point2d focal(718.856, 718.856);
 
 
-const int kDrawScale =1;
+const int kDrawScale =10;
 
 void filter(const VOFrame &vo0, VOFrame *vo1){
     //filter
@@ -30,7 +30,7 @@ void filter(const VOFrame &vo0, VOFrame *vo1){
         cv::Mat p(vo1->points_3d[i]);
         p = (R.t() * p) - t;
 
-        if (vo1->mask.at<bool>(i)) {// && cv::norm(p) < 200 && p.at<double>(2) < 0) {
+        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200 && p.at<double>(0, 2) > 0) { //TODO this is wrong
             vo1->points_3d.erase(vo1->points_3d.begin() + i);
             continue;
         }
@@ -139,18 +139,16 @@ TEST(TriangulationTestStereoOffset, Passes) {
     VOFrame vo0;
     VOFrame vo1;
 
-    double data[3] = {0,45,0};
+    double data[3] = {0,1.0177015,0};
     cv::Mat r45 = cv::Mat(3,1, CV_64F, data);
     vo0.pose_R = eulerAnglesToRotationMatrix(r45);
-
-
 
     LOG(INFO) << vo0.pose_R;
     vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-    vo0.pose_t.at<double>(0,0) += 50;
-    vo0.pose_t.at<double>(1,0) += 50;
-    vo0.pose_t.at<double>(2,0) += 50;
+    vo0.pose_t.at<double>(0,0) += 0;
+    vo0.pose_t.at<double>(1,0) += 0;
+    vo0.pose_t.at<double>(2,0) += 0;
 
     hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
     LOG(INFO) << vo0.pose_t;

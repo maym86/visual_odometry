@@ -35,6 +35,7 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
 
         new_frame->pose_t = last_frame->pose_t + new_frame->scale * (last_frame->pose_R * new_frame->local_t);
         new_frame->pose_R = new_frame->local_R * last_frame->pose_R;
+
         hconcat(new_frame->pose_R, new_frame->pose_t, new_frame->pose);
 
     } else {
