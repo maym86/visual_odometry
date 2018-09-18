@@ -20,9 +20,8 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
 
     if (res > kMinPosePoints) {
 
-        ///https://stackoverflow.com/questions/37810218/is-the-recoverpose-function-in-opencv-is-left-handed
-
-        http://www.land-of-kain.de/docs/coords/
+        // https://stackoverflow.com/questions/37810218/is-the-recoverpose-function-in-opencv-is-left-handed
+        // http://www.land-of-kain.de/docs/coords/
         new_frame->local_t = -new_frame->local_t;
         new_frame->local_R = new_frame->local_R.t();
 
@@ -36,6 +35,7 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
 
         new_frame->pose_t = last_frame->pose_t + new_frame->scale * (last_frame->pose_R * new_frame->local_t);
         new_frame->pose_R = new_frame->local_R * last_frame->pose_R;
+
         hconcat(new_frame->pose_R, new_frame->pose_t, new_frame->pose);
 
     } else {
