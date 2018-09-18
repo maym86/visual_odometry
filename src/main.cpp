@@ -6,10 +6,6 @@
 #include "src/visual_odometry/visual_odometry.h"
 #include "src/kitti/kitti.h"
 
-#include <opencv2/viz/types.hpp>
-#include <opencv2/viz/widgets.hpp>
-#include <opencv2/viz/viz3d.hpp>
-#include <opencv2/viz/vizcore.hpp>
 
 using namespace boost::filesystem;
 
@@ -57,12 +53,8 @@ int main(int argc, char *argv[]) {
     VisualOdometry vo(K, FLAGS_min_tracked_features);
     bool resize = true;
 
-    std::vector<cv::Point3d> positions;
+    std::vector<cv::Point2d> positions;
 
-
-    cv::viz::Viz3d map_window("Map");
-
-    map_window.showWidget("Map", cv::viz::WCoordinateSystem());
 
     for (const auto &file_name : file_names) {
 
@@ -73,20 +65,38 @@ int main(int argc, char *argv[]) {
 
         result_poses.emplace_back(kittiResultMat(pose)); //TODO coversion to kitti coordinates
 
-        positions.push_back(cv::Point3d(pose.col(3)));
+        //Draw results
+        cv::Mat map(1500, 1500, CV_8UC3, cv::Scalar(0, 0, 0));
 
-        cv::viz::WCameraPosition cam(cv::Matx33d(K), image, 3, cv::viz::Color::white());
-        map_window.showWidget("cam", cam);
+        cv::line(map, cv::Point(map.cols / 2, 0), cv::Point(map.cols / 2, map.rows), cv::Scalar(0, 0, 255));
+        cv::line(map, cv::Point(0, map.rows / 4), cv::Point(map.cols, map.rows / 4), cv::Scalar(0, 0, 255));
 
-        cv::Affine3d cam_pose(pose.colRange(cv::Range(0,3)), pose.col(3));
-        map_window.setWidgetPose("cam", cam_pose);
+        cv::Point2d last_pos(kDrawScale * pose.at<double>(0, 3) + map.cols / 2,
+                             kDrawScale * pose.at<double>(2, 3) + map.rows / 4);
 
-        cv::viz::WCloud track_widget(positions, cv::viz::Color::green());
+        positions.push_back(last_pos);
 
-        map_window.showWidget("track", track_widget);
+        for (const auto &pos : positions) {
+            cv::circle(map, pos, 1, cv::Scalar(0, 255, 0), 2);
+        }
 
-        map_window.spinOnce();
 
+        double data[3] = {0,0,1};
+        cv::Mat dir(3,1,CV_64FC1, data);
+
+        cv::Mat R = pose.colRange(cv::Range(0, 3));
+
+        dir = (R * dir) * 50;
+
+        cv::line(map, last_pos, cv::Point2d(dir.at<double>(0,0), dir.at<double>(0,2) ) + last_pos, cv::Scalar(0,255,255), 2 );
+
+
+
+        if(resize){
+            cv::resize(map, map, cv::Size(), 0.5, 0.5);
+        }
+
+        cv::imshow("Map", map);
         cv::imshow("Features", vo.drawMatches(image));
         cv::imshow("3D", vo.draw3D());
 

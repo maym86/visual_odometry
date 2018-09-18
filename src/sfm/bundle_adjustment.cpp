@@ -32,6 +32,9 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 
     focal_ = cv::Point2d(K.at<double>(0, 0), K.at<double>(1, 1));
     pp_ = cv::Point2d(K.at<double>(0, 2), K.at<double>(1, 2));
+
+    viz_ = cv::viz::Viz3d("Coordinate Frame");
+    viz_.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
 }
 
 
@@ -360,11 +363,7 @@ void BundleAdjustment::draw(float scale) {
     cv::imshow("BA_Map", ba_map);
 }
 
-
 void BundleAdjustment::drawViz() {
-
-    cv::viz::Viz3d myWindow("Coordinate Frame");
-    myWindow.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
 
     int count = 0;
     for (auto c : pba_cameras_) {
@@ -377,7 +376,7 @@ void BundleAdjustment::drawViz() {
         }
 
         cv::viz::WCameraPosition cam(cv::Matx33d(K_), 3, col);
-        myWindow.showWidget("c" + std::to_string(count), cam);
+        viz_.showWidget("c" + std::to_string(count), cam);
 
         cv::Mat t = cv::Mat::zeros(3, 1, CV_64FC1);
         cv::Mat R = cv::Mat::eye(3, 3, CV_64FC1);
@@ -386,13 +385,18 @@ void BundleAdjustment::drawViz() {
         c.GetMatrixRotation(reinterpret_cast<double *>(R.data));
 
         cv::Affine3d pose(R, t);
-        myWindow.setWidgetPose("c" + std::to_string(count), pose);
+        viz_.setWidgetPose("c" + std::to_string(count), pose);
+
+        if (count == 0) {
+            viz_.setViewerPose(pose);
+        }
         count++;
     }
 
-    if(!points_3d_.empty()) {
-        cv::viz::WCloud cloud_widget1(points_3d_, cv::viz::Color::green());
-        myWindow.showWidget("cloud 2", cloud_widget1);
+    if (!points_3d_.empty()) {
+        cv::viz::WCloud cloud_widget(points_3d_, cv::viz::Color::green());
+
+        viz_.showWidget("cloud", cloud_widget);
     }
-    myWindow.spin();
+    viz_.spinOnce(50);
 }
