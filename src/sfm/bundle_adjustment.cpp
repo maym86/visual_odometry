@@ -26,7 +26,11 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
     focal_ = cv::Point2d(K.at<double>(0,0), K.at<double>(1,1));
     pp_ = cv::Point2d(K.at<double>(0,2), K.at<double>(1,2));
 
-    //sba_.
+    cvsba::Sba::Params param;
+    param.fixedIntrinsics = 5;
+    param.fixedDistortion = 5;
+    sba_.setParams(param);
+
 }
 
 
@@ -168,9 +172,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     setPBAPoints();
 }
 
-// TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
-// Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
-// https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
+// TODO This is wrong - the triangualtion results are weird
 void BundleAdjustment::setPBAPoints() {
 
     points_3d_.clear();
@@ -179,13 +181,6 @@ void BundleAdjustment::setPBAPoints() {
 
     visibility_.resize(camera_matrix_.size());
     points_img_.resize(camera_matrix_.size());
-
-    std::vector<cv::Mat> poses;
-    for (int i  =0; i < R_.size(); i++) {
-        cv::Mat P;
-        hconcat(R_[i], T_[i], P);
-        poses.push_back(std::move(P));
-    }
 
     cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
 
@@ -202,35 +197,34 @@ void BundleAdjustment::setPBAPoints() {
                 continue;
             }
 
-            std::vector<cv::Point2f> points0 = {points[0]};
-            std::vector<cv::Point2f> points1 = {points[1]};
-
             std::vector<cv::Mat> sfm_points_2d;
             std::vector<cv::Mat> projection_matrices;
-            double dist = 0;
-            cv::Mat p, p_up;
             std::vector<cv::Point3d> points3d;
-
 
             for (int i = 0; i < points.size(); i++) {
                 sfm_points_2d.emplace_back((cv::Mat_<double>(2, 1) << points[i].x, points[i].y));
-                projection_matrices.push_back(K_ * poses[cam_idx + i]);
+                LOG(INFO) << points[i].x << " " << points[i].y;
+                cv::Mat P;
+                hconcat(R_[cam_idx + i], T_[cam_idx + i], P);
+
+                projection_matrices.push_back(K_ * P);
             }
+            LOG(INFO) <<  " ";
 
             cv::Mat point_3d_mat;
-            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
+            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat); //What is ging on wth this result
             points3d = points3DToVec(point_3d_mat);
 
-            p = cv::Mat(points3d[0]);
+            cv::Mat p = cv::Mat(points3d[0]);
 
-            p_up = (R_[cam_idx].t() * p) - T_[cam_idx];
-            dist = 0;//cv::norm(p_up);
+            cv::Mat p_up = (R_[cam_idx].t() * p) - T_[cam_idx];
+            double dist = cv::norm(p_up);
 
 
             //TODO make sure z is pos
-            if (dist < kMax3DDist) {// && p_up.at<double>(0,2) < 0) { //TODO why are points wrong when I draw them
+            if ( true ) {//p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
 
-                points_3d_.push_back( points3d[0]);
+                points_3d_.push_back(points3d[0]);
 
                 std::vector< cv::Point2d > points_img(camera_matrix_.size(), cv::Point2d(0,0));
                 std::vector< int > visibility(camera_matrix_.size(), 0);
@@ -240,7 +234,7 @@ void BundleAdjustment::setPBAPoints() {
                     //LOG(INFO) << cam_idx + i << " " << i;
                     //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
-                    points_img[cam_idx + i] = points[i] - pp_;
+                    points_img[cam_idx + i] = points[i];
                     visibility[cam_idx + i] = 1;
 
                     if (i < points.size() - 1) {
@@ -267,7 +261,7 @@ void BundleAdjustment::setPBAPoints() {
 //TODO use full history rather than just updating the newest point
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    if (points_3d_.empty()) {
+    if (points_3d_.empty() || camera_matrix_.size() < 3) {
         LOG(INFO) << "Bundle adjustment points are empty";
         return 1;
     }
