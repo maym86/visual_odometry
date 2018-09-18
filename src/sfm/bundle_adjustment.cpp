@@ -197,13 +197,11 @@ void BundleAdjustment::setPBAPoints() {
                 continue;
             }
 
-            std::vector<cv::Mat> sfm_points_2d;
-            std::vector<cv::Mat> projection_matrices;
-            std::vector<cv::Point3d> points3d;
+            std::vector<cv::Mat_<double>> sfm_points_2d;
+            std::vector<cv::Mat_<double>> projection_matrices;
 
             for (int i = 0; i < points.size(); i++) {
-                sfm_points_2d.emplace_back((cv::Mat_<double>(2, 1) << points[i].x, points[i].y));
-                LOG(INFO) << points[i].x << " " << points[i].y;
+                sfm_points_2d.push_back((cv::Mat_<double>(2, 1) << points[i].x, points[i].y));
                 cv::Mat P;
                 hconcat(R_[cam_idx + i], T_[cam_idx + i], P);
 
@@ -213,18 +211,16 @@ void BundleAdjustment::setPBAPoints() {
 
             cv::Mat point_3d_mat;
             cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat); //What is ging on wth this result
-            points3d = points3DToVec(point_3d_mat);
+            cv::Point3d points3d(point_3d_mat);
+            LOG(INFO) << point_3d_mat << points3d;
 
-            cv::Mat p = cv::Mat(points3d[0]);
-
-            cv::Mat p_up = (R_[cam_idx].t() * p) - T_[cam_idx];
-            double dist = cv::norm(p_up);
-
+            cv::Mat p_up = (R_[cam_idx].t() * point_3d_mat) - T_[cam_idx];
+            double dist = 0;//cv::norm(p_up);
 
             //TODO make sure z is pos
-            if ( true ) {//p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
+            if ( dist < kMax3DDist) {//p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
 
-                points_3d_.push_back(points3d[0]);
+                points_3d_.push_back(points3d);
 
                 std::vector< cv::Point2d > points_img(camera_matrix_.size(), cv::Point2d(0,0));
                 std::vector< int > visibility(camera_matrix_.size(), 0);
