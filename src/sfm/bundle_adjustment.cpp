@@ -9,10 +9,6 @@
 
 #include "src/utils/draw.h"
 
-#include <opencv2/viz/types.hpp>
-#include <opencv2/viz/widgets.hpp>
-#include <opencv2/viz/viz3d.hpp>
-#include <opencv2/viz/vizcore.hpp>
 
 
 
@@ -30,6 +26,10 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
     param.fixedIntrinsics = 5;
     param.fixedDistortion = 5;
     sba_.setParams(param);
+
+
+    viz_ = cv::viz::Viz3d("Coordinate Frame");
+    viz_.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
 
 }
 
@@ -200,8 +200,10 @@ void BundleAdjustment::setPBAPoints() {
             std::vector<cv::Mat_<double>> sfm_points_2d;
             std::vector<cv::Mat_<double>> projection_matrices;
 
+
+
             for (int i = 0; i < points.size(); i++) {
-                sfm_points_2d.push_back((cv::Mat_<double>(2, 1) << points[i].x, points[i].y));
+                sfm_points_2d.push_back(cv::Mat(points[i]).reshape(1));
                 cv::Mat P;
                 hconcat(R_[cam_idx + i], T_[cam_idx + i], P);
 
@@ -209,8 +211,9 @@ void BundleAdjustment::setPBAPoints() {
             }
             LOG(INFO) <<  " ";
 
-            cv::Mat point_3d_mat;
+            cv::Mat_<double> point_3d_mat;
             cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat); //What is ging on wth this result
+            assert(point_3d_mat.type()==CV_64F);
             cv::Point3d points3d(point_3d_mat);
             LOG(INFO) << point_3d_mat << points3d;
 
@@ -218,7 +221,7 @@ void BundleAdjustment::setPBAPoints() {
             double dist = 0;//cv::norm(p_up);
 
             //TODO make sure z is pos
-            if ( dist < kMax3DDist) {//p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
+            if ( true ) { //dist < kMax3DDist &&  p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
 
                 points_3d_.push_back(points3d);
 
@@ -249,7 +252,7 @@ void BundleAdjustment::setPBAPoints() {
             }
         }
     }
-
+    drawViz();
     imshow("tracks", tracks);
     LOG(INFO) << points_3d_.size() << " " << points_img_.size();
 }
@@ -262,16 +265,13 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         return 1;
     }
 
-
     sba_.run(points_3d_, points_img_, visibility_, camera_matrix_, R_, T_, dist_coeffs_);
 
     LOG(INFO) <<"Initial error="<<sba_.getInitialReprjError()<<". "<<
              "Final error="<<sba_.getFinalReprjError();
 
     *R = R_[R_.size()-1];
-
     *t = T_[T_.size()-1];
-
 
     return 0;
 }
@@ -317,11 +317,8 @@ void BundleAdjustment::draw(float scale) {
 
 void BundleAdjustment::drawViz(){
 
-    cv::viz::Viz3d myWindow("Coordinate Frame");
-    myWindow.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
-
     int count = 0;
-    for (int i  =0; i < T_.size(); i++) {
+    for (int i = 0; i < T_.size(); i++) {
 
         const cv::Mat & t = T_[i];
         const cv::Mat & R = R_[i];
@@ -334,15 +331,21 @@ void BundleAdjustment::drawViz(){
         }
 
         cv::viz::WCameraPosition cam(cv::Matx33d(K_), 3, col);
-        myWindow.showWidget("c" + std::to_string(count), cam);
+        viz_.showWidget("c" + std::to_string(count), cam);
 
         cv::Affine3d pose(R, t);
-        myWindow.setWidgetPose("c" + std::to_string(count), pose);
+        viz_.setWidgetPose("c" + std::to_string(count), pose);
+
+        if(count ==0){
+            viz_.setViewerPose(pose);
+        }
         count++;
     }
-    cv::viz::WCloud cloud_widget1(points_3d_, cv::viz::Color::green());
 
-    //myWindow.showWidget("cloud 2", cloud_widget1);
+    if(!points_3d_.empty()) {
+        cv::viz::WCloud cloud_widget(points_3d_, cv::viz::Color::green());
 
-    myWindow.spin();
+        viz_.showWidget("cloud", cloud_widget);
+    }
+    viz_.spinOnce(50);
 }

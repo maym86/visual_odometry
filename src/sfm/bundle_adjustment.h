@@ -22,6 +22,10 @@
 #endif
 
 
+#include <opencv2/viz/types.hpp>
+#include <opencv2/viz/widgets.hpp>
+#include <opencv2/viz/viz3d.hpp>
+#include <opencv2/viz/vizcore.hpp>
 #include <cvsba/cvsba.h>
 
 class BundleAdjustment {
@@ -37,6 +41,9 @@ public:
     void draw(float scale=1.0);
     void drawViz();
 private:
+
+    cv::viz::Viz3d viz_;
+
     const float kMax3DDist = 200;
 
     void matcher();
