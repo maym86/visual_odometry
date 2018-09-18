@@ -218,10 +218,10 @@ void BundleAdjustment::setPBAPoints() {
             LOG(INFO) << point_3d_mat << points3d;
 
             cv::Mat p_up = (R_[cam_idx].t() * point_3d_mat) - T_[cam_idx];
-            double dist = 0;//cv::norm(p_up);
+            double dist = cv::norm(p_up);
 
             //TODO make sure z is pos
-            if ( true ) { //dist < kMax3DDist &&  p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
+            if ( dist < kMax3DDist &&  p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
 
                 points_3d_.push_back(points3d);
 

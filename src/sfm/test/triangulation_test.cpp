@@ -15,6 +15,9 @@
 cv::Point2d pp(607.1928, 185.2157);
 cv::Point2d focal(718.856, 718.856);
 
+
+const int kDrawScale =1;
+
 void filter(const VOFrame &vo0, VOFrame *vo1){
     //filter
 
@@ -25,16 +28,19 @@ void filter(const VOFrame &vo0, VOFrame *vo1){
     for (int i = vo1->points_3d.size() - 1; i >= 0; --i) {
 
         cv::Mat p(vo1->points_3d[i]);
-        //p = (R.t() * p) - t;
+        p = (R.t() * p) - t;
 
-        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200) {
+        if (vo1->mask.at<bool>(i)) {// && cv::norm(p) < 200 && p.at<double>(2) < 0) {
+            vo1->points_3d.erase(vo1->points_3d.begin() + i);
             continue;
         }
 
-        vo1->points_3d.erase(vo1->points_3d.begin() + i);
 
-        origin.push_back(cv::Point3d(p));
+
+
     }
+
+    draw3D("origin", origin, kDrawScale);
 }
 
 void run(VOFrame &vo0, VOFrame &vo1) {
@@ -56,6 +62,13 @@ void run(VOFrame &vo0, VOFrame &vo1) {
 
     updatePose(K, &vo0, &vo1);
 
+
+    LOG(INFO) << rotationMatrixToEulerAngles(vo0.pose_R);
+
+    LOG(INFO) << rotationMatrixToEulerAngles(vo1.pose_R);
+
+
+
     std::vector<cv::Point2f> p0, p1;
     for (int i = 0; i < vo0.points.size(); i ++){
         if(vo1.mask.at<bool>(i)){
@@ -64,11 +77,13 @@ void run(VOFrame &vo0, VOFrame &vo1) {
         }
     }
 
+
+    LOG(INFO) << vo0.pose <<  vo1.pose;
     vo1.points_3d =  triangulate(p0, p1, K * vo0.pose, K * vo1.pose);
 
     filter(vo0, &vo1);
 
-    draw3D("method1", vo1.points_3d, 10);
+    draw3D("method1", vo1.points_3d, kDrawScale);
 
     //Method 3
     cv::Mat points1Mat = (cv::Mat_<double>(2,1) << 1, 1);
@@ -94,7 +109,7 @@ void run(VOFrame &vo0, VOFrame &vo1) {
     vo1.points_3d = points3DToVec(points_3d_mat);
     filter(vo0, &vo1);
 
-    draw3D("method2", vo1.points_3d, 5);
+    draw3D("method2", vo1.points_3d, kDrawScale);
 
     cv::waitKey(0);
 }
@@ -128,12 +143,17 @@ TEST(TriangulationTestStereoOffset, Passes) {
     cv::Mat r45 = cv::Mat(3,1, CV_64F, data);
     vo0.pose_R = eulerAnglesToRotationMatrix(r45);
 
+
+
     LOG(INFO) << vo0.pose_R;
     vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-    vo0.pose_t.at<double>(0,0) += 0;
-    vo0.pose_t.at<double>(1,0) += 0;
-    vo0.pose_t.at<double>(2,0) += 0;
+    vo0.pose_t.at<double>(0,0) += 50;
+    vo0.pose_t.at<double>(1,0) += 50;
+    vo0.pose_t.at<double>(2,0) += 50;
+
+    hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
+    LOG(INFO) << vo0.pose_t;
 
     vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
     vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
