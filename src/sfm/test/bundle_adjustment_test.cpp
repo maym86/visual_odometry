@@ -38,7 +38,7 @@ void run(float offset){
     EXPECT_GT(vo1.image.rows, 0);
     EXPECT_GT(vo2.image.rows, 0);
 
-    double data[3] = {0,45,0};
+    double data[3] = {0,0,0};
     cv::Mat r45 = cv::Mat(3,1, CV_64F, data);
     vo0.pose_R = eulerAnglesToRotationMatrix(r45);
 
