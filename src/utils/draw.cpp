@@ -3,7 +3,35 @@
 #include "draw.h"
 
 
-void draw3D(const std::string &name, std::vector<cv::Point3d> &points_3d, float scale){
+
+void drawPosePoint(float scale, const cv::Mat &P, cv::Mat *drawXY, cv::Mat *drawXZ){
+
+    cv::Mat R = P.colRange(cv::Range(0, 3));
+    cv::Mat t = scale * P.col(3);
+
+    cv::Point2d posXY( t.at<double>(0) + drawXY->cols / 2, t.at<double>(1) + drawXY->rows / 2);
+
+    cv::circle(*drawXY, posXY, 2, cv::Scalar(0, 0, 255), 2);
+
+    cv::Point2d posXZ( t.at<double>(0) + drawXZ->cols / 2, t.at<double>(2) + drawXZ->rows / 2);
+
+    cv::circle(*drawXZ, posXZ, 2, cv::Scalar(0, 0, 255), 2);
+
+
+    double dataXY[3] = {0,1,0};
+    cv::Mat dirXY(3,1,CV_64FC1, dataXY);
+    dirXY = (R * dirXY) * 5 * scale;
+    //cv::line(*drawXY, posXY, cv::Point2d(dirXY.at<double>(0,0), dirXY.at<double>(0,1) ) + posXY, cv::Scalar(0,255,255), 2 );
+
+
+    double dataXZ[3] = {0,0,1};
+    cv::Mat dirXZ(3,1,CV_64FC1, dataXZ);
+    dirXZ = (R * dirXZ) * 5 * scale;
+    cv::line(*drawXZ, posXZ, cv::Point2d(dirXZ.at<double>(0,0), dirXZ.at<double>(0,2) ) + posXZ, cv::Scalar(0,255,255), 2 );
+
+}
+
+void draw3D(const std::string &name, std::vector<cv::Point3d> &points_3d, float scale, const cv::Mat &P0, const cv::Mat &P1){
     cv::Mat drawXY(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat drawXZ(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
 
@@ -25,9 +53,12 @@ void draw3D(const std::string &name, std::vector<cv::Point3d> &points_3d, float 
         cv::circle(drawXZ, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
+    drawPosePoint(scale, P0, &drawXY, &drawXZ);
+    drawPosePoint(scale, P1, &drawXY, &drawXZ);
+
+
     cv::imshow(name + " drawXY", drawXY);
     cv::imshow(name + " drawXZ", drawXZ);
-
 }
 
 
