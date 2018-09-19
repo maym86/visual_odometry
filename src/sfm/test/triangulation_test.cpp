@@ -15,8 +15,7 @@
 cv::Point2d pp(607.1928, 185.2157);
 cv::Point2d focal(718.856, 718.856);
 
-
-const int kDrawScale =10;
+const int kDrawScale = 5;
 
 void filter(const VOFrame &vo0, VOFrame *vo1){
     //filter
@@ -30,17 +29,13 @@ void filter(const VOFrame &vo0, VOFrame *vo1){
         cv::Mat p(vo1->points_3d[i]);
         p = (R.t() * p) - t;
 
-        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200 && p.at<double>(0, 2) > 0) { //TODO this is wrong
-            vo1->points_3d.erase(vo1->points_3d.begin() + i);
+        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200) {// && p.at<double>(2) < t.at<double>(2)) { //TODO this is wrong
             continue;
         }
-
-
-
-
+        vo1->points_3d.erase(vo1->points_3d.begin() + i);
     }
 
-    draw3D("origin", origin, kDrawScale);
+    draw3D("origin", origin, kDrawScale, vo0.pose, vo1->pose);
 }
 
 void run(VOFrame &vo0, VOFrame &vo1) {
@@ -62,12 +57,7 @@ void run(VOFrame &vo0, VOFrame &vo1) {
 
     updatePose(K, &vo0, &vo1);
 
-
-    LOG(INFO) << rotationMatrixToEulerAngles(vo0.pose_R);
-
-    LOG(INFO) << rotationMatrixToEulerAngles(vo1.pose_R);
-
-
+    cv::Mat neg =  cv::Mat::eye(3,3,CV_64F);
 
     std::vector<cv::Point2f> p0, p1;
     for (int i = 0; i < vo0.points.size(); i ++){
@@ -77,13 +67,13 @@ void run(VOFrame &vo0, VOFrame &vo1) {
         }
     }
 
+    LOG(INFO) << vo0.pose << vo1.pose;
 
-    LOG(INFO) << vo0.pose <<  vo1.pose;
     vo1.points_3d =  triangulate(p0, p1, K * vo0.pose, K * vo1.pose);
 
     filter(vo0, &vo1);
 
-    draw3D("method1", vo1.points_3d, kDrawScale);
+    draw3D("method1", vo1.points_3d, kDrawScale, vo0.pose, vo1.pose);
 
     //Method 3
     cv::Mat points1Mat = (cv::Mat_<double>(2,1) << 1, 1);
@@ -109,7 +99,7 @@ void run(VOFrame &vo0, VOFrame &vo1) {
     vo1.points_3d = points3DToVec(points_3d_mat);
     filter(vo0, &vo1);
 
-    draw3D("method2", vo1.points_3d, kDrawScale);
+    draw3D("method2", vo1.points_3d, kDrawScale, vo0.pose, vo1.pose);
 
     cv::waitKey(0);
 }
@@ -139,22 +129,24 @@ TEST(TriangulationTestStereoOffset, Passes) {
     VOFrame vo0;
     VOFrame vo1;
 
-    double data[3] = {0,1.0177015,0};
-    cv::Mat r45 = cv::Mat(3,1, CV_64F, data);
-    vo0.pose_R = eulerAnglesToRotationMatrix(r45);
+    for (int i = 0; i < 64; i++) {
+        double data[3] = {0, static_cast<double>(i)/10.0, 0};
+        cv::Mat euler = cv::Mat(3, 1, CV_64F, data);
+        vo0.pose_R = eulerAnglesToRotationMatrix(euler);
 
-    LOG(INFO) << vo0.pose_R;
-    vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
+        LOG(INFO) << vo0.pose_R;
+        vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-    vo0.pose_t.at<double>(0,0) += 0;
-    vo0.pose_t.at<double>(1,0) += 0;
-    vo0.pose_t.at<double>(2,0) += 0;
+        vo0.pose_t.at<double>(0, 0) += 0;
+        vo0.pose_t.at<double>(1, 0) += 0;
+        vo0.pose_t.at<double>(2, 0) += 0;
 
-    hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
-    LOG(INFO) << vo0.pose_t;
+        hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
+        LOG(INFO) << vo0.pose_t;
 
-    vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
-    vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+        vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
+        vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
 
-    run(vo0,vo1);
+        run(vo0, vo1);
+    }
 }

@@ -6,7 +6,7 @@
 
 #include "src/visual_odometry/vo_frame.h"
 
-void draw3D(const std::string &name, std::vector<cv::Point3d> &points_3d, float scale);
+void draw3D(const std::string &name, std::vector<cv::Point3d> &points_3d, float scale, const cv::Mat &P0, const cv::Mat &P1);
 
 
 void drawPose(const std::string &name, std::vector<VOFrame> &frame, float scale);
