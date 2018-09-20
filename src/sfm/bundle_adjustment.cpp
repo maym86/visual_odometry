@@ -187,7 +187,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 3) {
+            if (points.size() < 2) {
                 continue;
             }
 
@@ -203,13 +203,13 @@ void BundleAdjustment::setPBAPoints() {
             }
 
             cv::Mat_<double> point_3d_mat;
-            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat); //What is ging on wth this result
+            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
             cv::Point3d points3d(point_3d_mat);
 
             cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
             double dist = cv::norm(p_origin);
 
-            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 0) {
+            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 5) {
 
                 points_3d_.push_back(points3d);
 
@@ -219,6 +219,8 @@ void BundleAdjustment::setPBAPoints() {
                 for (int i = 0; i < points.size(); i++) {
                     points_img[cam_idx + i] = points[i];
                     visibility[cam_idx + i] = 1;
+
+                    //compute reporjection error for P an
 
                     if (i < points.size() - 1) {
                         cv::line(tracks, points[i], points[i + 1], cv::Scalar(0, 255, 0), 1);
