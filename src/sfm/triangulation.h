@@ -14,6 +14,9 @@ std::vector<cv::Point3d>
 triangulate(const std::vector<cv::Point2f> &points0,
             const std::vector<cv::Point2f> &points1, const cv::Mat &P0, const cv::Mat &P1);
 
+
+cv::Mat getProjectionMatrix(const cv::Mat &K, const cv::Mat &pose);
+
 float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, size_t max_points, float max_3d_dist);
 
 #endif //VO_SFM_TRIANGULATION_H

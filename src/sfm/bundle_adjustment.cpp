@@ -225,7 +225,7 @@ void BundleAdjustment::setPBAPoints() {
 
             for (int i = 0; i < points.size(); i++) {
                 sfm_points_2d.emplace_back((cv::Mat_<double>(2, 1) << points[i].x, points[i].y));
-                projection_matrices.push_back(K_ * poses[cam_idx + i]);
+                projection_matrices.push_back(getProjectionMatrix(K_, poses[cam_idx + i]));
             }
 
             cv::Mat point_3d_mat;

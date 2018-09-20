@@ -15,7 +15,8 @@
 cv::Point2d pp(607.1928, 185.2157);
 cv::Point2d focal(718.856, 718.856);
 
-const int kDrawScale = 5;
+
+const int kDrawScale = 3;
 
 void filter(const VOFrame &vo0, VOFrame *vo1){
     //filter
@@ -34,8 +35,6 @@ void filter(const VOFrame &vo0, VOFrame *vo1){
         }
         vo1->points_3d.erase(vo1->points_3d.begin() + i);
     }
-
-    draw3D("origin", origin, kDrawScale, vo0.pose, vo1->pose);
 }
 
 void run(VOFrame &vo0, VOFrame &vo1) {
@@ -69,7 +68,7 @@ void run(VOFrame &vo0, VOFrame &vo1) {
 
     LOG(INFO) << vo0.pose << vo1.pose;
 
-    vo1.points_3d =  triangulate(p0, p1, K * vo0.pose, K * vo1.pose);
+    vo1.points_3d =  triangulate(p0, p1,  getProjectionMatrix(K, vo0.pose) , getProjectionMatrix(K ,vo1.pose));
 
     filter(vo0, &vo1);
 
@@ -91,12 +90,13 @@ void run(VOFrame &vo0, VOFrame &vo1) {
     sfm_points_2d.push_back(points2Mat);
 
     std::vector<cv::Mat> sfm_proj_mats;
-    sfm_proj_mats.push_back(K * vo0.pose);
-    sfm_proj_mats.push_back(K * vo1.pose);
+    sfm_proj_mats.push_back(getProjectionMatrix(K, vo0.pose));
+    sfm_proj_mats.push_back(getProjectionMatrix(K ,vo1.pose));
 
     cv::Mat points_3d_mat;
     cv::sfm::triangulatePoints(sfm_points_2d, sfm_proj_mats, points_3d_mat);
     vo1.points_3d = points3DToVec(points_3d_mat);
+
     filter(vo0, &vo1);
 
     draw3D("method2", vo1.points_3d, kDrawScale, vo0.pose, vo1.pose);
@@ -129,12 +129,14 @@ TEST(TriangulationTestStereoOffset, Passes) {
     VOFrame vo0;
     VOFrame vo1;
 
-    for (int i = 0; i < 64; i++) {
-        double data[3] = {0, static_cast<double>(i)/10.0, 0};
-        cv::Mat euler = cv::Mat(3, 1, CV_64F, data);
-        vo0.pose_R = eulerAnglesToRotationMatrix(euler);
+    vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
+    vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
 
-        LOG(INFO) << vo0.pose_R;
+    for (int i = 0; i < 64; i++) {
+        double data[3] = {0, static_cast<float>(i)/10.0, 0};
+        cv::Mat r45 = cv::Mat(3, 1, CV_64F, data);
+        vo0.pose_R = eulerAnglesToRotationMatrix(r45);
+
         vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
         vo0.pose_t.at<double>(0, 0) += 0;
@@ -142,10 +144,6 @@ TEST(TriangulationTestStereoOffset, Passes) {
         vo0.pose_t.at<double>(2, 0) += 0;
 
         hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
-        LOG(INFO) << vo0.pose_t;
-
-        vo0.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
-        vo1.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
 
         run(vo0, vo1);
     }
