@@ -70,7 +70,7 @@ void run(float offset){
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(1);
+    ba.draw(5);
 
     ba.drawViz();
     cv::waitKey(0);
@@ -86,7 +86,7 @@ void run(float offset){
     EXPECT_NEAR(dist, 0, 0.1);
 
     ba.drawViz();
-    ba.draw(1);
+    ba.draw(5);
     cv::waitKey(0);
 }
 

@@ -10,7 +10,7 @@
 #include "src/utils/draw.h"
 
 
-
+#include <opencv2/core/eigen.hpp>
 
 
 void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
@@ -193,7 +193,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 3) {
+            if (points.size() < 2) {
                 continue;
             }
 
@@ -207,13 +207,10 @@ void BundleAdjustment::setPBAPoints() {
 
                 projection_matrices.push_back(getProjectionMatrix(K_, P));
             }
-            LOG(INFO) <<  " ";
 
             cv::Mat_<double> point_3d_mat;
             cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat); //What is ging on wth this result
-            assert(point_3d_mat.type()==CV_64F);
             cv::Point3d points3d(point_3d_mat);
-            LOG(INFO) << point_3d_mat << points3d;
 
             cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
             double dist = cv::norm(p_origin);
@@ -246,6 +243,113 @@ void BundleAdjustment::setPBAPoints() {
     drawViz();
     imshow("tracks", tracks);
     LOG(INFO) << points_3d_.size() << " " << points_img_.size();
+}
+
+
+
+int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
+
+    if(points_3d_.size() < 3){
+        return 1;
+    }
+
+    using namespace gtsam;
+
+    Values result;
+
+    Cal3_S2 K(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.x);
+    noiseModel::Isotropic::shared_ptr measurement_noise = noiseModel::Isotropic::Sigma(2, 2.0); // pixel error in (x,y)
+
+    NonlinearFactorGraph graph;
+    Values initial;
+
+    // Poses
+    for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
+
+        Rot3 R(
+                R_[pose_idx].at<double>(0,0),
+                R_[pose_idx].at<double>(0,1),
+                R_[pose_idx].at<double>(0,2),
+
+                R_[pose_idx].at<double>(1,0),
+                R_[pose_idx].at<double>(1,1),
+                R_[pose_idx].at<double>(1,2),
+
+                R_[pose_idx].at<double>(2,0),
+                R_[pose_idx].at<double>(2,1),
+                R_[pose_idx].at<double>(2,2)
+        );
+
+        Point3 t;
+
+        t(0) = t_[pose_idx].at<double>(0);
+        t(1) = t_[pose_idx].at<double>(1);
+        t(2) = t_[pose_idx].at<double>(2);
+
+        Pose3 pose(R, t);
+
+        // Add prior for the first image
+        if (pose_idx == 0) {
+            noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.1), Vector3::Constant(0.1)).finished());
+            graph.emplace_shared<PriorFactor<Pose3> >(Symbol('x', 0), pose, pose_noise); // add directly to graph
+        }
+
+        initial.insert(Symbol('x', pose_idx), pose);
+
+        // landmark seen
+        for (size_t kp_idx=0; kp_idx < visibility_.size(); kp_idx++) {
+            if (visibility_[kp_idx][pose_idx] == 1) {
+                Point2 pt;
+
+                pt(0) = points_img_[kp_idx][pose_idx].x;
+                pt(1) = points_img_[kp_idx][pose_idx].y;
+
+                graph.emplace_shared<GeneralSFMFactor2<Cal3_S2>>(pt, measurement_noise, Symbol('x', pose_idx), Symbol('l', kp_idx), Symbol('K', 0));
+            }
+        }
+    }
+
+    // Add a prior on the calibration.
+    initial.insert(Symbol('K', 0), K);
+
+    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 100, 100, 0.01 /*skew*/, 100, 100).finished());
+    graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
+
+    // Initialize estimate for landmarks
+    bool init_prior = false;
+
+    for (size_t kp_idx=0; kp_idx < points_3d_.size(); kp_idx++) {
+        initial.insert<Point3>(Symbol('l', kp_idx), Point3(points_3d_[kp_idx].x, points_3d_[kp_idx].y, points_3d_[kp_idx].z));
+
+        if (!init_prior) {
+            init_prior = true;
+
+            noiseModel::Isotropic::shared_ptr point_noise = noiseModel::Isotropic::Sigma(3, 0.1);
+            Point3 p(points_3d_[kp_idx].x, points_3d_[kp_idx].y, points_3d_[kp_idx].z);
+            graph.emplace_shared<PriorFactor<Point3>>(Symbol('l', kp_idx), p, point_noise);
+        }
+    }
+
+    result = LevenbergMarquardtOptimizer(graph, initial).optimize();
+
+    LOG(INFO) << "initial graph error = " << graph.error(initial);
+    LOG(INFO) << "final graph error = " << graph.error(result);
+
+    for (size_t pose_idx=0; pose_idx < result.size(); pose_idx++) {
+
+        Eigen::Matrix<double, 3, 3> R;
+        Eigen::Matrix<double, 3, 1> t;
+
+        R = result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix();
+        t = result.at<Pose3>(Symbol('x', pose_idx)).translation().vector();
+
+        cv::eigen2cv(R, R_[pose_idx]);
+        cv::eigen2cv(t, t_[pose_idx]);
+
+    }
+
+    *R = R_[R_.size()-1];
+    *t = t_[t_.size()-1];
 }
 
 //TODO use full history rather than just updating the newest point

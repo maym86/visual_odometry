@@ -28,6 +28,19 @@
 #include <opencv2/viz/vizcore.hpp>
 #include <cvsba/cvsba.h>
 
+
+
+#include <gtsam/geometry/Point2.h>
+#include <gtsam/inference/Symbol.h>
+#include <gtsam/slam/PriorFactor.h>
+#include <gtsam/slam/ProjectionFactor.h>
+#include <gtsam/slam/GeneralSFMFactor.h>
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+#include <gtsam/nonlinear/DoglegOptimizer.h>
+#include <gtsam/nonlinear/Values.h>
+
+
 class BundleAdjustment {
 
 public:
@@ -37,8 +50,9 @@ public:
     void addKeyFrame(const VOFrame &frame);
 
     int slove(cv::Mat *R, cv::Mat *t);
-
+    int gtsamSolve(cv::Mat *R, cv::Mat *t);
     void draw(float scale=1.0);
+
     void drawViz();
 private:
 

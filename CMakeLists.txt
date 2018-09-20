@@ -10,6 +10,10 @@ SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
 
 find_package(cvsba REQUIRED )
 
+find_package(GTSAM REQUIRED) # Uses installed package
+include_directories(${GTSAM_INCLUDE_DIR})
+set(GTSAM_LIBRARIES gtsam)
+
 find_package( Boost 1.58 COMPONENTS program_options REQUIRED COMPONENTS system filesystem)
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
@@ -35,7 +39,7 @@ endif()
 
 add_executable( vo ${SRC_FILES} ${SRC_FILES_FEATURES})
 
-target_link_libraries( vo ${OpenCV_LIBS} ${cvsba_LIBS} ${Boost_LIBRARIES} gflags glog pba)
+target_link_libraries( vo ${OpenCV_LIBS} ${cvsba_LIBS} ${Boost_LIBRARIES} gflags glog pba gtsam)
 
 # Setup testing
 enable_testing()
