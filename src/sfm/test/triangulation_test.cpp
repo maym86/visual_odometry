@@ -28,13 +28,15 @@ void filter(const VOFrame &vo0, VOFrame *vo1){
     for (int i = vo1->points_3d.size() - 1; i >= 0; --i) {
 
         cv::Mat p(vo1->points_3d[i]);
-        p = (R.t() * p) - t;
-
-        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200) {// && p.at<double>(2) < t.at<double>(2)) { //TODO this is wrong
+        p = (R.t() * p) - t; //TODO this is wrong
+        origin.push_back(cv::Point3d(p));
+        if (vo1->mask.at<bool>(i) && cv::norm(p - t) < 200 && p.at<double>(2) > t.at<double>(2)) { //TODO this is wrong
             continue;
         }
         vo1->points_3d.erase(vo1->points_3d.begin() + i);
     }
+
+    draw3D("origin", origin, kDrawScale, vo0.pose, vo1->pose);
 }
 
 void run(VOFrame &vo0, VOFrame &vo1) {
@@ -139,9 +141,9 @@ TEST(TriangulationTestStereoOffset, Passes) {
 
         vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-        vo0.pose_t.at<double>(0, 0) += 0;
-        vo0.pose_t.at<double>(1, 0) += 0;
-        vo0.pose_t.at<double>(2, 0) += 0;
+        vo0.pose_t.at<double>(0, 0) += 100;
+        vo0.pose_t.at<double>(1, 0) += 100;
+        vo0.pose_t.at<double>(2, 0) += 100;
 
         hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
 

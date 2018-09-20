@@ -240,7 +240,7 @@ void BundleAdjustment::setPBAPoints() {
             double dist = cv::norm(p_up);
 
             //TODO make sure z is pos
-            if (dist < kMax3DDist && p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
+            if (dist < kMax3DDist && p_up.at<double>(0,2) > t.at<double>(0,2)) { //TODO why are points wrong when I draw them
 
                 points_3d_.emplace_back(cv::Point3d(point_3d_mat.at<double>(0, 0),
                                                     point_3d_mat.at<double>(0, 1),
@@ -252,8 +252,6 @@ void BundleAdjustment::setPBAPoints() {
 
                 for (int i = 0; i < points.size(); i++) {
 
-                    //LOG(INFO) << cam_idx + i << " " << i;
-                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
 
                     pba_image_points_.emplace_back(Point2D{(points[i].x - pp_.x), (points[i].y - pp_.y)});
                     pba_cam_idx_.push_back(cam_idx + i);
@@ -271,28 +269,6 @@ void BundleAdjustment::setPBAPoints() {
 
     imshow("tracks", tracks);
     LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
-}
-
-void BundleAdjustment::reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat) {
-    cv::Mat p_h = cv::Mat::ones(4, 1, CV_64FC1);
-
-    p_h.at<double>(0) = point3d.x;
-    p_h.at<double>(1) = point3d.y;
-    p_h.at<double>(2) = point3d.z;
-
-    cv::Mat repo = proj_mat * p_h;
-
-    repo.at<double>(0) /= repo.at<double>(2);
-    repo.at<double>(1) /= repo.at<double>(2);
-    repo.at<double>(2) /= repo.at<double>(2);
-
-    cv::Mat p_2d = cv::Mat::ones(3, 1, CV_64FC1);
-    p_2d.at<double>(0) = (point.x - pp_.x) / focal_.x;
-    p_2d.at<double>(1) = (point.y - pp_.y) / focal_.y;
-
-    LOG(INFO) << cv::norm(p_2d - repo) << " " << repo.t()
-              << (point.x - pp_.x) / focal_.x << ","
-              << (point.y - pp_.y) / focal_.y;
 }
 
 

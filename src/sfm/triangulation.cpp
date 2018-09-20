@@ -31,6 +31,7 @@ std::vector<cv::Point3d> points3DToVec(const cv::Mat &points3d) {
     return results;
 }
 
+//http://nghiaho.com/?p=2379
 cv::Mat getProjectionMatrix(const cv::Mat &K, const cv::Mat &pose){
 
     cv::Mat R = pose(cv::Range(0, 3), cv::Range(0, 3));
