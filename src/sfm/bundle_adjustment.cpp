@@ -193,7 +193,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
@@ -297,13 +297,14 @@ int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
         initial.insert(Symbol('x', pose_idx), pose);
 
         // landmark seen
-        for (size_t kp_idx=0; kp_idx < visibility_.size(); kp_idx++) {
-            if (visibility_[kp_idx][pose_idx] == 1) {
+
+        for (size_t kp_idx=0; kp_idx < visibility_[pose_idx].size(); kp_idx++) {
+
+            if (visibility_[pose_idx][kp_idx] == 1) {
                 Point2 pt;
 
-                pt(0) = points_img_[kp_idx][pose_idx].x;
-                pt(1) = points_img_[kp_idx][pose_idx].y;
-
+                pt(0) = points_img_[pose_idx][kp_idx].x;
+                pt(1) = points_img_[pose_idx][kp_idx].y;
                 graph.emplace_shared<GeneralSFMFactor2<Cal3_S2>>(pt, measurement_noise, Symbol('x', pose_idx), Symbol('l', kp_idx), Symbol('K', 0));
             }
         }
@@ -312,7 +313,7 @@ int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
     // Add a prior on the calibration.
     initial.insert(Symbol('K', 0), K);
 
-    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 100, 100, 0.01 /*skew*/, 100, 100).finished());
+    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 0, 0, 0 /*skew*/, 0, 0).finished());
     graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
 
     // Initialize estimate for landmarks
@@ -335,7 +336,7 @@ int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
     LOG(INFO) << "initial graph error = " << graph.error(initial);
     LOG(INFO) << "final graph error = " << graph.error(result);
 
-    for (size_t pose_idx=0; pose_idx < result.size(); pose_idx++) {
+    for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
 
         Eigen::Matrix<double, 3, 3> R;
         Eigen::Matrix<double, 3, 1> t;
