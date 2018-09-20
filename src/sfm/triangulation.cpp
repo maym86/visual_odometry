@@ -31,6 +31,18 @@ std::vector<cv::Point3d> points3DToVec(const cv::Mat &points3d) {
     return results;
 }
 
+cv::Mat getProjectionMatrix(const cv::Mat &K, const cv::Mat &pose){
+
+    cv::Mat R = pose(cv::Range(0, 3), cv::Range(0, 3));
+    cv::Mat t = pose(cv::Range(0, 3), cv::Range(3, 4));
+
+    cv::Mat P(3, 4, CV_64F);
+
+    P(cv::Range(0, 3), cv::Range(0, 3)) = R.t();
+    P(cv::Range(0, 3), cv::Range(3, 4)) = -R.t()*t;
+    return K * P;
+}
+
 std::vector<cv::Point3d> triangulate(const std::vector<cv::Point2f> &points0, const std::vector<cv::Point2f> &points1,
         const cv::Mat &P0, const cv::Mat &P1) {
 

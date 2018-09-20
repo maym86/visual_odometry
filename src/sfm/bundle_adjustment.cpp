@@ -200,14 +200,12 @@ void BundleAdjustment::setPBAPoints() {
             std::vector<cv::Mat_<double>> sfm_points_2d;
             std::vector<cv::Mat_<double>> projection_matrices;
 
-
-
             for (int i = 0; i < points.size(); i++) {
                 sfm_points_2d.push_back(cv::Mat(points[i]).reshape(1));
                 cv::Mat P;
                 hconcat(R_[cam_idx + i], T_[cam_idx + i], P);
 
-                projection_matrices.push_back(K_ * P);
+                projection_matrices.push_back(getProjectionMatrix(K_, P));
             }
             LOG(INFO) <<  " ";
 
