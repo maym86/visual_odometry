@@ -56,7 +56,7 @@ void BundleAdjustment::matcher() {
                 const auto &p0 = features_[i].keypoints[matches[k][0].queryIdx];
                 const auto &p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100) {
+                if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 200) {
                     good_matches.matches.push_back(matches[k][0]);
                     good_matches.inliers_mask.push_back(1);
 
@@ -218,7 +218,7 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
             double dist = cv::norm(p_origin);
 
-            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 0) {
+            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 5) {
 
                 points_3d_.push_back(points3d);
 
