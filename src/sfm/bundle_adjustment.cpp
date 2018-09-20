@@ -344,6 +344,8 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     *R = R_[R_.size()-1];
     *t = t_[t_.size()-1];
+
+    return 0;
 }
 
 
