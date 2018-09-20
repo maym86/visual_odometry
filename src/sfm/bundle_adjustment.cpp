@@ -236,11 +236,11 @@ void BundleAdjustment::setPBAPoints() {
 
             pba_cameras_[cam_idx].GetTranslation(reinterpret_cast<double *>(t.data));
             pba_cameras_[cam_idx].GetMatrixRotation(reinterpret_cast<double *>(R.data));
-            cv::Mat p_up = (R.t() * point_3d_mat) - t;
-            double dist = cv::norm(p_up);
+            cv::Mat p_origin = R.t() * (point_3d_mat - t);
+            double dist = cv::norm(p_origin);
 
             //TODO make sure z is pos
-            if (dist < kMax3DDist && p_up.at<double>(0,2) > t.at<double>(0,2)) { //TODO why are points wrong when I draw them
+            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 0) {
 
                 points_3d_.emplace_back(cv::Point3d(point_3d_mat.at<double>(0, 0),
                                                     point_3d_mat.at<double>(0, 1),
