@@ -38,9 +38,7 @@ void run(float offset){
     EXPECT_GT(vo1.image.rows, 0);
     EXPECT_GT(vo2.image.rows, 0);
 
-    double data[3] = {0,0,0};
-    cv::Mat r45 = cv::Mat(3,1, CV_64F, data);
-    vo0.pose_R = eulerAnglesToRotationMatrix(r45);
+    vo0.pose_R = cv::Mat::eye(3,3, CV_64F);
 
     LOG(INFO) << vo0.pose_R;
     vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
@@ -70,7 +68,7 @@ void run(float offset){
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(1);
+    ba.draw(5);
 
     ba.drawViz();
     cv::waitKey(0);
@@ -86,12 +84,11 @@ void run(float offset){
     EXPECT_NEAR(dist, 0, 0.1);
 
     ba.drawViz();
-    ba.draw(1);
+    ba.draw(5);
     cv::waitKey(0);
 }
 
 TEST(BundleAdjustmentTest, Passes) {
     run(0);
-    run(50);
 }
 

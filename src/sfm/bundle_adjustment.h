@@ -44,7 +44,7 @@ private:
 
     cv::viz::Viz3d viz_;
 
-    const float kMax3DDist = 200;
+    const float kMax3DDist = 50;
 
     void matcher();
 

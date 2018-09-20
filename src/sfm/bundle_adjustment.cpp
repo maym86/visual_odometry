@@ -216,7 +216,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 3) {
+            if (points.size() < 2) {
                 continue;
             }
 
@@ -240,7 +240,7 @@ void BundleAdjustment::setPBAPoints() {
             double dist = cv::norm(p_origin);
 
             //TODO make sure z is pos
-            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 0) {
+            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 5) {
 
                 points_3d_.emplace_back(cv::Point3d(point_3d_mat.at<double>(0, 0),
                                                     point_3d_mat.at<double>(0, 1),
