@@ -146,7 +146,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     camera_matrix_.push_back(K_.clone());
     R_.push_back(frame.pose_R.clone());
-    T_.push_back(frame.pose_t.clone());
+    t_.push_back(frame.pose_t.clone());
     dist_coeffs_.push_back(cv::Mat::zeros(5,1,CV_64F));
 
     cv::detail::ImageFeatures image_feature;
@@ -163,7 +163,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
         features_.erase(features_.begin());
         camera_matrix_.erase(camera_matrix_.begin());
         R_.erase(R_.begin());
-        T_.erase(T_.begin());
+        t_.erase(t_.begin());
         dist_coeffs_.erase(dist_coeffs_.begin());
     }
 
@@ -193,7 +193,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
@@ -203,7 +203,7 @@ void BundleAdjustment::setPBAPoints() {
             for (int i = 0; i < points.size(); i++) {
                 sfm_points_2d.push_back(cv::Mat(points[i]).reshape(1));
                 cv::Mat P;
-                hconcat(R_[cam_idx + i], T_[cam_idx + i], P);
+                hconcat(R_[cam_idx + i], t_[cam_idx + i], P);
 
                 projection_matrices.push_back(getProjectionMatrix(K_, P));
             }
@@ -215,11 +215,10 @@ void BundleAdjustment::setPBAPoints() {
             cv::Point3d points3d(point_3d_mat);
             LOG(INFO) << point_3d_mat << points3d;
 
-            cv::Mat p_up = (R_[cam_idx].t() * point_3d_mat) - T_[cam_idx];
-            double dist = cv::norm(p_up);
+            cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
+            double dist = cv::norm(p_origin);
 
-            //TODO make sure z is pos
-            if ( dist < kMax3DDist &&  p_up.at<double>(0,2) > 0) { //TODO why are points wrong when I draw them
+            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 0) {
 
                 points_3d_.push_back(points3d);
 
@@ -227,10 +226,6 @@ void BundleAdjustment::setPBAPoints() {
                 std::vector< int > visibility(camera_matrix_.size(), 0);
 
                 for (int i = 0; i < points.size(); i++) {
-
-                    //LOG(INFO) << cam_idx + i << " " << i;
-                    //reprojectionInfo(points[i], points3d[0], poses[cam_idx + i]); //TODO For info - remove later
-
                     points_img[cam_idx + i] = points[i];
                     visibility[cam_idx + i] = 1;
 
@@ -239,8 +234,6 @@ void BundleAdjustment::setPBAPoints() {
                         cv::circle(tracks, points[i], 2, cv::Scalar(255, 0, 0), 2);
                     }
                 }
-
-
 
                 for(int i=0; i< camera_matrix_.size(); i++) {
                     visibility_[i].push_back(visibility[i]);
@@ -263,13 +256,13 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         return 1;
     }
 
-    sba_.run(points_3d_, points_img_, visibility_, camera_matrix_, R_, T_, dist_coeffs_);
+    sba_.run(points_3d_, points_img_, visibility_, camera_matrix_, R_, t_, dist_coeffs_);
 
     LOG(INFO) <<"Initial error="<<sba_.getInitialReprjError()<<". "<<
              "Final error="<<sba_.getFinalReprjError();
 
     *R = R_[R_.size()-1];
-    *t = T_[T_.size()-1];
+    *t = t_[t_.size()-1];
 
     return 0;
 }
@@ -285,9 +278,9 @@ void BundleAdjustment::draw(float scale) {
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
-    for (int i  =0; i < T_.size(); i++) {
+    for (int i  =0; i < t_.size(); i++) {
 
-        const cv::Mat & t = T_[i];
+        const cv::Mat & t = t_[i];
         cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
 
@@ -302,8 +295,8 @@ void BundleAdjustment::draw(float scale) {
 
     }
 
-    if (!T_.empty()) {
-        const auto &t = T_[T_.size() - 1];
+    if (!t_.empty()) {
+        const auto &t = t_[t_.size() - 1];
         cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
         cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
     }
@@ -316,9 +309,9 @@ void BundleAdjustment::draw(float scale) {
 void BundleAdjustment::drawViz(){
 
     int count = 0;
-    for (int i = 0; i < T_.size(); i++) {
+    for (int i = 0; i < t_.size(); i++) {
 
-        const cv::Mat & t = T_[i];
+        const cv::Mat & t = t_[i];
         const cv::Mat & R = R_[i];
 
         auto col = cv::viz::Color::red();

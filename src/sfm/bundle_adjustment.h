@@ -61,7 +61,7 @@ private:
     std::vector< cv::Mat > camera_matrix_;
     std::vector< cv::Mat > dist_coeffs_;
     std::vector< cv::Mat > R_;
-    std::vector< cv::Mat > T_;
+    std::vector< cv::Mat > t_;
 
 
     std::vector<cv::detail::ImageFeatures> features_;
@@ -77,8 +77,6 @@ private:
     cv::Mat K_;
     size_t max_frames_;
     int count_ = 0;
-
-    void reprojectionInfo(const cv::Point2f &point, const cv::Point3f &point3d, const cv::Mat &proj_mat);
 
     void createTracks();
 
