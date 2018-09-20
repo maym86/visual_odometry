@@ -28,14 +28,12 @@ void filter(const VOFrame &vo0, VOFrame *vo1){
     for (int i = vo1->points_3d.size() - 1; i >= 0; --i) {
 
         cv::Mat p(vo1->points_3d[i]);
-        p = R.t() * (p - t); //TODO this is wrong
-        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200 && p.at<double>(2) > 0) { //TODO this is wrong
+        p = R.t() * (p - t);
+        if (vo1->mask.at<bool>(i) && cv::norm(p) < 200 && p.at<double>(2) > 0) {
             continue;
         }
         vo1->points_3d.erase(vo1->points_3d.begin() + i);
     }
-
-    draw3D("origin", origin, kDrawScale, vo0.pose, vo1->pose);
 }
 
 void run(VOFrame &vo0, VOFrame &vo1) {

@@ -216,7 +216,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
