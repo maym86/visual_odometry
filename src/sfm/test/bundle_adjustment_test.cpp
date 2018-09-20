@@ -1,4 +1,4 @@
-/*
+
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 #include <src/utils/utils.h>
@@ -95,4 +95,3 @@ TEST(BundleAdjustmentTest, Passes) {
     run(50);
 }
 
-*/

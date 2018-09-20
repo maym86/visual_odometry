@@ -8,8 +8,6 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package( OpenCV 3 REQUIRED )
 SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
 
-find_package(cvsba REQUIRED )
-
 find_package(GTSAM REQUIRED) # Uses installed package
 include_directories(${GTSAM_INCLUDE_DIR})
 set(GTSAM_LIBRARIES gtsam)
@@ -29,7 +27,6 @@ file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/utils/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kitti/*.cpp)
 
-LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/sfm/pba/bin)
 
 if(OpenCV_CUDA_VERSION)
     file(GLOB SRC_FILES_FEATURES ${PROJECT_SOURCE_DIR}/src/features/cuda/*.cpp)
@@ -39,7 +36,7 @@ endif()
 
 add_executable( vo ${SRC_FILES} ${SRC_FILES_FEATURES})
 
-target_link_libraries( vo ${OpenCV_LIBS} ${cvsba_LIBS} ${Boost_LIBRARIES} gflags glog pba gtsam)
+target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog gtsam)
 
 # Setup testing
 enable_testing()
@@ -47,12 +44,12 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
 file(GLOB TEST_FILES ${PROJECT_SOURCE_DIR}/src/sfm/test/*.cpp
-                     ${PROJECT_SOURCE_DIR}/src/sfm/triangulation.cpp
+                     ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
                      ${PROJECT_SOURCE_DIR}/src/features/*.cpp
                      ${PROJECT_SOURCE_DIR}/src/utils/*.cpp)
 
 # Add test cpp file
 add_executable(unit_tests ${TEST_FILES})
 
-target_link_libraries(unit_tests ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog pba gtest gtest_main)
+target_link_libraries(unit_tests ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog gtsam gtest gtest_main)
 add_test( unit_tests unit_tests )

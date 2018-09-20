@@ -26,8 +26,6 @@
 #include <opencv2/viz/widgets.hpp>
 #include <opencv2/viz/viz3d.hpp>
 #include <opencv2/viz/vizcore.hpp>
-#include <cvsba/cvsba.h>
-
 
 
 #include <gtsam/geometry/Point2.h>
@@ -50,7 +48,6 @@ public:
     void addKeyFrame(const VOFrame &frame);
 
     int slove(cv::Mat *R, cv::Mat *t);
-    int gtsamSolve(cv::Mat *R, cv::Mat *t);
     void draw(float scale=1.0);
 
     void drawViz();
@@ -81,8 +78,6 @@ private:
     std::vector<cv::detail::ImageFeatures> features_;
 
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
-
-    cvsba::Sba sba_;
 
     std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;

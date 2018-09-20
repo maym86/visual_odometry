@@ -22,12 +22,6 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
     focal_ = cv::Point2d(K.at<double>(0,0), K.at<double>(1,1));
     pp_ = cv::Point2d(K.at<double>(0,2), K.at<double>(1,2));
 
-    cvsba::Sba::Params param;
-    param.fixedIntrinsics = 5;
-    param.fixedDistortion = 5;
-    sba_.setParams(param);
-
-
     viz_ = cv::viz::Viz3d("Coordinate Frame");
     viz_.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
 
@@ -246,8 +240,7 @@ void BundleAdjustment::setPBAPoints() {
 }
 
 
-
-int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
+int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     if(points_3d_.size() < 3){
         return 1;
@@ -313,7 +306,7 @@ int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
     // Add a prior on the calibration.
     initial.insert(Symbol('K', 0), K);
 
-    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 0, 0, 0 /*skew*/, 0, 0).finished());
+    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 100, 100, 0.01 /*skew*/, 100, 100).finished());
     graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
 
     // Initialize estimate for landmarks
@@ -338,14 +331,14 @@ int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
 
     for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
 
-        Eigen::Matrix<double, 3, 3> R;
-        Eigen::Matrix<double, 3, 1> t;
+        Eigen::Matrix<double, 3, 3> R_tmp;
+        Eigen::Matrix<double, 3, 1> t_tmp;
 
-        R = result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix();
-        t = result.at<Pose3>(Symbol('x', pose_idx)).translation().vector();
+        R_tmp = result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix();
+        t_tmp = result.at<Pose3>(Symbol('x', pose_idx)).translation().vector();
 
-        cv::eigen2cv(R, R_[pose_idx]);
-        cv::eigen2cv(t, t_[pose_idx]);
+        cv::eigen2cv(R_tmp, R_[pose_idx]);
+        cv::eigen2cv(t_tmp, t_[pose_idx]);
 
     }
 
@@ -353,24 +346,6 @@ int BundleAdjustment::gtsamSolve(cv::Mat *R, cv::Mat *t){
     *t = t_[t_.size()-1];
 }
 
-//TODO use full history rather than just updating the newest point
-int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
-
-    if (points_3d_.empty() || camera_matrix_.size() < 3) {
-        LOG(INFO) << "Bundle adjustment points are empty";
-        return 1;
-    }
-
-    sba_.run(points_3d_, points_img_, visibility_, camera_matrix_, R_, t_, dist_coeffs_);
-
-    LOG(INFO) <<"Initial error="<<sba_.getInitialReprjError()<<". "<<
-             "Final error="<<sba_.getFinalReprjError();
-
-    *R = R_[R_.size()-1];
-    *t = t_[t_.size()-1];
-
-    return 0;
-}
 
 void BundleAdjustment::draw(float scale) {
     cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
