@@ -48,7 +48,6 @@ void run(VOFrame &vo0, VOFrame &vo1) {
     K.at<double>(0,2) = pp.x;
     K.at<double>(1,2) = pp.y;
 
-
     feature_detector.detectFAST(&vo0);
 
     feature_tracker.trackPoints(&vo0, &vo1);
@@ -138,9 +137,9 @@ TEST(TriangulationTestStereoOffset, Passes) {
 
         vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-        vo0.pose_t.at<double>(0, 0) += 100;
-        vo0.pose_t.at<double>(1, 0) += 100;
-        vo0.pose_t.at<double>(2, 0) += 100;
+        vo0.pose_t.at<double>(0, 0) += 0;
+        vo0.pose_t.at<double>(1, 0) += 0;
+        vo0.pose_t.at<double>(2, 0) += 0;
 
         hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
 
