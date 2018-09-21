@@ -57,6 +57,7 @@ private:
 
     const float kMin3DDist = 10;
     const float kMax3DDist = 50;
+    const float kMax3DWidth = 10;
 
     void matcher();
 

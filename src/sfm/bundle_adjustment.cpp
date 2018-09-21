@@ -158,6 +158,9 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     matcher();
 
+    //TODO use pairwise matcher and then updte create tracks to work with any to any matches
+    //Create match matrix
+
     setPBAPoints();
 }
 
@@ -182,7 +185,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
@@ -204,7 +207,7 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
             double dist = cv::norm(p_origin);
 
-            if (dist < kMax3DDist && p_origin.at<double>(2) > kMin3DDist) {
+            if (dist < kMax3DDist && p_origin.at<double>(2) > kMin3DDist && std::fabs(p_origin.at<double>(0)) < kMax3DWidth) {
 
                 points_3d_.push_back(points3d);
 
