@@ -209,7 +209,7 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
             double dist = cv::norm(p_origin);
 
-            if (dist < kMax3DDist && p_origin.at<double>(0,2) > 5) {
+            if (dist < kMax3DDist && p_origin.at<double>(0,2) > kMin3DDist) {
 
                 points_3d_.push_back(points3d);
 

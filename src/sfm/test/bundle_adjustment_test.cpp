@@ -68,7 +68,7 @@ void run(float offset){
     ba.addKeyFrame(vo1);
     ba.addKeyFrame(vo2);
 
-    ba.draw(5);
+    ba.draw(10);
 
     ba.drawViz();
     cv::waitKey(0);
@@ -84,11 +84,12 @@ void run(float offset){
     EXPECT_NEAR(dist, 0, 0.1);
 
     ba.drawViz();
-    ba.draw(5);
+    ba.draw(10);
     cv::waitKey(0);
 }
 
 TEST(BundleAdjustmentTest, Passes) {
     run(0);
+    run(10);
 }
 

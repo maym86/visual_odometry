@@ -31,27 +31,10 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
                                            K * cv::Mat::eye(3, 4, CV_64FC1),
                                            K * new_frame->local_pose);
 
-
         new_frame->scale = getScale(*last_frame, *new_frame, kMinPosePoints, 200, kMax3DDist);
-        new_frame->local_t *= new_frame->scale;
 
-        cv::Mat T = cv::Mat::eye(4, 4, CV_64F);
-        new_frame->local_R.copyTo(T(cv::Range(0, 3), cv::Range(0, 3)));
-        new_frame->local_t.copyTo(T(cv::Range(0, 3), cv::Range(3, 4)));
-
-
-        cv::Mat last_T = cv::Mat::eye(4, 4, CV_64F);
-        last_frame->pose_R.copyTo(last_T(cv::Range(0, 3), cv::Range(0, 3)));
-        last_frame->pose_t.copyTo(last_T(cv::Range(0, 3), cv::Range(3, 4)));
-
-
-        T = last_T* T;
-
-        new_frame->pose_R = T(cv::Range(0, 3), cv::Range(0, 3));
-        new_frame->pose_t = T(cv::Range(0, 3), cv::Range(3, 4));
-
-        //new_frame->pose_t = last_frame->pose_t + new_frame->scale * (last_frame->pose_R * new_frame->local_t);
-        //new_frame->pose_R = new_frame->local_R * last_frame->pose_R;
+        new_frame->pose_t = last_frame->pose_t + new_frame->scale * (last_frame->pose_R * new_frame->local_t);
+        new_frame->pose_R = new_frame->local_R * last_frame->pose_R;
 
         hconcat(new_frame->pose_R, new_frame->pose_t, new_frame->pose);
 
