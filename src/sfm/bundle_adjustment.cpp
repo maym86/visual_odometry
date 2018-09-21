@@ -48,13 +48,13 @@ void BundleAdjustment::matcher() {
                 const auto &p0 = features_[i].keypoints[matches[k][0].queryIdx];
                 const auto &p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                //if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 200) {
+                if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 200) {
                     good_matches.matches.push_back(matches[k][0]);
                     good_matches.inliers_mask.push_back(1);
 
                     points0.push_back(p0.pt);
                     points1.push_back(p1.pt);
-                //}
+                }
 
             }
         }
