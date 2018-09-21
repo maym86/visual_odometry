@@ -16,7 +16,7 @@
 
 #include "src/utils/draw.h"
 
-void run(float offset){
+void run(std::vector<VOFrame> &frames, float offset){
     cv::Mat K = cv::Mat::eye(3,3,CV_64FC1);
 
     K.at<double>(0,0) = 718.856;
@@ -26,70 +26,65 @@ void run(float offset){
 
     BundleAdjustment ba;
 
-    VOFrame vo0;
-    VOFrame vo1;
-    VOFrame vo2;
+    frames[0].pose_R = cv::Mat::eye(3,3, CV_64F);
 
-    vo0.image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
-    vo1.image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
-    vo2.image = cv::imread("../src/sfm/test/test_data/000003.png");
+    LOG(INFO) << frames[0].pose_R;
+    frames[0].pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
 
-    EXPECT_GT(vo0.image.rows, 0);
-    EXPECT_GT(vo1.image.rows, 0);
-    EXPECT_GT(vo2.image.rows, 0);
+    frames[0].pose_t.at<double>(0,0) += offset;
+    frames[0].pose_t.at<double>(1,0) += offset;
+    frames[0].pose_t.at<double>(2,0) += offset;
 
-    vo0.pose_R = cv::Mat::eye(3,3, CV_64F);
-
-    LOG(INFO) << vo0.pose_R;
-    vo0.pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
-
-    vo0.pose_t.at<double>(0,0) += offset;
-    vo0.pose_t.at<double>(1,0) += offset;
-    vo0.pose_t.at<double>(2,0) += offset;
-
-    hconcat(vo0.pose_R, vo0.pose_t, vo0.pose);
+    hconcat(frames[0].pose_R, frames[0].pose_t, frames[0].pose);
 
     FeatureDetector feature_detector;
     FeatureTracker feature_tracker;
 
-    feature_detector.detectFAST(&vo0);
-    feature_tracker.trackPoints(&vo0, &vo1);
+    ba.init(K , frames.size());
 
-    updatePose(K, &vo0, &vo1);
+    for(int i = 0; i < frames.size()-1; i++) {
+        feature_detector.detectFAST(&frames[i]);
+        feature_tracker.trackPoints(&frames[i], &frames[i + 1]);
+        updatePose(K, &frames[i], &frames[i + 1]);
+    }
 
-    feature_detector.detectFAST(&vo1);
-    feature_tracker.trackPoints(&vo1, &vo2);
-
-    updatePose(K, &vo1, &vo2);
-
-    ba.init(K , 3);
-
-    ba.addKeyFrame(vo0);
-    ba.addKeyFrame(vo1);
-    ba.addKeyFrame(vo2);
+    for(int i = 0; i < frames.size(); i++) {
+        ba.addKeyFrame(frames[i]);
+    }
 
     ba.draw(10);
-
     ba.drawViz();
     cv::waitKey(0);
-
     cv::Mat R, t;
+
     ba.slove(&R, &t);
-
-    LOG(INFO) << vo2.pose_t;
-    LOG(INFO) << t;
-
-    double dist = cv::norm(vo2.pose_t - t);
-    LOG(INFO) << dist;
-    EXPECT_NEAR(dist, 0, 0.1);
-
     ba.drawViz();
     ba.draw(10);
+
     cv::waitKey(0);
 }
 
 TEST(BundleAdjustmentTest, Passes) {
-    run(0);
-    run(10);
+    std::vector<VOFrame> frames(5);
+
+    frames[0].image = cv::imread("../src/sfm/test/test_data/image_1_000000.png");
+    frames[1].image = cv::imread("../src/sfm/test/test_data/image_0_000000.png");
+    frames[2].image = cv::imread("../src/sfm/test/test_data/000001.png");
+    frames[3].image = cv::imread("../src/sfm/test/test_data/000003.png");
+    frames[4].image = cv::imread("../src/sfm/test/test_data/000007.png");
+
+    run(frames, 0);
 }
+
+
+TEST(BundleAdjustmentTestStraight, Passes) {
+    std::vector<VOFrame> frames(3);
+
+    frames[0].image = cv::imread("../src/sfm/test/test_data/000000.png");
+    frames[1].image = cv::imread("../src/sfm/test/test_data/000003.png");
+    frames[2].image = cv::imread("../src/sfm/test/test_data/000007.png");
+
+    run(frames, 0);
+}
+
 

@@ -9,7 +9,6 @@
 
 #include "src/utils/draw.h"
 
-
 #include <opencv2/core/eigen.hpp>
 
 
@@ -24,7 +23,6 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 
     viz_ = cv::viz::Viz3d("Coordinate Frame");
     viz_.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
-
 }
 
 
@@ -50,13 +48,13 @@ void BundleAdjustment::matcher() {
                 const auto &p0 = features_[i].keypoints[matches[k][0].queryIdx];
                 const auto &p1 = features_[j].keypoints[matches[k][0].trainIdx];
 
-                if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100) {
+                //if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 200) {
                     good_matches.matches.push_back(matches[k][0]);
                     good_matches.inliers_mask.push_back(1);
 
                     points0.push_back(p0.pt);
                     points1.push_back(p1.pt);
-                }
+                //}
 
             }
         }
@@ -133,10 +131,7 @@ void BundleAdjustment::createTracks() {
     }
 }
 
-
-//// THIS IS THE PROBLEM http://www.land-of-kain.de/docs/coords/
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
-
 
     camera_matrix_.push_back(K_.clone());
     R_.push_back(frame.pose_R.clone());
@@ -209,7 +204,7 @@ void BundleAdjustment::setPBAPoints() {
             cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
             double dist = cv::norm(p_origin);
 
-            if (dist < kMax3DDist && p_origin.at<double>(0,2) > kMin3DDist) {
+            if (dist < kMax3DDist && p_origin.at<double>(2) > kMin3DDist) {
 
                 points_3d_.push_back(points3d);
 
@@ -292,7 +287,6 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         initial.insert(Symbol('x', pose_idx), pose);
 
         // landmark seen
-
         for (size_t kp_idx=0; kp_idx < visibility_[pose_idx].size(); kp_idx++) {
 
             if (visibility_[pose_idx][kp_idx] == 1) {
@@ -332,16 +326,8 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     LOG(INFO) << "final graph error = " << graph.error(result);
 
     for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
-
-        Eigen::Matrix<double, 3, 3> R_tmp;
-        Eigen::Matrix<double, 3, 1> t_tmp;
-
-        R_tmp = result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix();
-        t_tmp = result.at<Pose3>(Symbol('x', pose_idx)).translation().vector();
-
-        cv::eigen2cv(R_tmp, R_[pose_idx]);
-        cv::eigen2cv(t_tmp, t_[pose_idx]);
-
+        cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix(), R_[pose_idx]);
+        cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).translation().vector(), t_[pose_idx]);
     }
 
     *R = R_[R_.size()-1];
