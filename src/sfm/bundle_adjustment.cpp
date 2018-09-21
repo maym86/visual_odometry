@@ -185,7 +185,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 3) {
+            if (points.size() < 2) {
                 continue;
             }
 
@@ -284,6 +284,8 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         // Add prior for the first image
         if (pose_idx == 0) {
             noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.1), Vector3::Constant(0.1)).finished());
+
+            LOG(INFO) << pose_noise->covariance();
             graph.emplace_shared<PriorFactor<Pose3> >(Symbol('x', 0), pose, pose_noise); // add directly to graph
         }
 
