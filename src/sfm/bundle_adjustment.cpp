@@ -141,7 +141,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
 
-    feature_detector_.computeORB(frame, &image_feature.keypoints, &descriptors);
+    feature_detector_.detectComputeORB(frame, &image_feature.keypoints, &descriptors);
     image_feature.descriptors = descriptors.getUMat(cv::USAGE_DEFAULT);
     image_feature.img_idx = count_++;
     image_feature.img_size = frame.image.size();
@@ -250,7 +250,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     Values result;
 
-    Cal3_S2 K(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.y);
+    Cal3_S2::shared_ptr K(new Cal3_S2(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.y));
     noiseModel::Isotropic::shared_ptr measurement_noise = noiseModel::Isotropic::Sigma(2, 2.0); // pixel error in (x,y)
 
     NonlinearFactorGraph graph;
@@ -284,7 +284,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         // Add prior for the first image
         if (pose_idx == 0) {
             noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.1), Vector3::Constant(0.1)).finished());
-            graph.emplace_shared<PriorFactor<Pose3> >(Symbol('x', 0), pose, pose_noise); // add directly to graph
+            graph.push_back(PriorFactor<Pose3>(Symbol('x', pose_idx), pose, pose_noise)); // add directly to graph
         }
 
         initial.insert(Symbol('x', pose_idx), pose);
@@ -297,16 +297,16 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
                 pt(0) = points_img_[pose_idx][kp_idx].x;
                 pt(1) = points_img_[pose_idx][kp_idx].y;
-                graph.emplace_shared<GeneralSFMFactor2<Cal3_S2>>(pt, measurement_noise, Symbol('x', pose_idx), Symbol('l', kp_idx), Symbol('K', 0));
+                graph.push_back(GenericProjectionFactor<Pose3, Point3, Cal3_S2>(pt, measurement_noise, Symbol('x', pose_idx), Symbol('l', kp_idx), K));
             }
         }
     }
 
     // Add a prior on the calibration.
-    initial.insert(Symbol('K', 0), K);
+    //initial.insert(Symbol('K', 0), K);
 
-    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 10, 10, 0.01 /*skew*/, 10, 10).finished());
-    graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
+    //noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 10, 10, 0.01 /*skew*/, 10, 10).finished());
+    //graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
 
     // Initialize estimate for landmarks
     bool init_prior = false;
@@ -351,7 +351,7 @@ void BundleAdjustment::draw(float scale) {
         cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
     }
 
-    for (int i  =0; i < t_.size(); i++) {
+    for (int i=0; i < t_.size(); i++) {
 
         const cv::Mat & t = t_[i];
         cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
