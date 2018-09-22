@@ -4,47 +4,145 @@
 #include <glog/logging.h>
 
 #include "triangulation.h"
+#include <opencv2/sfm/triangulation.hpp>
+#include <iostream>
 
-BundleAdjustment::BundleAdjustment() : pba_(ParallelBA::DeviceT::PBA_CPU_DOUBLE) {
+#include "src/utils/draw.h"
 
-}
+#include <opencv2/core/eigen.hpp>
 
-void BundleAdjustment::init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames) {
 
-    char *argv[] = {"-lmi<100>", "-v", "1"};
-    int argc = sizeof(argv) / sizeof(char *);
+void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 
-    pba_.ParseParam(argc, argv);
-
-    pba_.SetFixedIntrinsics(true);
-
-    matcher_ = cv::makePtr<cv::detail::BestOf2NearestMatcher>(true);
     max_frames_ = max_frames;
 
-    pp_ = pp;
-    focal_ = focal;
+    K_ = K.clone();
+
+    focal_ = cv::Point2d(K.at<double>(0,0), K.at<double>(1,1));
+    pp_ = cv::Point2d(K.at<double>(0,2), K.at<double>(1,2));
+
+    viz_ = cv::viz::Viz3d("Coordinate Frame");
+    viz_.showWidget("Coordinate Widget", cv::viz::WCoordinateSystem());
+}
+
+
+void BundleAdjustment::matcher() {
+    const float ratio = 0.8; // As in Lowe's paper; can be tuned
+
+    cv::BFMatcher matcher;
+    pairwise_matches_.clear();
+    for (int i = 0; i < features_.size() - 1; i++) {
+        int j = i + 1;
+
+        std::vector<std::vector<cv::DMatch>> matches;
+        matcher.knnMatch(features_[i].descriptors, features_[j].descriptors, matches, 2);  // Find two nearest matches
+
+        cv::detail::MatchesInfo good_matches;
+
+        std::vector<cv::Point2f> points0;
+        std::vector<cv::Point2f> points1;
+        for (int k = 0; k < matches.size(); k++) {
+
+            if (matches[k][0].distance < ratio * matches[k][1].distance) {
+
+                const auto &p0 = features_[i].keypoints[matches[k][0].queryIdx];
+                const auto &p1 = features_[j].keypoints[matches[k][0].trainIdx];
+
+                if (cv::norm(cv::Mat(p0.pt) - cv::Mat(p1.pt)) < 100 ) {
+                    good_matches.matches.push_back(matches[k][0]);
+                    good_matches.inliers_mask.push_back(1);
+
+                    points0.push_back(p0.pt);
+                    points1.push_back(p1.pt);
+                }
+
+            }
+        }
+        cv::Mat mask, R, t;
+
+        if(points0.size()>= 5){
+            cv::Mat E = cv::findEssentialMat(points0, points1, K_, cv::RANSAC, 0.999, 1.0, mask);
+
+            for (int k = 0; k < good_matches.inliers_mask.size(); k++) {
+                if (!mask.at<bool>(k)) {
+                    good_matches.inliers_mask[k] = 0;
+                }
+            }
+
+            good_matches.src_img_idx = i;
+            good_matches.dst_img_idx = j;
+
+            pairwise_matches_.push_back(good_matches);
+        }
+    }
+
+    createTracks();
+}
+
+void BundleAdjustment::createTracks() {
+
+    tracks_.clear();
+    std::vector<std::unordered_map<int, int>> pairs(camera_matrix_.size() - 1);
+    for (auto &pwm : pairwise_matches_) {
+        int idx_cam0 = pwm.src_img_idx;
+        for (int i = 0; i < pwm.matches.size(); i++) {
+            auto &match = pwm.matches[i];
+
+            if (pwm.inliers_mask[i] != 0) {
+                pairs[idx_cam0][match.queryIdx] = match.trainIdx;
+            }
+        }
+    }
+
+    tracks_.resize(camera_matrix_.size() - 1);
+
+    for (int cam_idx = 0; cam_idx < pairs.size(); cam_idx++) {
+
+        for (std::pair<int, int> element : pairs[cam_idx]) {
+
+            if (element.second == -1) {
+                continue;
+            }
+
+            std::vector<int> track;
+            track.push_back(element.first);
+            track.push_back(element.second);
+            int key = element.second;
+            int cam = cam_idx + 1;
+
+            if (cam < pairs.size()) {
+                while (pairs[cam].find(key) != pairs[cam].end()) {
+                    key = pairs[cam][key];
+                    if (key == -1) {
+                        break;
+                    }
+
+                    pairs[cam][key] = -1; //seen
+                    track.push_back(key);
+                    cam++;
+
+                    if (cam == pairs.size()) {
+                        break;
+                    }
+                }
+            }
+            tracks_[cam_idx].push_back(track);
+        }
+    }
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
-    CameraT cam;
-    cam.f = focal_.x;
-
-    cam.SetTranslation(reinterpret_cast<double *>(frame.pose_t.data));
-    cam.SetMatrixRotation(reinterpret_cast<double *>(frame.pose_R.data));
-
-    if (count_ == 0) {
-        cam.SetConstantCamera();
-    }
-
-    pba_cameras_.push_back(cam);
-
-    projection_matrices_.push_back(frame.pose);
+    camera_matrix_.push_back(K_.clone());
+    R_.push_back(frame.pose_R.clone());
+    t_.push_back(frame.pose_t.clone());
+    dist_coeffs_.push_back(cv::Mat::zeros(5,1,CV_64F));
 
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
 
-    feature_detector_.detectComputeORB(frame, &image_feature.keypoints, &descriptors);
+
+    feature_detector_.computeORB(frame, &image_feature.keypoints, &descriptors);
     image_feature.descriptors = descriptors.getUMat(cv::USAGE_DEFAULT);
     image_feature.img_idx = count_++;
     image_feature.img_size = frame.image.size();
@@ -53,91 +151,266 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     if (features_.size() > max_frames_) {
         features_.erase(features_.begin());
-        projection_matrices_.erase(projection_matrices_.begin());
-        pba_cameras_.erase(pba_cameras_.begin());
+        camera_matrix_.erase(camera_matrix_.begin());
+        R_.erase(R_.begin());
+        t_.erase(t_.begin());
+        dist_coeffs_.erase(dist_coeffs_.begin());
     }
 
-    (*matcher_)(features_, pairwise_matches_);
+    matcher();
 
-    setPBAData( &pba_3d_points_, &pba_image_points_, &pba_2d3d_idx_, &pba_cam_idx_);
+    //TODO use pairwise matcher and then updte create tracks to work with any to any matches
+    //Create match matrix
 
-    pba_.SetCameraData(pba_cameras_.size(), &pba_cameras_[0]); //set camera parameters
-    pba_.SetPointData(pba_3d_points_.size(), &pba_3d_points_[0]); //set 3D point data
-
-    LOG(INFO) << pba_3d_points_.size() << " " << pba_image_points_.size();
-    //set the projections
-    pba_.SetProjection(pba_image_points_.size(), &pba_image_points_[0], &pba_2d3d_idx_[0], &pba_cam_idx_[0]);
-    pba_.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_MOTION); //Solving for motion only
+    setPBAPoints();
 }
 
-// TODO This is wrong --- Use this as a template https://github.com/lab-x/SFM/blob/61bd10ab3f70a564b6c1971eaebc37211557ea78/SparseCloud.cpp
-// Or this https://github.com/Zponpon/AR/blob/5d042ba18c1499bdb2ec8d5e5fae544e45c5bd91/PlanarAR/SFMUtil.cpp
-// https://stackoverflow.com/questions/46875340/parallel-bundle-adjustment-pba
-void BundleAdjustment::setPBAData(std::vector<Point3D> *pba_3d_points,
-                                  std::vector<Point2D> *pba_image_points, std::vector<int> *pba_2d3d_idx,
-                                  std::vector<int> *pba_cam_idx) {
+// TODO This is wrong - the triangualtion results are weird
+void BundleAdjustment::setPBAPoints() {
 
-    pba_3d_points->clear();
-    pba_image_points->clear();
-    pba_cam_idx->clear();
-    pba_2d3d_idx->clear();
+    points_3d_.clear();
+    points_img_.clear();
+    visibility_.clear();
 
-    for (const auto &pwm : pairwise_matches_) {
-        int idx_cam0 = pwm.src_img_idx;
-        int idx_cam1 = pwm.dst_img_idx;
+    visibility_.resize(camera_matrix_.size());
+    points_img_.resize(camera_matrix_.size());
 
-        if (idx_cam0 != -1 && idx_cam1 != -1 && idx_cam0 != idx_cam1 && pwm.confidence > 0 &&
-            idx_cam0 < idx_cam1) { //TODO experiment with confidence thresh
+    cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
 
-            std::vector<cv::Point2f> points0;
-            std::vector<cv::Point2f> points1;
+    for (int cam_idx = 0; cam_idx < tracks_.size(); cam_idx++) {
 
-            for (const auto &match : pwm.matches) {
-                points0.push_back(features_[idx_cam0].keypoints[match.queryIdx].pt);
-                points1.push_back(features_[idx_cam1].keypoints[match.trainIdx].pt);
+        for (const auto &track : tracks_[cam_idx]) {
+
+            std::vector<cv::Point2f> points;
+            for (int i = 0; i < track.size(); i++) {
+                points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            std::vector<cv::Point3d> points3d = triangulate(pp_, focal_, points0, points1, projection_matrices_[idx_cam0], projection_matrices_[idx_cam1]);
+            if (points.size() < 3) {
+                continue;
+            }
 
-            for (int j = 0; j < points3d.size(); j++) {
+            std::vector<cv::Mat_<double>> sfm_points_2d;
+            std::vector<cv::Mat_<double>> projection_matrices;
 
-                if (j == 50) {
-                    LOG(INFO) << points0[j] << " " << points1[j] << " " << points3d[j];
+            for (int i = 0; i < points.size(); i++) {
+                sfm_points_2d.push_back(cv::Mat(points[i]).reshape(1));
+                cv::Mat P;
+                hconcat(R_[cam_idx + i], t_[cam_idx + i], P);
+
+                projection_matrices.push_back(getProjectionMatrix(K_, P));
+            }
+
+            cv::Mat_<double> point_3d_mat;
+            cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
+            cv::Point3d points3d(point_3d_mat);
+
+            cv::Mat p_origin = R_[cam_idx].t() * (point_3d_mat - t_[cam_idx]);
+            double dist = cv::norm(p_origin);
+
+            if (dist < kMax3DDist && p_origin.at<double>(2) > kMin3DDist && std::fabs(p_origin.at<double>(0)) < kMax3DWidth) {
+
+                points_3d_.push_back(points3d);
+
+                std::vector< cv::Point2d > points_img(camera_matrix_.size(), cv::Point2d(0,0));
+                std::vector< int > visibility(camera_matrix_.size(), 0);
+
+                for (int i = 0; i < points.size(); i++) {
+                    points_img[cam_idx + i] = points[i];
+                    visibility[cam_idx + i] = 1;
+
+                    //compute reporjection error for P an
+
+                    if (i < points.size() - 1) {
+                        cv::line(tracks, points[i], points[i + 1], cv::Scalar(0, 255, 0), 1);
+                        cv::circle(tracks, points[i], 2, cv::Scalar(255, 0, 0), 2);
+                    }
                 }
 
-                pba_3d_points->push_back(Point3D{static_cast<float>(points3d[j].x),
-                                                 static_cast<float>(points3d[j].y),
-                                                 static_cast<float>(points3d[j].z)});
+                for(int i=0; i< camera_matrix_.size(); i++) {
+                    visibility_[i].push_back(visibility[i]);
+                    points_img_[i].push_back(points_img[i]);
 
-                //First 2dpoint that relates to 3d point
-                pba_image_points->push_back(Point2D{points0[j].x, points0[j].y});
-                pba_cam_idx->push_back(idx_cam0);
-                pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
-
-                //Second 2dpoint that relates to 3D point
-                pba_image_points->push_back(Point2D{points1[j].x, points1[j].y});
-                pba_cam_idx->push_back(idx_cam1);
-                pba_2d3d_idx->push_back(static_cast<int>(pba_3d_points->size() - 1));
+                }
             }
         }
     }
+    drawViz();
+    imshow("tracks", tracks);
+    LOG(INFO) << points_3d_.size() << " " << points_img_.size();
 }
 
-//TODO use full history rather than just updating the newest point
+
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    if (!pba_.RunBundleAdjustment()) {
-        LOG(INFO) << "Camera parameters adjusting failed.";
+    if(points_3d_.size() < 3){
         return 1;
     }
 
-    const auto &last_cam = pba_cameras_[pba_cameras_.size() - 1];
+    using namespace gtsam;
 
-    *R = cv::Mat::eye(3, 3, CV_64FC1);
-    *t = cv::Mat::zeros(3, 1, CV_64FC1);
+    Values result;
 
-    last_cam.GetTranslation(reinterpret_cast<double *>(t->data));
-    last_cam.GetMatrixRotation(reinterpret_cast<double *>(R->data));
+    Cal3_S2::shared_ptr K(new Cal3_S2(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.y));
+    noiseModel::Isotropic::shared_ptr measurement_noise = noiseModel::Isotropic::Sigma(2, 2.0); // pixel error in (x,y)
+
+    NonlinearFactorGraph graph;
+    Values initial;
+
+    // Poses
+    for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
+
+        Rot3 R(
+                R_[pose_idx].at<double>(0,0),
+                R_[pose_idx].at<double>(0,1),
+                R_[pose_idx].at<double>(0,2),
+
+                R_[pose_idx].at<double>(1,0),
+                R_[pose_idx].at<double>(1,1),
+                R_[pose_idx].at<double>(1,2),
+
+                R_[pose_idx].at<double>(2,0),
+                R_[pose_idx].at<double>(2,1),
+                R_[pose_idx].at<double>(2,2)
+        );
+
+        Point3 t;
+
+        t(0) = t_[pose_idx].at<double>(0);
+        t(1) = t_[pose_idx].at<double>(1);
+        t(2) = t_[pose_idx].at<double>(2);
+
+        Pose3 pose(R, t);
+
+        // Add prior for the first image
+        if (pose_idx == 0) {
+            noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.1), Vector3::Constant(0.1)).finished());
+            graph.push_back(PriorFactor<Pose3>(Symbol('x', pose_idx), pose, pose_noise)); // add directly to graph
+        }
+
+        initial.insert(Symbol('x', pose_idx), pose);
+
+        // landmark seen
+        for (size_t kp_idx=0; kp_idx < visibility_[pose_idx].size(); kp_idx++) {
+
+            if (visibility_[pose_idx][kp_idx] == 1) {
+                Point2 pt;
+
+                pt(0) = points_img_[pose_idx][kp_idx].x;
+                pt(1) = points_img_[pose_idx][kp_idx].y;
+                graph.push_back(GenericProjectionFactor<Pose3, Point3, Cal3_S2>(pt, measurement_noise, Symbol('x', pose_idx), Symbol('l', kp_idx), K));
+            }
+        }
+    }
+
+    // Add a prior on the calibration.
+    //initial.insert(Symbol('K', 0), K);
+
+    //noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 10, 10, 0.01 /*skew*/, 10, 10).finished());
+    //graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
+
+    // Initialize estimate for landmarks
+    bool init_prior = false;
+
+    for (size_t kp_idx=0; kp_idx < points_3d_.size(); kp_idx++) {
+        initial.insert<Point3>(Symbol('l', kp_idx), Point3(points_3d_[kp_idx].x, points_3d_[kp_idx].y, points_3d_[kp_idx].z));
+
+        if (!init_prior) {
+            init_prior = true;
+
+            noiseModel::Isotropic::shared_ptr point_noise = noiseModel::Isotropic::Sigma(3, 0.1);
+            Point3 p(points_3d_[kp_idx].x, points_3d_[kp_idx].y, points_3d_[kp_idx].z);
+            graph.emplace_shared<PriorFactor<Point3>>(Symbol('l', kp_idx), p, point_noise);
+        }
+    }
+
+    result = LevenbergMarquardtOptimizer(graph, initial).optimize();
+
+    LOG(INFO) << "initial graph error = " << graph.error(initial);
+    LOG(INFO) << "final graph error = " << graph.error(result);
+
+    for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
+        cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix(), R_[pose_idx]);
+        cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).translation().vector(), t_[pose_idx]);
+    }
+
+    *R = R_[R_.size()-1];
+    *t = t_[t_.size()-1];
 
     return 0;
+}
+
+
+void BundleAdjustment::draw(float scale) {
+    cv::Mat ba_map(800, 800, CV_8UC3, cv::Scalar(0, 0, 0));
+
+    cv::line(ba_map, cv::Point(ba_map.cols / 2, 0), cv::Point(ba_map.cols / 2, ba_map.rows), cv::Scalar(0, 0, 255));
+    cv::line(ba_map, cv::Point(0, ba_map.rows / 2), cv::Point(ba_map.cols, ba_map.rows / 2), cv::Scalar(0, 0, 255));
+
+    for (const auto &p : points_3d_) {
+        cv::Point2d draw_pos = cv::Point2d(p.x * scale + ba_map.cols / 2, p.z * scale + ba_map.rows / 2);
+        cv::circle(ba_map, draw_pos, 1, cv::Scalar(0, 255, 0), 1);
+    }
+
+    for (int i=0; i < t_.size(); i++) {
+
+        const cv::Mat & t = t_[i];
+        cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
+        cv::circle(ba_map, draw_pos, 2, cv::Scalar(255, 0, 0), 2);
+
+        const cv::Mat &R = R_[i];
+        double data[3] = {0, 0, 1};
+        cv::Mat dir(3, 1, CV_64FC1, data);
+
+        dir = (R * dir) * 10 * scale;
+
+        cv::line(ba_map, draw_pos, cv::Point2d(dir.at<double>(0, 0), dir.at<double>(0, 2)) + draw_pos,
+                 cv::Scalar(0, 255, 255), 2);
+
+    }
+
+    if (!t_.empty()) {
+        const auto &t = t_[t_.size() - 1];
+        cv::Point2d draw_pos = cv::Point2d(t.at<double>(0) * scale + ba_map.cols / 2, t.at<double>(2) * scale + ba_map.rows / 2);
+        cv::circle(ba_map, draw_pos, 2, cv::Scalar(0, 0, 255), 2);
+    }
+
+    cv::imshow("BA_Map", ba_map);
+}
+
+
+
+void BundleAdjustment::drawViz(){
+
+    int count = 0;
+    for (int i = 0; i < t_.size(); i++) {
+
+        const cv::Mat & t = t_[i];
+        const cv::Mat & R = R_[i];
+
+        auto col = cv::viz::Color::red();
+        if(count % 3 == 1) {
+            col = cv::viz::Color::green();
+        } else if(count % 3 == 2) {
+            col = cv::viz::Color::blue();
+        }
+
+        cv::viz::WCameraPosition cam(cv::Matx33d(K_), 3, col);
+        viz_.showWidget("c" + std::to_string(count), cam);
+
+        cv::Affine3d pose(R, t);
+        viz_.setWidgetPose("c" + std::to_string(count), pose);
+
+        if(count ==0){
+            viz_.setViewerPose(pose);
+        }
+        count++;
+    }
+
+    if(!points_3d_.empty()) {
+        cv::viz::WCloud cloud_widget(points_3d_, cv::viz::Color::green());
+
+        viz_.showWidget("cloud", cloud_widget);
+    }
+    viz_.spinOnce(50);
 }

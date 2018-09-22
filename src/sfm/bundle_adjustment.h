@@ -4,6 +4,8 @@
 #define VO_SFM_BUNDLE_ADJUSTMENT_H
 
 #include <vector>
+#include <unordered_map>
+
 #include <opencv2/features2d.hpp>
 
 #include <opencv2/stitching/detail/motion_estimators.hpp>
@@ -20,44 +22,75 @@
 #endif
 
 
-#include "pba/src/pba/pba.h"
+#include <opencv2/viz/types.hpp>
+#include <opencv2/viz/widgets.hpp>
+#include <opencv2/viz/viz3d.hpp>
+#include <opencv2/viz/vizcore.hpp>
+
+
+#include <gtsam/geometry/Point2.h>
+#include <gtsam/inference/Symbol.h>
+#include <gtsam/slam/PriorFactor.h>
+#include <gtsam/slam/ProjectionFactor.h>
+#include <gtsam/slam/GeneralSFMFactor.h>
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+#include <gtsam/nonlinear/DoglegOptimizer.h>
+#include <gtsam/nonlinear/Values.h>
+
 
 class BundleAdjustment {
 
 public:
-    BundleAdjustment();
 
-    void init(const cv::Point2f &focal, const cv::Point2f &pp, size_t max_frames);
+    void init(const cv::Mat &K, size_t max_frames);
 
     void addKeyFrame(const VOFrame &frame);
 
     int slove(cv::Mat *R, cv::Mat *t);
+    void draw(float scale=1.0);
 
+    void drawViz();
 private:
 
-    void setPBAData(std::vector<Point3D> *pba_3d_points, std::vector<Point2D> *pba_image_points,
-                    std::vector<int> *pba_2d3d_idx, std::vector<int> *pba_cam_idx);
+    cv::viz::Viz3d viz_;
+
+    const float kMin3DDist = 10;
+    const float kMax3DDist = 50;
+    const float kMax3DWidth = 40;
+
+    void matcher();
+
+    void setPBAPoints();
 
     FeatureDetector feature_detector_;
 
-    cv::Ptr<cv::detail::FeaturesMatcher> matcher_;
 
-    std::vector<cv::Mat> projection_matrices_;
-    std::vector<CameraT> pba_cameras_;    //camera (input/ouput)
+
+    std::vector< cv::Point3d > points_3d_;
+
+    std::vector< std::vector< cv::Point2d > > points_img_;
+    std::vector< std::vector< int > > visibility_;
+    std::vector< cv::Mat > camera_matrix_;
+    std::vector< cv::Mat > dist_coeffs_;
+    std::vector< cv::Mat > R_;
+    std::vector< cv::Mat > t_;
+
+
     std::vector<cv::detail::ImageFeatures> features_;
 
-    ParallelBA pba_;
-
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
-    std::vector<Point3D> pba_3d_points_;     //3D point(iput/output)
-    std::vector<Point2D> pba_image_points_;   //measurment/projection vector
-    std::vector<int> pba_2d3d_idx_, pba_cam_idx_;  //index of camera/point for each projection
 
+    std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;
     cv::Point2f focal_;
 
+    cv::Mat K_;
     size_t max_frames_;
     int count_ = 0;
+
+    void createTracks();
+
 };
 
 

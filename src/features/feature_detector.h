@@ -16,6 +16,7 @@ public:
 
     void detectFAST(VOFrame *frame);
     void detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
+    void computeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
 
 private:
     cv::Ptr<cv::FastFeatureDetector> detector_;

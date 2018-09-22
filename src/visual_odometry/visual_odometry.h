@@ -1,5 +1,4 @@
 
-
 #ifndef VO_VO_H
 #define VO_VO_H
 
@@ -17,15 +16,11 @@
 #include "src/kalman_filter/kalman_filter.h"
 #include "src/sfm/bundle_adjustment.h"
 
-#if __has_include("opencv2/viz.hpp")
-#include <opencv2/viz.hpp>
-#endif
-
 #include "vo_frame.h"
 
 class VisualOdometry {
 public:
-    VisualOdometry(const cv::Point2f &focal, const cv::Point2f &pp, size_t min_tracked_points);
+    VisualOdometry(const cv::Mat &K, size_t min_tracked_points);
 
     void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
@@ -33,10 +28,10 @@ public:
 
     cv::Mat draw3D();
 
-
 private:
+
     const size_t kFrameBufferCapacity = 3;
-    const size_t kMinPosePoints = 8;
+    const int kBundleWindow = 7;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
@@ -47,19 +42,13 @@ private:
     boost::circular_buffer<VOFrame> frame_buffer_;
 
     cv::Scalar color_;
-
-    cv::Point2f focal_;
-    cv::Point2f pp_;
+    cv::Mat K_;
 
     cv::Mat last_keyframe_t_;
 
     KalmanFilter kf_;
-
+    int count_ = 0;
     BundleAdjustment bundle_adjustment_;
-#if __has_include("opencv2/viz.hpp")
-    cv::viz::Viz3d window_;
-#endif
-
 };
 
 

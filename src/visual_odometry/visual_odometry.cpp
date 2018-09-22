@@ -4,23 +4,16 @@
 
 #include <glog/logging.h>
 
+#include "vo_pose.h"
 
-VisualOdometry::VisualOdometry(const cv::Point2f &focal, const cv::Point2f &pp, size_t min_tracked_points) {
+VisualOdometry::VisualOdometry(const cv::Mat &K, size_t min_tracked_points) {
     tracking_ = false;
-    focal_ = focal;
-    pp_ = pp;
 
     min_tracked_points_ = min_tracked_points;
     last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
-    bundle_adjustment_.init(focal, pp, 10);
-
-#if __has_include("opencv2/viz.hpp")
-    window_ = cv::viz::Viz3d("Window");
-    window_.setWindowSize(cv::Size(800,800));
-    window_.setWindowPosition(cv::Point(150,150));
-    window_.setBackgroundColor(); // black by default
-#endif
+    bundle_adjustment_.init(K, kBundleWindow);
+    K_ = K.clone();
 }
 
 void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman) {
@@ -41,11 +34,11 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         feature_detector_.detectFAST(&vo1);
 
         VOFrame &vo0 = frame_buffer_[frame_buffer_.size() - 3];
-        if (!vo0.image.empty() && !vo1.E.empty() && !vo1.local_P.empty()) { //Backtrack for new points for scale calculation later
+        if (!vo0.image.empty() && !vo1.E.empty() && !vo1.local_pose.empty()) { //Backtrack for new points for scale calculation later
             feature_tracker_.trackPoints(&vo1, &vo0);
             //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
-            cv::findEssentialMat(vo1.points, vo0.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            vo1.points_3d = triangulate(pp_, focal_, vo0.points, vo1.points, cv::Mat::eye(3, 4, CV_64FC1), vo1.local_P);
+            cv::findEssentialMat(vo1.points, vo0.points, K_, cv::RANSAC, 0.999, 1.0, vo1.mask);
+            vo1.points_3d = triangulate(vo0.points, vo1.points, K_ * cv::Mat::eye(3, 4, CV_64FC1), K_ * vo1.local_pose);
         }
         tracking_ = true;
     }
@@ -56,36 +49,19 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         tracking_ = false;
     }
 
-    vo2.E = cv::findEssentialMat(vo2.points, vo1.points, focal_.x, pp_, cv::RANSAC, 0.999, 1.0, vo2.mask);
-    int res = recoverPose(vo2.E, vo2.points, vo1.points, vo2.local_R, vo2.local_t, focal_.x, pp_, vo2.mask);
+    updatePose(K_, &vo1, &vo2);
 
-    if (res > kMinPosePoints) {
-        hconcat(vo2.local_R.t(), -vo2.local_t, vo2.local_P);
-
-        //TODO clean 3D points here - inliers mask and remove far points and backward points.
-        vo2.points_3d = triangulate(pp_, focal_, vo1.points, vo2.points, cv::Mat::eye(3, 4, CV_64FC1), vo2.local_P);
-
-        vo2.scale = getScale(vo1, vo2, kMinPosePoints, 200);
-        LOG(INFO) << "Scale: " << vo2.scale;
-
-        vo2.pose_R = vo2.local_R * vo1.pose_R;
-        vo2.pose_t = vo1.pose_t + vo2.scale * (vo1.pose_R * vo2.local_t);
-    } else {
-        //Copy last pose
-        LOG(INFO) << "RecoverPose, too few points";
-        vo2.pose_R = vo1.pose_R.clone();
-        vo2.pose_t = vo1.pose_t.clone();
-    }
-    hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
-/*
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 3) {
+    /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 0.1) {
         bundle_adjustment_.addKeyFrame(vo2);
-        res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+
+        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        bundle_adjustment_.draw(1);
 
         if (res == 0) {
             hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
         }
         last_keyframe_t_ = vo2.pose_t;
+
     }*/
 
     //Kalman Filter
@@ -126,11 +102,10 @@ cv::Mat VisualOdometry::draw3D() {
     if (frame_buffer_.full()) {
         VOFrame &vo2 = frame_buffer_[frame_buffer_.size() - 1];
 
-
         std::vector<cv::Point3d> inliers;
         for (int j = 0; j < vo2.points_3d.size(); j++) {
 
-            if(vo2.mask.at<bool>(j) * vo2.points_3d[j].z > 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < 200) {
+            if(vo2.mask.at<bool>(j) && vo2.points_3d[j].z < 0 && cv::norm(vo2.points_3d[j] - cv::Point3d(0,0,0)) < kMax3DDist) {
                 cv::Point2d draw_pos = cv::Point2d(vo2.points_3d[j].x * vo2.scale * 20 + drawXY.cols / 2,
                                                    vo2.points_3d[j].y * vo2.scale * 20 + drawXY.rows / 2);
 
@@ -139,14 +114,8 @@ cv::Mat VisualOdometry::draw3D() {
             }
         }
 
-#if __has_include("opencv2/viz.hpp")
-        if(!vo2.points_3d.empty()) {
-            cv::viz::WCloud cloud_widget(inliers, cv::viz::Color::green());
-            window_.showWidget("point_cloud", cloud_widget);
-            window_.spinOnce();
-        }
-#endif
-
     }
     return drawXY;
 }
+
+

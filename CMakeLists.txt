@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package( OpenCV 3 REQUIRED )
+SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
+
+find_package(GTSAM REQUIRED) # Uses installed package
+include_directories(${GTSAM_INCLUDE_DIR})
+set(GTSAM_LIBRARIES gtsam)
 
 find_package( Boost 1.58 COMPONENTS program_options REQUIRED COMPONENTS system filesystem)
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
@@ -22,7 +27,6 @@ file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/utils/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kitti/*.cpp)
 
-LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/sfm/pba/bin)
 
 if(OpenCV_CUDA_VERSION)
     file(GLOB SRC_FILES_FEATURES ${PROJECT_SOURCE_DIR}/src/features/cuda/*.cpp)
@@ -32,7 +36,7 @@ endif()
 
 add_executable( vo ${SRC_FILES} ${SRC_FILES_FEATURES})
 
-target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog pba)
+target_link_libraries( vo ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog gtsam)
 
 # Setup testing
 enable_testing()
@@ -47,5 +51,5 @@ file(GLOB TEST_FILES ${PROJECT_SOURCE_DIR}/src/sfm/test/*.cpp
 # Add test cpp file
 add_executable(unit_tests ${TEST_FILES})
 
-target_link_libraries(unit_tests ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog pba gtest gtest_main)
+target_link_libraries(unit_tests ${OpenCV_LIBS} ${Boost_LIBRARIES} gflags glog gtsam gtest gtest_main)
 add_test( unit_tests unit_tests )

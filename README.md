@@ -34,6 +34,11 @@ make -j 3
 sudo make install
 ```
 
+## GSTAM 
+
+https://bitbucket.org/gtborg/gtsam
+
+
 ## PBA - Parallel Bundle Adjustment
 
 http://grail.cs.washington.edu/projects/mcba/

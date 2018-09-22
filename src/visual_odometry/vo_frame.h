@@ -1,5 +1,4 @@
 
-
 #ifndef VO_VO_FRAME_H
 #define VO_VO_FRAME_H
 
@@ -18,15 +17,15 @@ public:
     cv::Mat E; // Essential matrix
     cv::Mat local_R; // Rotation
     cv::Mat local_t; // Translation
+    cv::Mat local_pose; // Pose [R|t]
     cv::Mat mask;
 
     //Global pose
     cv::Mat pose_R = cv::Mat::eye(3, 3, CV_64FC1);
     cv::Mat pose_t = cv::Mat::zeros(3, 1, CV_64FC1);
-    cv::Mat local_P; // Projection matrix K[R|t]
-    cv::Mat pose; //global
+    cv::Mat pose = cv::Mat::eye(3, 4, CV_64FC1); //global
 
-    float scale;
+    float scale = 1.0;
 
     cv::Mat image;
     cv::cuda::GpuMat gpu_image;
