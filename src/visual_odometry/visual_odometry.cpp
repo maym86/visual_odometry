@@ -54,14 +54,15 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2) {
         bundle_adjustment_.addKeyFrame(vo2);
 
-        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
-        bundle_adjustment_.draw(1);
+        if (count_ % kBundleWindow/2 == 0) {
+            int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+            bundle_adjustment_.draw(1);
 
-        if (res == 0) {
-            hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+            if (res == 0) {
+                hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
+            }
+            last_keyframe_t_ = vo2.pose_t;
         }
-        last_keyframe_t_ = vo2.pose_t;
-
     }
 
     //Kalman Filter
