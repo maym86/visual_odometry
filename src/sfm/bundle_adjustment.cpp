@@ -331,10 +331,8 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
         cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix(), R_[pose_idx]);
         cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).translation().vector(), t_[pose_idx]);
-
-
     }
-    LOG(INFO) << result.at<Cal3_S2>(Symbol('K', 0));
+
     *R = R_[R_.size()-1];
     *t = t_[t_.size()-1];
 
