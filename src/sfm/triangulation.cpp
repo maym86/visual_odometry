@@ -79,16 +79,14 @@ float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, 
     int last = -1;
     for (int i = 0; i < max_points; i++) {
         for (int j = 0; j < 1000; j++) {
-            int index = uni(rng);
-            int vo_index = frame0.tracked_index[index];
+            int index1 = uni(rng);
+            int index0 = frame0.tracked_index[index1];
 
-            if (frame1.mask.at<bool>(index) && frame0.mask.at<bool>(vo_index) &&
-                frame1.points_3d[index].z  < 0  && cv::norm(frame1.points_3d[index] - cv::Point3d(0,0,0)) < max_3d_dist &&
-                frame0.points_3d[vo_index].z  < 0  && cv::norm(frame0.points_3d[vo_index] - cv::Point3d(0,0,0)) < max_3d_dist &&
-                index != last) {
-
-                last = index;
-                indices.push_back(index);
+            if (frame1.mask.at<bool>(index1) && frame0.mask.at<bool>(index0) &&
+                frame1.points_3d[index1].z > 0  && cv::norm(frame1.points_3d[index1]) < max_3d_dist &&
+                frame0.points_3d[index0].z > 0  && cv::norm(frame0.points_3d[index0]) < max_3d_dist && index1 != last) {
+                last = index1;
+                indices.push_back(index1);
                 break;
             }
         }

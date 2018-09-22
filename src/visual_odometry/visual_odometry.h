@@ -31,7 +31,7 @@ public:
 private:
 
     const size_t kFrameBufferCapacity = 3;
-    const int kBundleWindow = 7;
+    const int kBundleWindow = 5;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;

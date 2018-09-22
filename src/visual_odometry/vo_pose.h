@@ -4,6 +4,7 @@
 
 #include "src/sfm/triangulation.h"
 #include <glog/logging.h>
+#include "src/utils/draw.h"
 
 const size_t kMinPosePoints = 8;
 const float kMax3DDist = 200;
@@ -28,8 +29,8 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
         hconcat(new_frame->local_R, new_frame->local_t, new_frame->local_pose);
 
         new_frame->points_3d = triangulate(last_frame->points, new_frame->points,
-                                           K * cv::Mat::eye(3, 4, CV_64FC1),
-                                           K * new_frame->local_pose);
+                                           getProjectionMatrix(K, cv::Mat::eye(3, 4, CV_64FC1)),
+                                           getProjectionMatrix(K, new_frame->local_pose));
 
         new_frame->scale = getScale(*last_frame, *new_frame, kMinPosePoints, 200, kMax3DDist);
 
