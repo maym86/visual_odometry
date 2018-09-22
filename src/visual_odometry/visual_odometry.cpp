@@ -51,7 +51,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     updatePose(K_, &vo1, &vo2);
 
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2) {
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 0.1) {
         bundle_adjustment_.addKeyFrame(vo2);
 
         int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);

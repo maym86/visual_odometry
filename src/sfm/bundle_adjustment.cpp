@@ -141,7 +141,8 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
 
-    feature_detector_.detectComputeORB(frame, &image_feature.keypoints, &descriptors);
+
+    feature_detector_.computeORB(frame, &image_feature.keypoints, &descriptors);
     image_feature.descriptors = descriptors.getUMat(cv::USAGE_DEFAULT);
     image_feature.img_idx = count_++;
     image_feature.img_size = frame.image.size();
@@ -185,7 +186,7 @@ void BundleAdjustment::setPBAPoints() {
                 points.push_back(features_[cam_idx + i].keypoints[track[i]].pt);
             }
 
-            if (points.size() < 2) {
+            if (points.size() < 3) {
                 continue;
             }
 
