@@ -250,7 +250,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     Values result;
 
-    Cal3_S2 K(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.x);
+    Cal3_S2 K(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.y);
     noiseModel::Isotropic::shared_ptr measurement_noise = noiseModel::Isotropic::Sigma(2, 2.0); // pixel error in (x,y)
 
     NonlinearFactorGraph graph;
@@ -284,8 +284,6 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         // Add prior for the first image
         if (pose_idx == 0) {
             noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas((Vector(6) << Vector3::Constant(0.1), Vector3::Constant(0.1)).finished());
-
-            LOG(INFO) << pose_noise->covariance();
             graph.emplace_shared<PriorFactor<Pose3> >(Symbol('x', 0), pose, pose_noise); // add directly to graph
         }
 
@@ -307,7 +305,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     // Add a prior on the calibration.
     initial.insert(Symbol('K', 0), K);
 
-    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 100, 100, 0.01 /*skew*/, 100, 100).finished());
+    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 10, 10, 0.01 /*skew*/, 10, 10).finished());
     graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
 
     // Initialize estimate for landmarks
@@ -333,8 +331,10 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     for (size_t pose_idx=0; pose_idx < R_.size(); pose_idx++) {
         cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).rotation().matrix(), R_[pose_idx]);
         cv::eigen2cv(result.at<Pose3>(Symbol('x', pose_idx)).translation().vector(), t_[pose_idx]);
-    }
 
+
+    }
+    LOG(INFO) << result.at<Cal3_S2>(Symbol('K', 0));
     *R = R_[R_.size()-1];
     *t = t_[t_.size()-1];
 
