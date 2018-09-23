@@ -75,7 +75,6 @@ void BundleAdjustment::matcher() {
 
                 good_matches.src_img_idx = i;
                 good_matches.dst_img_idx = j;
-
                 pairwise_matches_.push_back(good_matches);
             }
         }
@@ -93,13 +92,17 @@ void BundleAdjustment::createTracks() {
         for (int i = 0; i < pwm.matches.size(); i++) {
             auto &match = pwm.matches[i];
 
-            if (pwm.inliers_mask[i] != 0) {
+            if (pwm.inliers_mask[i] != 0) { //THIS is writing over matches
                 pairs[idx_cam0][match.queryIdx] = std::pair<int,int>(pwm.dst_img_idx, match.trainIdx);
             }
         }
     }
     //TODO validate this
     tracks_.resize(camera_matrix_.size() - 1);
+
+
+    std::vector<std::vector<int>> landmarks_; //array of matched features per camera // [kp_idx][poses] -1 == not present in image
+
 
     for (int cam_idx = 0; cam_idx < pairs.size(); cam_idx++) {
 
@@ -196,6 +199,8 @@ void BundleAdjustment::setPBAPoints() {
             for (int i = 0; i < track.size(); i++) {
                 points.push_back(features_[track[i].first].keypoints[track[i].second].pt);
 
+                LOG(INFO) << track[i].first << features_[track[i].first].keypoints[track[i].second].pt;
+
                 sfm_points_2d.push_back(cv::Mat(points[i]).reshape(1));
                 cv::Mat P;
                 hconcat(R_[track[i].first], t_[track[i].first], P);
@@ -203,6 +208,8 @@ void BundleAdjustment::setPBAPoints() {
                 projection_matrices.push_back(getProjectionMatrix(K_, P));
 
             }
+
+            LOG(INFO) << "-----";
 
             if (points.size() < 3) {
                 continue;
