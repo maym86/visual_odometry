@@ -97,7 +97,8 @@ void BundleAdjustment::createTracks() {
             auto &match = pwm.matches[i];
             bool found = false;
             for(auto &row : match_matrix_){
-                if(row[pwm.src_img_idx] == match.queryIdx){
+                if(row[pwm.src_img_idx] == match.queryIdx || row[pwm.dst_img_idx] == match.trainIdx){
+                    row[pwm.src_img_idx] = match.queryIdx;
                     row[pwm.dst_img_idx] = match.trainIdx;
                     found = true;
                     break;
