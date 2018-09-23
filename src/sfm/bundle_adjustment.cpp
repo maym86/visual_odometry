@@ -105,8 +105,7 @@ void BundleAdjustment::createTracks() {
             }
 
             if(!found){
-                std::vector<int> row(10, -1);
-
+                std::vector<int> row(R_.size(), -1);
                 row[pwm.src_img_idx] = match.queryIdx;
                 row[pwm.dst_img_idx] = match.trainIdx;
                 match_matrix_.push_back(std::move(row));
@@ -271,7 +270,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     for(int kp_idx =0; kp_idx< points_img_.size(); kp_idx++){
 
-        for(int i =0; i< points_img_[i].size(); i++) {
+        for(int i =0; i< points_img_[kp_idx].size(); i++) {
             Point2 pt;
             pt(0) = points_img_[kp_idx][i].x;
             pt(1) = points_img_[kp_idx][i].y;
