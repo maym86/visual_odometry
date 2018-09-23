@@ -32,45 +32,47 @@ cv::Mat eulerAnglesToRotationMatrix(const cv::Mat &theta) {
 
 }
 
-// Checks if a matrix is a valid rotation matrix.
-bool isRotationMatrix(cv::Mat &R) {
-    cv::Mat Rt;
-    transpose(R, Rt);
-    cv::Mat shouldBeIdentity = Rt * R;
-    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
-
-    return  norm(I, shouldBeIdentity) < 1e-6;
-
-}
-
 // Calculates rotation matrix to euler angles
 // The result is the same as MATLAB except the order
 // of the euler angles ( x and z are swapped ).
-cv::Mat rotationMatrixToEulerAngles(cv::Mat &R) {
+cv::Mat rotationMatrixToEulerAngles(const cv::Mat &R) {
 
-    assert(isRotationMatrix(R));
 
-    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+    cv::Mat euler(3, 1, CV_64F);
 
-    bool singular = sy < 1e-6; // If
+    double m00 = R.at<double>(0, 0);
+    double m02 = R.at<double>(0, 2);
+    double m10 = R.at<double>(1, 0);
+    double m11 = R.at<double>(1, 1);
+    double m12 = R.at<double>(1, 2);
+    double m20 = R.at<double>(2, 0);
+    double m22 = R.at<double>(2, 2);
 
-    float x, y, z;
-    if (!singular)
-    {
-        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    double x, y, z;
+
+    // Assuming the angles are in radians.
+    if (m10 > 0.998) { // singularity at north pole
+        x = 0;
+        y = CV_PI / 2;
+        z = atan2(m02, m22);
+    }
+    else if (m10 < -0.998) { // singularity at south pole
+        x = 0;
+        y = -CV_PI / 2;
+        z = atan2(m02, m22);
     }
     else
     {
-        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = 0;
+        x = atan2(-m12, m11);
+        y = asin(m10);
+        z = atan2(-m20, m00);
     }
 
-    double data[3] = { x, y, z };
-    return cv::Mat(3, 1, CV_64F, data);
+    euler.at<double>(0) = x;
+    euler.at<double>(1) = y;
+    euler.at<double>(2) = z;
 
+    return euler;
 }
 
 

@@ -1,9 +1,9 @@
 #include "visual_odometry.h"
 
-#include "src/sfm/triangulation.h"
-
 #include <glog/logging.h>
 
+#include "src/sfm/triangulation.h"
+#include "src/utils/utils.h"
 #include "vo_pose.h"
 
 VisualOdometry::VisualOdometry(const cv::Mat &K, size_t min_tracked_points) {
@@ -52,7 +52,14 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
 
     updatePose(K_, &vo1, &vo2);
 
-    /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) >  0.1) {
+    cv::Mat R_diff = last_keyframe_R_ * vo2.pose_R.t();
+    cv::Mat angles_now  = rotationMatrixToEulerAngles(R_diff);
+
+    //Assuming vehicle rotation around y
+    double angle_diff = std::fabs(angles_now.at<double>(1));
+    LOG(INFO) << angle_diff;
+
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2 || angle_diff > 0.02) {
         bundle_adjustment_.addKeyFrame(vo2);
 
         int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
@@ -61,9 +68,9 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         if (res == 0) {
             hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
         }
-        last_keyframe_t_ = vo2.pose_t;
-
-    }*/
+        last_keyframe_t_ = vo2.pose_t.clone();
+        last_keyframe_R_ = vo2.pose_R.clone();
+    }
 
     //Kalman Filter
     //kf_.setMeasurements(vo2.pose_R, vo2.pose_t);

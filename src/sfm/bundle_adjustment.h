@@ -56,7 +56,7 @@ private:
     cv::viz::Viz3d viz_;
 
     const float kMin3DDist = 10;
-    const float kMax3DDist = 50;
+    const float kMax3DDist = 100;
     const float kMax3DWidth = 40;
 
     void matcher();
@@ -64,8 +64,6 @@ private:
     void setPBAPoints();
 
     FeatureDetector feature_detector_;
-
-
 
     std::vector< cv::Point3d > points_3d_;
 
@@ -81,7 +79,7 @@ private:
 
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
 
-    std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
+    std::vector<std::vector<std::vector<std::pair<int,int>>>> tracks_; //Vector with tracks starting at image index for vector
     cv::Point2f pp_;
     cv::Point2f focal_;
 

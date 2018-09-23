@@ -9,6 +9,6 @@ cv::Mat eulerAnglesToRotationMatrix(const cv::Mat &theta);
 
 bool isRotationMatrix(cv::Mat &R);
 
-cv::Mat rotationMatrixToEulerAngles(cv::Mat &R);
+cv::Mat rotationMatrixToEulerAngles(const cv::Mat &R);
 
 #endif //VO_UTILS_H

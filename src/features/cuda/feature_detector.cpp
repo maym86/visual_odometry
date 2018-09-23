@@ -5,6 +5,9 @@
 FeatureDetector::FeatureDetector(){
     gpu_detector_ = cv::cuda::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16, kMaxFeatures);
     descriptor_ = cv::cuda::ORB::create(2000);
+
+    akaze_ = cv::AKAZE::create();
+
 }
 
 void FeatureDetector::detectFAST(VOFrame *frame) {
@@ -38,4 +41,8 @@ void FeatureDetector::computeORB(const VOFrame &frame, std::vector<cv::KeyPoint>
 
     descriptor_->compute(frame.gpu_image, *keypoints, descriptors_gpu);
     descriptors_gpu.download(*descriptors);
+}
+
+void FeatureDetector::detectComputeAKAZE(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors){
+    akaze_->detectAndCompute(frame.image, cv::noArray(), *keypoints, *descriptors);
 }

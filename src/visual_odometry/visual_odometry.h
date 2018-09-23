@@ -31,7 +31,7 @@ public:
 private:
 
     const size_t kFrameBufferCapacity = 3;
-    const int kBundleWindow = 5;
+    const int kBundleWindow = 10;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
@@ -44,7 +44,8 @@ private:
     cv::Scalar color_;
     cv::Mat K_;
 
-    cv::Mat last_keyframe_t_;
+    cv::Mat last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64FC1);
+    cv::Mat last_keyframe_R_ = cv::Mat::eye(3, 3, CV_64FC1);
 
     KalmanFilter kf_;
     int count_ = 0;
