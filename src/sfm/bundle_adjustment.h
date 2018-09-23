@@ -7,8 +7,6 @@
 #include <unordered_map>
 
 #include <opencv2/features2d.hpp>
-
-#include <opencv2/stitching/detail/motion_estimators.hpp>
 #include <opencv2/stitching/detail/matchers.hpp>
 
 #include "src/visual_odometry/vo_frame.h"
@@ -16,9 +14,7 @@
 #if __has_include("opencv2/cudafeatures2d.hpp")
 #include "src/features/cuda/feature_detector.h"
 #else
-
 #include "src/features/feature_detector.h"
-
 #endif
 
 
@@ -59,8 +55,6 @@ private:
     const float kMax3DDist = 100;
     const float kMax3DWidth = 40;
 
-    void matcher();
-
     void setPBAPoints();
 
     FeatureDetector feature_detector_;
@@ -87,8 +81,6 @@ private:
     cv::Mat K_;
     size_t max_frames_;
     int count_ = 0;
-
-    void createTracks();
 
 };
 

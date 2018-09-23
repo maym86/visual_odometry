@@ -59,7 +59,7 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     double angle_diff = std::fabs(angles_now.at<double>(1));
     LOG(INFO) << angle_diff;
 
-    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 2 || angle_diff > 0.02) {
+    if (cv::norm(last_keyframe_t_ - vo2.pose_t) > 0.1 || angle_diff > 0.02) {
         bundle_adjustment_.addKeyFrame(vo2);
 
         int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
