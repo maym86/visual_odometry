@@ -67,8 +67,8 @@ private:
 
     std::vector< cv::Point3d > points_3d_;
 
-    std::vector< std::vector< cv::Point2d > > points_img_;
-    std::vector< std::vector< int > > visibility_;
+    std::vector< std::vector< cv::Point2f > > points_img_;
+    std::vector< std::vector< int > > cameras_visible_;
     std::vector< cv::Mat > camera_matrix_;
     std::vector< cv::Mat > dist_coeffs_;
     std::vector< cv::Mat > R_;
@@ -79,7 +79,8 @@ private:
 
     std::vector<cv::detail::MatchesInfo> pairwise_matches_;
 
-    std::vector<std::vector<std::vector<std::pair<int,int>>>> tracks_; //Vector with tracks starting at image index for vector
+    std::vector<std::vector<int>> match_matrix_;
+
     cv::Point2f pp_;
     cv::Point2f focal_;
 
