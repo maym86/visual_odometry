@@ -47,3 +47,36 @@ http://grail.cs.washington.edu/projects/mcba/
 cd src/sfm/pba/
 make
 ```
+
+## Dataset 
+
+I am using the greyscale kitti data for testing http://www.cvlibs.net/datasets/kitti/eval_odometry.php
+
+The data is organized as follows:
+```
+kitti
+└── dataset
+    ├── poses
+    │   ├── 00.txt
+    │   ├── 01.txt
+    │   ├── 02.txt
+    │   ├── 03.txt
+    │   .
+    │   .
+    │   .
+    ├── results
+    │   ├── 00
+    │   ├── 01
+    │   ├── 02
+    │   ├── 03
+    │   ├── 06
+    │   └── 08
+    └── sequences
+        ├── 00
+        ├── 01
+        ├── 02
+        ├── 03
+        .
+        .
+        .
+```
