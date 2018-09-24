@@ -35,6 +35,8 @@ DEFINE_validator(poses, &validatePath);
 
 DEFINE_string(seq, "00", "Sequence number");
 
+DEFINE_bool(ba, false, "Run with bundle adjustment");
+
 DEFINE_string(image_dir, "image_0", "Image directory");
 
 DEFINE_double(image_scale, 0.75, "Rescale input image");

@@ -15,10 +15,17 @@ public:
     FeatureDetector();
 
     void detectFAST(VOFrame *frame);
+
+    void detectFAST(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints);
+
     void detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
     void computeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
 
+    void detectComputeAKAZE(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
+
 private:
+    cv::Ptr<cv::AKAZE> akaze_;
+
     cv::Ptr<cv::FastFeatureDetector> detector_;
     cv::Ptr<cv::ORB> descriptor_;
 };
