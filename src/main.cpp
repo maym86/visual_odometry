@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
     bool done = false;
 
-    VisualOdometry vo(K, FLAGS_min_tracked_features);
+    VisualOdometry vo(K, FLAGS_min_tracked_features, FLAGS_ba);
     bool resize = true;
 
     std::vector<cv::Point2d> positions;

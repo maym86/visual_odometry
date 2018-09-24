@@ -1,18 +1,19 @@
 #include "visual_odometry.h"
 
-#include "src/sfm/triangulation.h"
-
 #include <glog/logging.h>
 
+#include "src/sfm/triangulation.h"
+#include "src/utils/utils.h"
 #include "vo_pose.h"
 
-VisualOdometry::VisualOdometry(const cv::Mat &K, size_t min_tracked_points) {
+VisualOdometry::VisualOdometry(const cv::Mat &K, size_t min_tracked_points, bool ba) {
     tracking_ = false;
 
     min_tracked_points_ = min_tracked_points;
-    last_keyframe_t_ = cv::Mat::zeros(3, 1, CV_64F); //TODO init elswhere so first point is added
     frame_buffer_ = boost::circular_buffer<VOFrame>(kFrameBufferCapacity);
     bundle_adjustment_.init(K, kBundleWindow);
+    ba_ = ba;
+
     K_ = K.clone();
 }
 
@@ -50,21 +51,17 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
         tracking_ = false;
     }
 
-    updatePose(K_, &vo1, &vo2);
+    int res = updatePose(K_, &vo1, &vo2);
 
-    /*if (cv::norm(last_keyframe_t_ - vo2.pose_t) >  0.1) {
+    if(res == 0 && ba_) { //TODO this doesnt work well yet
         bundle_adjustment_.addKeyFrame(vo2);
-
-        int res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
+        res = bundle_adjustment_.slove(&vo2.pose_R, &vo2.pose_t);
         bundle_adjustment_.draw(1);
 
         if (res == 0) {
             hconcat(vo2.pose_R, vo2.pose_t, vo2.pose);
         }
-        last_keyframe_t_ = vo2.pose_t;
-
-    }*/
-
+    }
     //Kalman Filter
     //kf_.setMeasurements(vo2.pose_R, vo2.pose_t);
     //cv::Mat k_R, k_t;

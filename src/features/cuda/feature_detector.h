@@ -17,8 +17,15 @@ public:
     FeatureDetector();
 
     void detectFAST(VOFrame *frame);
+
+    void detectFAST(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints);
+
     void detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
+
     void computeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
+
+    void detectComputeAKAZE(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
+
 
 private:
     const int kMaxFeatures = 10000;
@@ -26,6 +33,9 @@ private:
     cv::Ptr<cv::cuda::FastFeatureDetector> gpu_detector_;
 
     cv::Ptr<cv::cuda::ORB> descriptor_;
+
+    cv::Ptr<cv::AKAZE> akaze_;
+
 
 };
 

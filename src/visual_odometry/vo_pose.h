@@ -9,7 +9,7 @@
 const size_t kMinPosePoints = 8;
 const float kMax3DDist = 200;
 
-inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame) {
+inline int updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame) {
 
     new_frame->E = cv::findEssentialMat(last_frame->points, new_frame->points, K, cv::RANSAC, 0.999, 1.0,
                                         new_frame->mask);
@@ -39,13 +39,17 @@ inline void updatePose(const cv::Mat &K, VOFrame *last_frame, VOFrame *new_frame
 
         hconcat(new_frame->pose_R, new_frame->pose_t, new_frame->pose);
 
+        return 0;
     } else {
         //Copy last pose
         LOG(INFO) << "RecoverPose, too few points";
         new_frame->pose_R = last_frame->pose_R.clone();
         new_frame->pose_t = last_frame->pose_t.clone();
         new_frame->pose = last_frame->pose.clone();
+
+        return 1;
     }
+
 }
 
 #endif //VO_VO_POSE_H

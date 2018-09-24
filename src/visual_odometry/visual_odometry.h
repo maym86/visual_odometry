@@ -20,7 +20,7 @@
 
 class VisualOdometry {
 public:
-    VisualOdometry(const cv::Mat &K, size_t min_tracked_points);
+    VisualOdometry(const cv::Mat &K, size_t min_tracked_points, bool ba);
 
     void addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose_kalman);
 
@@ -31,7 +31,7 @@ public:
 private:
 
     const size_t kFrameBufferCapacity = 3;
-    const int kBundleWindow = 5;
+    const int kBundleWindow = 4;
 
     FeatureDetector feature_detector_;
     FeatureTracker feature_tracker_;
@@ -44,11 +44,10 @@ private:
     cv::Scalar color_;
     cv::Mat K_;
 
-    cv::Mat last_keyframe_t_;
-
     KalmanFilter kf_;
-    int count_ = 0;
+
     BundleAdjustment bundle_adjustment_;
+    bool ba_;
 };
 
 
