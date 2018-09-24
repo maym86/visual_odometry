@@ -143,7 +143,7 @@ void BundleAdjustment::setPBAPoints() {
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    if (points_3d_.size() < 3) {
+    if (points_3d_.size() < 5 * R_.size()) {
         return 1;
     }
 
