@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
     bool done = false;
 
-    VisualOdometry vo(K, FLAGS_min_tracked_features);
+    VisualOdometry vo(K, FLAGS_min_tracked_features, FLAGS_ba);
     bool resize = true;
 
     std::vector<cv::Point2d> positions;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
         cv::imshow("Features", vo.drawMatches(image));
         cv::imshow("3D", vo.draw3D());
 
-        char key = static_cast<char>(cv::waitKey(1));
+        char key = static_cast<char>(cv::waitKey(33));
         if (key == 27) {
             done = true;
             break;

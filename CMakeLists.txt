@@ -23,6 +23,7 @@ file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kalman_filter/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/sfm/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/utils/*.cpp
+                    ${PROJECT_SOURCE_DIR}/src/matcher/*.cpp
                     ${PROJECT_SOURCE_DIR}/src/kitti/*.cpp)
 
 LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/sfm/pba/bin)
@@ -45,6 +46,7 @@ include_directories(${GTEST_INCLUDE_DIR})
 file(GLOB TEST_FILES ${PROJECT_SOURCE_DIR}/src/sfm/test/*.cpp
                      ${PROJECT_SOURCE_DIR}/src/sfm/triangulation.cpp
                      ${PROJECT_SOURCE_DIR}/src/features/*.cpp
+                     ${PROJECT_SOURCE_DIR}/src/matcher/*.cpp
                      ${PROJECT_SOURCE_DIR}/src/utils/*.cpp)
 
 # Add test cpp file

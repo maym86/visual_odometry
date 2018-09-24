@@ -46,8 +46,6 @@ private:
 
     const float kMax3DDist = 100;
 
-    void matcher();
-
     void setPBAPoints();
 
     FeatureDetector feature_detector_;
@@ -70,15 +68,14 @@ private:
 
     cvsba::Sba sba_;
 
-    std::vector<std::vector<std::vector<int>>> tracks_; //Vector with tracks starting at image index for vector
+    std::vector<std::vector<int>> match_matrix_;
+
     cv::Point2f pp_;
     cv::Point2f focal_;
 
     cv::Mat K_;
     size_t max_frames_;
     int count_ = 0;
-
-    void createTracks();
 
 };
 
