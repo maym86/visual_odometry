@@ -129,7 +129,6 @@ void BundleAdjustment::setPBAPoints() {
     }
     drawViz();
     imshow("tracks", tracks);
-    LOG(INFO) << points_3d_.size() << " " << points_img_.size();
 }
 
 cv::Point2f BundleAdjustment::reprojectPoint(const int cam, cv::Point3d &point_3d) const {
@@ -149,7 +148,9 @@ cv::Point2f BundleAdjustment::reprojectPoint(const int cam, cv::Point3d &point_3
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
+    LOG(INFO) << points_3d_.size();
     if (points_3d_.size() < 5 * R_.size()) {
+        LOG(INFO) << "Low number of triangulated points: " << points_3d_.size();
         return 1;
     }
 
