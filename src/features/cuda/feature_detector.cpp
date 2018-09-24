@@ -22,6 +22,12 @@ void FeatureDetector::detectFAST(VOFrame *frame) {
 }
 
 
+void FeatureDetector::detectFAST(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints) {
+    gpu_detector_->detect( frame.gpu_image, *keypoints);
+}
+
+
+
 void FeatureDetector::detectComputeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors){
     cv::cuda::GpuMat descriptors_gpu;
     descriptor_->detectAndCompute(frame.gpu_image, cv::noArray(), *keypoints, descriptors_gpu);

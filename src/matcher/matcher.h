@@ -12,4 +12,7 @@ std::vector<cv::detail::MatchesInfo>  matcher(const std::vector<cv::detail::Imag
 
 std::vector<std::vector<int>> createMatchMatrix(const std::vector<cv::detail::MatchesInfo> pairwise_matches, const int pose_count);
 
+
+std::vector<cv::detail::MatchesInfo> matcher(const std::vector<cv::Mat> &images, const std::vector<cv::detail::ImageFeatures> &features, const cv::Mat &K);
+
 #endif //VO_MATCHER_H

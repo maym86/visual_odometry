@@ -99,7 +99,7 @@ void BundleAdjustment::setPBAPoints() {
 
         cv::Mat_<double> point_3d_mat;
         cv::sfm::triangulatePoints(sfm_points_2d, projection_matrices, point_3d_mat);
-        cv::Point3d points3d(point_3d_mat);
+        cv::Point3d point_3d(point_3d_mat);
 
         cv::Mat p_origin = R_[cams[0]].t() * (point_3d_mat - t_[cams[0]]);
         double dist = cv::norm(p_origin);
@@ -107,9 +107,23 @@ void BundleAdjustment::setPBAPoints() {
         if (dist < kMax3DDist && p_origin.at<double>(2) > kMin3DDist &&
             std::fabs(p_origin.at<double>(0)) < kMax3DWidth) {
 
-            points_3d_.push_back(points3d);
+            points_3d_.push_back(point_3d);
             cameras_visible_.push_back(cams);
             points_img_.push_back(points);
+
+
+            //Reprojection error for INFO
+            std::vector<cv::Point2f> image_points;
+            std::vector<cv::Point3f> object_points;
+
+            object_points.push_back(point_3d);
+
+            cv::Mat R = R_[cams[0]].t();
+            cv::Mat t = -R_[cams[0]].t()*t_[cams[0]];
+
+            cv::projectPoints(object_points,R,t, K_, cv::noArray(), image_points );
+            //LOG(INFO) << image_points[0] << points[0] << " " << cv::norm(cv::Mat(image_points[0]) - cv::Mat(points[0]));
+
 
             for (int i = 0; i < points.size(); i++) {
                 if (i < points.size() - 1) {
@@ -137,7 +151,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
     Values result;
 
-    Cal3_S2::shared_ptr K(new Cal3_S2(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.y));
+    Cal3_S2 K(focal_.x, focal_.y, 0 /* skew */, pp_.x, pp_.y);
     noiseModel::Isotropic::shared_ptr measurement_noise = noiseModel::Isotropic::Sigma(2, 2.0); // pixel error in (x,y)
 
     NonlinearFactorGraph graph;
@@ -171,7 +185,7 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
         // Add prior for the first image
         if (pose_idx == 0) {
             noiseModel::Diagonal::shared_ptr pose_noise = noiseModel::Diagonal::Sigmas(
-                    (Vector(6) << Vector3::Constant(0.1), Vector3::Constant(0.1)).finished());
+                    (Vector(6) << Vector3::Constant(0.01), Vector3::Constant(0.01)).finished()); // Noise for x,y,z and rad on roll,pitch,yaw
             graph.push_back(PriorFactor<Pose3>(Symbol('x', pose_idx), pose, pose_noise)); // add directly to graph
         }
 
@@ -186,17 +200,18 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
             pt(1) = points_img_[kp_idx][i].y;
             int pose_idx = cameras_visible_[kp_idx][i];
 
-            graph.push_back(GenericProjectionFactor<Pose3, Point3, Cal3_S2>(pt, measurement_noise,
-                    Symbol('x', pose_idx), Symbol('l', kp_idx), K));
+            graph.emplace_shared<GeneralSFMFactor2<Cal3_S2>>(pt, measurement_noise, Symbol('x', pose_idx), Symbol('l', kp_idx), Symbol('K', 0));
         }
 
     }
 
     // Add a prior on the calibration.
-    //initial.insert(Symbol('K', 0), K);
 
-    //noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 10, 10, 0.01 /*skew*/, 10, 10).finished());
-    //graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
+    initial.insert(Symbol('K', 0), K);
+
+    noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 5, 5, 0 , 5, 5).finished());
+    graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
+
 
     // Initialize estimate for landmarks
     bool init_prior = false;

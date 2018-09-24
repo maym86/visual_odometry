@@ -2,9 +2,9 @@
 #include "matcher.h"
 #include <cv.hpp>
 
+const float kMatchRatio = 0.7;
 
 std::vector<cv::detail::MatchesInfo> matcher(const std::vector<cv::detail::ImageFeatures> &features, const cv::Mat &K) {
-    const float ratio = 0.8; // As in Lowe's paper; can be tuned
 
 
     cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
@@ -15,8 +15,7 @@ std::vector<cv::detail::MatchesInfo> matcher(const std::vector<cv::detail::Image
         for (int j = i+1; j < std::min(static_cast<int>(features.size()),i+3) ; j++) {
 
             std::vector<std::vector<cv::DMatch>> matches;
-            matcher->knnMatch(features[i].descriptors, features[j].descriptors, matches,
-                              2);  // Find two nearest matches
+            matcher->knnMatch(features[i].descriptors, features[j].descriptors, matches, 2); // Find two nearest matches
 
             cv::detail::MatchesInfo good_matches;
 
@@ -24,7 +23,7 @@ std::vector<cv::detail::MatchesInfo> matcher(const std::vector<cv::detail::Image
             std::vector<cv::Point2f> points1;
             for (int k = 0; k < matches.size(); k++) {
 
-                if (matches[k][0].distance < ratio * matches[k][1].distance) {
+                if (matches[k][0].distance < kMatchRatio * matches[k][1].distance) {
 
                     const auto &p0 = features[i].keypoints[matches[k][0].queryIdx];
                     const auto &p1 = features[j].keypoints[matches[k][0].trainIdx];

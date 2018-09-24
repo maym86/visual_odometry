@@ -52,7 +52,7 @@ private:
     cv::viz::Viz3d viz_;
 
     const float kMin3DDist = 10;
-    const float kMax3DDist = 100;
+    const float kMax3DDist = 200;
     const float kMax3DWidth = 40;
 
     void setPBAPoints();
