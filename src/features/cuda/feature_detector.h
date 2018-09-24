@@ -25,7 +25,7 @@ public:
     void computeORB(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
 
     void detectComputeAKAZE(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
-
+    void detectComputeBRISK(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors);
 
 private:
     const int kMaxFeatures = 10000;
@@ -35,6 +35,7 @@ private:
     cv::Ptr<cv::cuda::ORB> descriptor_;
 
     cv::Ptr<cv::AKAZE> akaze_;
+    cv::Ptr<cv::BRISK> brisk_;
 
 
 };
