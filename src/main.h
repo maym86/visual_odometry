@@ -39,8 +39,8 @@ DEFINE_bool(ba, false, "Run with bundle adjustment");
 
 DEFINE_string(image_dir, "image_0", "Image directory");
 
-DEFINE_double(image_scale, 0.75, "Rescale input image");
-DEFINE_double(min_tracked_features, 750, "Rescale input image");
+DEFINE_double(image_scale, 0.5, "Rescale input image");
+DEFINE_double(min_tracked_features, 500, "Rescale input image");
 
 DEFINE_string(calib_file, "calib.txt", "Calibration data file");
 DEFINE_int32(calib_line_number, 0, "Calibration data line number");

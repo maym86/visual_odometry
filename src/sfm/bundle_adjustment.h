@@ -82,6 +82,7 @@ private:
     size_t max_frames_;
     int count_ = 0;
 
+    cv::Point2f reprojectPoint(const int cam, cv::Point3d &point_3d) const;
 };
 
 
