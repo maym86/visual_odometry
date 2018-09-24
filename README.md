@@ -38,16 +38,6 @@ sudo make install
 
 https://bitbucket.org/gtborg/gtsam
 
-
-## PBA - Parallel Bundle Adjustment
-
-http://grail.cs.washington.edu/projects/mcba/
-
-```
-cd src/sfm/pba/
-make
-```
-
 ## Dataset 
 
 I am using the greyscale kitti data for testing http://www.cvlibs.net/datasets/kitti/eval_odometry.php
