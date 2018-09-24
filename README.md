@@ -52,7 +52,15 @@ make
 
 I am using the greyscale kitti data for testing http://www.cvlibs.net/datasets/kitti/eval_odometry.php
 
-The data is organized as follows:
+The data is organized as follows and the arguments point at the relevant directories to process the data:
+```
+--data_dir kitti/dataset/sequences/
+--res_dir kitti/dataset/results 
+--poses kitti/dataset/poses
+--seq "00"
+--calib_file calib.txt
+```
+
 ```
 kitti
 └── dataset
@@ -61,22 +69,37 @@ kitti
     │   ├── 01.txt
     │   ├── 02.txt
     │   ├── 03.txt
-    │   .
-    │   .
-    │   .
     ├── results
     │   ├── 00
+    │   │   ├── err
+    │   │   ├── plot
     │   ├── 01
+    │   │   ├── err
+    │   │   └── plot
     │   ├── 02
+    │   │   └── plot
     │   ├── 03
-    │   ├── 06
-    │   └── 08
+    │   │   └── plot
     └── sequences
         ├── 00
+        │   ├── calib.txt
+        │   ├── image_0
+        │   ├── image_1
+        │   └── times.txt
         ├── 01
+        │   ├── calib.txt
+        │   ├── image_0
+        │   ├── image_1
+        │   └── times.txt
         ├── 02
-        ├── 03
-        .
-        .
-        .
+        │   ├── calib.txt
+        │   ├── image_0
+        │   ├── image_1
+        │   └── times.txt
+        └── 03
+            ├── calib.txt
+            ├── image_0
+            ├── image_1
+            └── times.txt
+       
 ```
