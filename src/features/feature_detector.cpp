@@ -3,7 +3,9 @@
 FeatureDetector::FeatureDetector(){
     detector_ = cv::FastFeatureDetector::create(20, true, cv::FastFeatureDetector::TYPE_9_16);
     descriptor_ = cv::ORB::create(5000);
+
     akaze_ = cv::AKAZE::create();
+    brisk_ = cv::BRISK::create();
 
 }
 
@@ -43,4 +45,8 @@ void FeatureDetector::computeORB(const VOFrame &frame, std::vector<cv::KeyPoint>
 
 void FeatureDetector::detectComputeAKAZE(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors){
     akaze_->detectAndCompute(frame.image, cv::noArray(), *keypoints, *descriptors);
+}
+
+void FeatureDetector::detectComputeBRISK(const VOFrame &frame, std::vector<cv::KeyPoint> *keypoints, cv::Mat *descriptors){
+    brisk_->detectAndCompute(frame.image, cv::noArray(), *keypoints, *descriptors);
 }

@@ -113,16 +113,8 @@ void BundleAdjustment::setPBAPoints() {
 
 
             //Reprojection error for INFO
-            std::vector<cv::Point2f> image_points;
-            std::vector<cv::Point3f> object_points;
-
-            object_points.push_back(point_3d);
-
-            cv::Mat R = R_[cams[0]].t();
-            cv::Mat t = -R_[cams[0]].t()*t_[cams[0]];
-
-            cv::projectPoints(object_points,R,t, K_, cv::noArray(), image_points );
-            //LOG(INFO) << image_points[0] << points[0] << " " << cv::norm(cv::Mat(image_points[0]) - cv::Mat(points[0]));
+            //cv::Point2f proj_point = reprojectPoint(cams[0], point_3d);
+            //LOG(INFO) << proj_point << points[0] << " " << cv::norm(cv::Mat(proj_point) - cv::Mat(points[0]));
 
 
             for (int i = 0; i < points.size(); i++) {
@@ -137,13 +129,28 @@ void BundleAdjustment::setPBAPoints() {
     }
     drawViz();
     imshow("tracks", tracks);
-    LOG(INFO) << points_3d_.size() << " " << points_img_.size();
+}
+
+cv::Point2f BundleAdjustment::reprojectPoint(const int cam, cv::Point3d &point_3d) const {
+    std::vector<cv::Point2f> image_points;
+    std::vector<cv::Point3f> object_points;
+
+    object_points.push_back(point_3d);
+
+    cv::Mat R = R_[cam].t();
+    cv::Mat t = -R_[cam].t() * t_[cam];
+
+    projectPoints(object_points, R, t, K_, cv::noArray(), image_points );
+
+    return image_points[0];
 }
 
 
 int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
 
-    if (points_3d_.size() < 3) {
+    LOG(INFO) << points_3d_.size();
+    if (points_3d_.size() < 5 * R_.size()) {
+        LOG(INFO) << "Low number of triangulated points: " << points_3d_.size();
         return 1;
     }
 
