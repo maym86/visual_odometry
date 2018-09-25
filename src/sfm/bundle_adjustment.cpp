@@ -27,6 +27,7 @@ void BundleAdjustment::init(const cv::Mat &K, size_t max_frames) {
 }
 
 void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
+    images_.push_back(frame.image.clone());
 
     camera_matrix_.push_back(K_.clone());
     R_.push_back(frame.pose_R.clone());
@@ -35,6 +36,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
 
     cv::detail::ImageFeatures image_feature;
     cv::Mat descriptors;
+
 
     feature_detector_.detectComputeAKAZE(frame, &image_feature.keypoints, &descriptors);
 
@@ -50,6 +52,7 @@ void BundleAdjustment::addKeyFrame(const VOFrame &frame) {
         R_.erase(R_.begin());
         t_.erase(t_.begin());
         dist_coeffs_.erase(dist_coeffs_.begin());
+        images_.erase(images_.begin());
     }
 
     pairwise_matches_ = matcher(features_, K_);
@@ -65,7 +68,7 @@ void BundleAdjustment::setPBAPoints() {
     cameras_visible_.clear();
     points_img_.clear();
 
-    cv::Mat tracks = cv::Mat::zeros(pp_.y * 2, pp_.x * 2, CV_8UC3);
+    cv::Mat tracks = images_[images_.size()-1].clone();
 
     for (const auto &row : match_matrix_) {
 
