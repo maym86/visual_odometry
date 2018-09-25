@@ -6,9 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package( OpenCV 3 REQUIRED )
-SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
 
-find_package(GTSAM REQUIRED) # Uses installed package
+#GTSAM
+SET(CMAKE_MODULE_PATH ${CMAKE_INSTALL_PREFIX}/lib/cmake/ )
+find_package(GTSAM REQUIRED)
 include_directories(${GTSAM_INCLUDE_DIR})
 set(GTSAM_LIBRARIES gtsam)
 
