@@ -87,11 +87,8 @@ void BundleAdjustment::setPBAPoints() {
             sfm_points_2d.push_back(cv::Mat(points[cam_idx]).reshape(1));
             cv::Mat P;
             hconcat(R_[cam_idx], t_[cam_idx], P);
-
             projection_matrices.push_back(getProjectionMatrix(K_, P));
-
         }
-
 
         if (points.size() < 3) {
             continue;
@@ -111,11 +108,9 @@ void BundleAdjustment::setPBAPoints() {
             cameras_visible_.push_back(cams);
             points_img_.push_back(points);
 
-
             //Reprojection error for INFO
             //cv::Point2f proj_point = reprojectPoint(cams[0], point_3d);
             //LOG(INFO) << proj_point << points[0] << " " << cv::norm(cv::Mat(proj_point) - cv::Mat(points[0]));
-
 
             for (int i = 0; i < points.size(); i++) {
                 if (i < points.size() - 1) {
@@ -123,8 +118,6 @@ void BundleAdjustment::setPBAPoints() {
                     cv::circle(tracks, points[i], 2, cv::Scalar(255, 0, 0), 2);
                 }
             }
-
-
         }
     }
     drawViz();
@@ -213,12 +206,10 @@ int BundleAdjustment::slove(cv::Mat *R, cv::Mat *t) {
     }
 
     // Add a prior on the calibration.
-
     initial.insert(Symbol('K', 0), K);
 
     noiseModel::Diagonal::shared_ptr cal_noise = noiseModel::Diagonal::Sigmas((Vector(5) << 5, 5, 0 , 5, 5).finished());
     graph.emplace_shared<PriorFactor<Cal3_S2>>(Symbol('K', 0), K, cal_noise);
-
 
     // Initialize estimate for landmarks
     bool init_prior = false;
