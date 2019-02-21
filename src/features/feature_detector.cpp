@@ -14,8 +14,6 @@ void FeatureDetector::detectFAST(VOFrame *frame) {
 
     detector_->detect(frame->image, keypoints);
 
-    frame->points.clear();
-
     for(const auto &kp : keypoints){
         frame->points.push_back(kp.pt);
     }

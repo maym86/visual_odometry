@@ -33,19 +33,14 @@ void VisualOdometry::addImage(const cv::Mat &image, cv::Mat *pose, cv::Mat *pose
     if (!tracking_) {
         color_ = cv::Scalar(255, 0, 0);
         feature_detector_.detectFAST(&vo1);
-
-        VOFrame &vo0 = frame_buffer_[frame_buffer_.size() - 3];
-        if (!vo0.image.empty() && !vo1.E.empty() && !vo1.local_pose.empty()) { //Backtrack for new points for scale calculation later
-            feature_tracker_.trackPoints(&vo1, &vo0);
-            //This finds good correspondences (mask) using RANSAC - we already have ProjectionMat from vo0 to vo1
-            cv::findEssentialMat(vo1.points, vo0.points, K_, cv::RANSAC, 0.999, 1.0, vo1.mask);
-            vo1.points_3d = triangulate(vo0.points, vo1.points, getProjectionMatrix(K_, cv::Mat::eye(3, 4, CV_64FC1)),
-                    getProjectionMatrix(K_, vo1.local_pose));
-        }
         tracking_ = true;
     }
 
-    feature_tracker_.trackPoints(&vo1, &vo2);
+    if (feature_tracker_.trackPoints(&vo1, &vo2) < 0) { //TODO set correctly
+        frame_buffer_.erase(frame_buffer_.end() - 1);
+        return;
+    }
+
 
     if (vo2.points.size() < min_tracked_points_) {
         tracking_ = false;

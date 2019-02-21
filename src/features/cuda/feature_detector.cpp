@@ -16,7 +16,6 @@ void FeatureDetector::detectFAST(VOFrame *frame) {
 
     gpu_detector_->detect(frame->gpu_image, keypoints);
 
-    frame->points.clear();
     for(const auto &kp : keypoints){
         frame->points.push_back(kp.pt);
     }

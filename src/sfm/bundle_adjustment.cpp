@@ -87,10 +87,12 @@ void BundleAdjustment::setPBAPoints() {
 
             points.push_back(features_[cam_idx].keypoints[row[cam_idx]].pt);
 
-            sfm_points_2d.push_back(cv::Mat(points[cam_idx]).reshape(1));
-            cv::Mat P;
-            hconcat(R_[cam_idx], t_[cam_idx], P);
-            projection_matrices.push_back(getProjectionMatrix(K_, P));
+            if(points.size() < 3){
+                sfm_points_2d.push_back(cv::Mat(points[cam_idx]).reshape(1));
+                cv::Mat P;
+                hconcat(R_[cam_idx], t_[cam_idx], P);
+                projection_matrices.push_back(getProjectionMatrix(K_, P));
+            }
         }
 
         if (points.size() < 3) {

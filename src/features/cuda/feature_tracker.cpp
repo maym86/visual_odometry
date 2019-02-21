@@ -6,7 +6,7 @@ FeatureTracker::FeatureTracker(){
      gpu_optical_flow_ = cv::cuda::SparsePyrLKOpticalFlow::create();
 }
 
-void FeatureTracker::trackPoints(VOFrame *vo0, VOFrame *vo1) {
+float FeatureTracker::trackPoints(VOFrame *vo0, VOFrame *vo1) {
     cv::cuda::GpuMat now_points_gpu;
     cv::cuda::GpuMat status_gpu;
 
@@ -26,5 +26,5 @@ void FeatureTracker::trackPoints(VOFrame *vo0, VOFrame *vo1) {
     cv::Mat status_mat(1, status_gpu.cols, CV_8UC1, (void*)&status[0]);
     status_gpu.download(status_mat);
 
-    removePoints(vo0, vo1, &status);
+    return removePoints(vo0, vo1, &status);
 }

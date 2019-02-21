@@ -66,27 +66,25 @@ std::vector<cv::Point3d> triangulate(const std::vector<cv::Point2f> &points0, co
 }
 
 float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, size_t max_points, float max_3d_dist) {
-
     if (frame0.points_3d.empty() || frame1.points_3d.empty()) {
         LOG(INFO) << "O point size";
         return 1;
     }
-
     //Pick random points in prev that match to two points in now;
-    //TODO Maybe just use all the points???
-    std::uniform_int_distribution<int> uni(0, static_cast<int>(frame1.points.size() - 1));
+    LOG(INFO) << frame0.points_3d.size();
+
+    std::uniform_int_distribution<int> uni(0, static_cast<int>(frame0.points_3d.size() - 1));
     std::vector<int> indices;
+
     int last = -1;
     for (int i = 0; i < max_points; i++) {
-        for (int j = 0; j < 1000; j++) {
-            int index1 = uni(rng);
-            int index0 = frame0.tracked_index[index1];
-
-            if (frame1.mask.at<bool>(index1) && frame0.mask.at<bool>(index0) &&
-                frame1.points_3d[index1].z > 0  && cv::norm(frame1.points_3d[index1]) < max_3d_dist &&
-                frame0.points_3d[index0].z > 0  && cv::norm(frame0.points_3d[index0]) < max_3d_dist && index1 != last) {
-                last = index1;
-                indices.push_back(index1);
+        for (int j = 0; j < 10; j++) {
+            int idx = uni(rng);
+            if (frame1.mask.at<bool>(idx) && frame0.mask.at<bool>(idx) &&
+                frame1.points_3d[idx].z > 0 && cv::norm(frame1.points_3d[idx]) < max_3d_dist &&
+                frame0.points_3d[idx].z > 0 && cv::norm(frame0.points_3d[idx]) < max_3d_dist && idx != last) {
+                last = idx;
+                indices.push_back(idx);
                 break;
             }
         }
@@ -97,28 +95,22 @@ float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, 
         return 1;
     }
 
-    double vo0_sum = 0;
-    double vo1_sum = 0;
-    int count = 0;
+    std::vector<double> scales;
     for (int i = 0; i < indices.size() - 1; i++) {
         int i0 = indices[i];
         int i1 = indices[i + 1];
-        double n0 = cv::norm(frame0.points_3d[frame0.tracked_index[i0]] - frame0.points_3d[frame0.tracked_index[i1]]);
+        double n0 = cv::norm(frame0.points_3d[i0] - frame0.points_3d[i1]);
         double n1 = cv::norm(frame1.points_3d[i0] - frame1.points_3d[i1]);
-
-        if (!std::isnan(n0) && !std::isnan(n1) && !std::isinf(n0) && !std::isinf(n1) && std::fabs(n1 - n0) < 200) {
-            vo0_sum += n0;
-            vo1_sum += n1;
-            count++;
-        }
+        scales.push_back(n0 / n1);
     }
 
-    if (count < min_points) {
-        LOG(INFO) << "Counts less than min: " << count << " < " << min_points;
+    if (scales.size() < min_points) {
+        LOG(INFO) << "Counts less than min: " << scales.size() << " < " << min_points;
         return 1;
     }
 
-    auto scale = static_cast<float>(vo1_sum / vo0_sum);
+    std::sort(scales.begin(), scales.end());
+    auto scale = scales[scales.size() / 2];  //static_cast<float>(vo0_sum / vo1_sum);
 
     if (std::isnan(scale) || std::isinf(scale) || scale == 0) {
         LOG(INFO) << "Scale invalid: " << scale;
@@ -126,7 +118,8 @@ float getScale(const VOFrame &frame0, const VOFrame &frame1, size_t min_points, 
     }
 
     if (scale > 5) {
-        LOG(WARNING) << "Scale is large: " << scale;
+        LOG(WARNING) << "Scale is too large: " << scale;
+        return 1;  //TODO figure out why - Likely Mismatches?
     }
 
     return scale;
