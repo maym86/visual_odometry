@@ -68,6 +68,8 @@ private:
     std::vector< cv::Mat > R_;
     std::vector< cv::Mat > t_;
 
+    std::vector< cv::Mat > images_;
+
 
     std::vector<cv::detail::ImageFeatures> features_;
 

@@ -14,7 +14,7 @@ class FeatureTracker {
 public:
     FeatureTracker();
 
-    void trackPoints(VOFrame *vo0,  VOFrame *vo1);
+    float trackPoints(VOFrame *vo0,  VOFrame *vo1);
 
 private:
 

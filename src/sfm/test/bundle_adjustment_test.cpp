@@ -73,7 +73,7 @@ TEST(BundleAdjustmentTest, Passes) {
     frames[3].image = cv::imread("../src/sfm/test/test_data/000003.png");
     frames[4].image = cv::imread("../src/sfm/test/test_data/000007.png");
 
-    run(frames, 20);
+    run(frames, 0);
 }
 
 
@@ -84,7 +84,7 @@ TEST(BundleAdjustmentTestStraight, Passes) {
     frames[1].image = cv::imread("../src/sfm/test/test_data/000003.png");
     frames[2].image = cv::imread("../src/sfm/test/test_data/000007.png");
 
-    run(frames, 20);
+    run(frames, 0);
 }
 
 
